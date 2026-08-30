@@ -1,0 +1,16 @@
+import type { LucideIcon } from "lucide-react";
+import type { KpiStripItem } from "@/components/common/KpiStrip";
+export type DashboardStat = { key: string; title: string; value: string; description: string; trend: number; trendType: "positive" | "negative" | "neutral"; icon: LucideIcon; iconBackgroundColor?: string; iconColor?: string; decorationColor?: string; trendBackgroundColor?: string; trendColor?: string };
+export type DashboardTransaction = { id: string; customer: string; type: string; amount: string; status: "Successful" | "Pending" | "Failed"; date: string };
+export type RevenuePoint = { month: string; revenue: number };
+export type SimActivationPoint = { date: string; mtn: number; glo: number; airtel: number; t2: number };
+export type DashboardKpiItem = KpiStripItem;
+export type DashboardQuickAction = { key: string; label: string; icon: LucideIcon; iconBackgroundColor: string; iconColor: string };
+export type DashboardAlert = { key: string; title: string; detail: string; meta: string; actionLabel: string; backgroundColor: string; borderColor: string; indicatorColor: string };
+export type SimStockMetric = { key: string; label: string; value: string; description: string; highlight?: boolean };
+export type NetworkStock = { key: string; label: string; value: string; percentage: number; color: string; tabBackground: string; tabBorder: string; tabText: string };
+export type DashboardActivity = { key: string; title: string; detail: string; timestamp: string; icon: LucideIcon; iconBackgroundColor: string; iconColor: string; badge?: string; badgeColor?: string };
+export type AgentPerformance = { key: string; name: string; phone: string; location: string; role: "Agency Partner" | "Corporate Agent"; simsActivated: number; revenue: string; activationRate: number; rating: "Excellent" | "Good" | "Average"; action: "View" | "Coach" };
+export type RevenueBreakdownItem = { key: string; label: string; value: string; color: string };
+export type AgentDistributionItem = { key: string; label: string; value: string; percentage: number; color: string };
+export type WeeklyReviewItem = { key: string; label: string; value: string; trend: string; tone: "positive" | "negative" };
