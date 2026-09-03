@@ -1,8 +1,8 @@
 import {
   Clock,
-  Cpu,
+  // Cpu,
   Grid2X2,
-  Hash,
+  // Hash,
   Headphones,
   InfinityIcon,
   Receipt,
@@ -10,7 +10,7 @@ import {
   Share2,
   Smartphone,
   Store,
-  Wallet,
+  // Wallet,
   List,
   type LucideIcon,
 } from "lucide-react";
@@ -46,11 +46,11 @@ export const userNavigation: NavigationSection[] = [
   {
     items: [
       { id: "dashboard", label: "Dashboard", href: appPaths.dashboard, icon: Grid2X2 },
-      { id: "wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
+      // { id: "wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
       { id: "bill-payments", label: "Bill Payments", href: appPaths.billPayments, icon: Receipt, hasChevron: true },
       { id: "device-sim", label: "Device SIM", href: appPaths.deviceSim, icon: Smartphone, hasChevron: true },
-      { id: "esim", label: "eSIM", href: appPaths.esim, icon: Cpu },
-      { id: "virtual-number", label: "Virtual Number", href: appPaths.virtualNumber, icon: Hash },
+      // { id: "esim", label: "eSIM", href: appPaths.esim, icon: Cpu },
+      // { id: "virtual-number", label: "Virtual Number", href: appPaths.virtualNumber, icon: Hash },
       { id: "zero-limit-sim", label: "Zero Limit SIM", href: appPaths.zeroLimitSim, icon: InfinityIcon, hasChevron: true },
       { id: "paylater", label: "PayLater", href: appPaths.payLater, icon: Clock },
       { id: "marketplace", label: "Marketplace", href: appPaths.marketplace, icon: Store },
