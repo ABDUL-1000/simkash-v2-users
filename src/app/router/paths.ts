@@ -4,6 +4,10 @@ export const appPaths = {
   wallet: "/wallet",
   billPayments: "/bill-payments",
   deviceSim: "/device-sim",
+  deviceSimDetails: (simId?: string) => ({
+    format: `/device-sim/:simId`,
+    path: `/device-sim/${simId ? encodeURIComponent(simId) : "07022222222"}`,
+  }),
   esim: "/esim",
   virtualNumber: "/virtual-number",
   zeroLimitSim: "/zero-limit-sim",
@@ -13,6 +17,14 @@ export const appPaths = {
   referrals: "/referrals",
   settings: "/settings",
   support: "/support",
+  supportTicketDetails: (id?: string) => ({
+    format: "/support/tickets/:id",
+    path: `/support/tickets/${id ? encodeURIComponent(id) : ""}`,
+  }),
+  faqArticle: (slug?: string) => ({
+    format: "/support/faq/:slug",
+    path: `/support/faq/${slug ? encodeURIComponent(slug) : ""}`,
+  }),
 
   // SIM Hub & Device paths
   posSim: "/device-sim/pos",

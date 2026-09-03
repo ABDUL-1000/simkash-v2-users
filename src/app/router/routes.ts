@@ -2,6 +2,7 @@ import { posSimRoutes } from "@/features/sim-hub/pos-sim/pos-sim.routes";
 import type { TRouteData } from "./route-types";
 import { dashboardRoutes } from "@/features/dashboard/dashboard.routes";
 import { billPaymentsRoutes } from "@/features/bill-payments/bill-payments.routes";
+import { deviceSimRoutes } from "@/features/device-sim/device-sim.routes";
 import { SimRecordRoutes } from "@/features/sim-hub/sim-record/sim-record.routes";
 import { SimSearchRoutes } from "@/features/sim-hub/sim-search/sim-search.routes";
 import { cctvSimRoutes } from "@/features/sim-hub/cctv-sim/cctv-sim.routes";
@@ -11,6 +12,7 @@ import { renewalMonitoringRoutes } from "@/features/sim-hub/renewal-monitoring/r
 import { SimSwapRoutes } from "@/features/sim-swap/sim-swap.routes";
 import { DeviceHubRoutes } from "@/features/device-hub/device-hub.routes";
 import { ZeroLimitSimRoutes } from "@/features/zero-limit-sim/zero-limit.routes";
+import { payLaterRoutes } from "@/features/paylater/paylater.routes";
 import { AgencyPartnerRoutes } from "@/features/distribution/agency-partner/agency-partner.routes";
 import { SubPartnerRoutes } from "@/features/distribution/sub-partners/sub-partners.routes";
 import { CorporateAgentRoutes } from "@/features/distribution/coperate-agents/corperate-agents.routes";
@@ -26,10 +28,12 @@ import { GeneralManagerRoutes } from "@/features/distribution/general-managers/g
 import { RegionalManagerRoutes } from "@/features/distribution/regional-managers/regional-managers.routes";
 import { OperationalManagerRoutes } from "@/features/distribution/operational-managers/operational-managers.routes";
 import { SolarCctvDesignerRoutes } from "@/features/solar-cctv-designer/solar-cctv-designer.routes";
+import { transactionsRoutes } from "@/features/transactions/transactions.routes";
 
 export const appRouteConfig: TRouteData[] = [
   ...dashboardRoutes,
   ...billPaymentsRoutes,
+  ...deviceSimRoutes,
   ...posSimRoutes,
   ...cctvSimRoutes,
   ...SimRecordRoutes,
@@ -40,6 +44,8 @@ export const appRouteConfig: TRouteData[] = [
   ...DeviceHubRoutes,
   ...SimSwapRoutes,
   ...ZeroLimitSimRoutes,
+  ...payLaterRoutes,
+  ...transactionsRoutes,
   ...AgencyPartnerRoutes,
   ...SubPartnerRoutes,
   ...CorporateAgentRoutes,

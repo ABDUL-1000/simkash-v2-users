@@ -46,7 +46,7 @@ export function BulkDataModal({ open, onOpenChange }: BulkDataModalProps) {
     if (!inputPhone) return;
     const isValid = inputPhone.length >= 10;
     const newItem: RecipientData = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       phone: inputPhone,
       network: isValid ? network : "—",
       bundle: isValid ? defaultBundle : "—",

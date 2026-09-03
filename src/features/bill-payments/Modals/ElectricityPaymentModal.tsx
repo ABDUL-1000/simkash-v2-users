@@ -15,6 +15,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
   const [meterType, setMeterType] = useState<"prepaid" | "postpaid">("prepaid");
   const [meterNumber, setMeterNumber] = useState<string>("00123456789");
   const [isVerified, setIsVerified] = useState(true);
+  console.log("isVerified:", setIsVerified);
   const [amount, setAmount] = useState<string>("3000");
   const [selectedPreset, setSelectedPreset] = useState<number | null>(3000);
 

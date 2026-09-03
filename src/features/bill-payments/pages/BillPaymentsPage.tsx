@@ -4,10 +4,28 @@ import { BuyAirtimeModal } from "../Modals/BuyAirtimeModal";
 import { BuyDataModal } from "../Modals/BuyDataModal";
 import { ElectricityPaymentModal } from "../Modals/ElectricityPaymentModal";
 import { CableTvPaymentModal } from "../Modals/CableTvPaymentModal";
+import { AirtimeToCashModal } from "../Modals/AirtimeToCashModal";
+import { DataToCashModal } from "../Modals/DataToCashModal";
+import { BulkAirtimeModal } from "../Modals/BulkAirtimeModal";
+import { BulkDataModal } from "../Modals/BulkDataModal";
+import { JambPinModal } from "../Modals/JambPinModal";
+import { WaecCheckerModal } from "../Modals/WaecCheckerModal";
 
 export default function BillPaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeModal, setActiveModal] = useState<"airtime" | "data" | "electricity" | "cable" | null>(null);
+  const [activeModal, setActiveModal] = useState<
+    | "airtime"
+    | "data"
+    | "electricity"
+    | "cable"
+    | "airtime-to-cash"
+    | "data-to-cash"
+    | "bulk-airtime"
+    | "bulk-data"
+    | "jamb"
+    | "waec"
+    | null
+  >(null);
 
   const services = [
     {
@@ -141,15 +159,7 @@ export default function BillPaymentsPage() {
   );
 
   const handleServiceClick = (id: string) => {
-    if (id === "data") {
-      setActiveModal("data");
-    } else if (id === "electricity") {
-      setActiveModal("electricity");
-    } else if (id === "cable") {
-      setActiveModal("cable");
-    } else {
-      setActiveModal("airtime");
-    }
+    setActiveModal(id as any);
   };
 
   return (
@@ -238,7 +248,7 @@ export default function BillPaymentsPage() {
         </div>
       </div>
 
-      {/* Service Modals */}
+      {/* 10 Service Modals */}
       <BuyAirtimeModal
         open={activeModal === "airtime"}
         onOpenChange={(open) => setActiveModal(open ? "airtime" : null)}
@@ -254,6 +264,30 @@ export default function BillPaymentsPage() {
       <CableTvPaymentModal
         open={activeModal === "cable"}
         onOpenChange={(open) => setActiveModal(open ? "cable" : null)}
+      />
+      <AirtimeToCashModal
+        open={activeModal === "airtime-to-cash"}
+        onOpenChange={(open) => setActiveModal(open ? "airtime-to-cash" : null)}
+      />
+      <DataToCashModal
+        open={activeModal === "data-to-cash"}
+        onOpenChange={(open) => setActiveModal(open ? "data-to-cash" : null)}
+      />
+      <BulkAirtimeModal
+        open={activeModal === "bulk-airtime"}
+        onOpenChange={(open) => setActiveModal(open ? "bulk-airtime" : null)}
+      />
+      <BulkDataModal
+        open={activeModal === "bulk-data"}
+        onOpenChange={(open) => setActiveModal(open ? "bulk-data" : null)}
+      />
+      <JambPinModal
+        open={activeModal === "jamb"}
+        onOpenChange={(open) => setActiveModal(open ? "jamb" : null)}
+      />
+      <WaecCheckerModal
+        open={activeModal === "waec"}
+        onOpenChange={(open) => setActiveModal(open ? "waec" : null)}
       />
     </div>
   );

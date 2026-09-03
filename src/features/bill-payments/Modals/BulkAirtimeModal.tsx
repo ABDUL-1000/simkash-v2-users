@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Download, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Download, X } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
@@ -48,7 +48,7 @@ export function BulkAirtimeModal({ open, onOpenChange }: BulkAirtimeModalProps) 
     if (!inputPhone) return;
     const isValid = inputPhone.length >= 10;
     const newItem: RecipientItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       phone: inputPhone,
       network: isValid ? network : "—",
       amount: isValid ? Number(inputAmount || defaultAmount) : 0,
