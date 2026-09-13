@@ -368,7 +368,7 @@ export default function TransactionHistoryPage() {
       </div>
 
       {/* 4. Timeframe Pills */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar whitespace-nowrap">
         {timeframes.map((tf) => {
           const isSelected = activeTimeframe === tf;
           return (
@@ -401,7 +401,7 @@ export default function TransactionHistoryPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-[#8C909B]">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#8C909B]">
           <span>Active filters:</span>
           <span className="rounded-full bg-[#EFF4F8] border border-[#2563EB] px-2.5 py-0.5 text-[10px] font-bold text-[#2563EB]">
             This Month ✕

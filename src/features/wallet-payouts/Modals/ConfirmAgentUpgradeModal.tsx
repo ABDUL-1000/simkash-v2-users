@@ -76,8 +76,8 @@ export function ConfirmAgentUpgradeModal({
           <label className="mb-1.5 block font-bold uppercase tracking-wide text-[#64748B] text-[10px]">
             WHAT CHANGES
           </label>
-          <div className="rounded-2xl border border-[#E2E8F0] overflow-hidden text-xs">
-            <table className="w-full text-left border-collapse">
+          <div className="rounded-2xl border border-[#E2E8F0] overflow-x-auto text-xs">
+            <table className="w-full min-w-[400px] text-left border-collapse">
               <thead>
                 <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] font-bold text-[#64748B]">
                   <th className="p-3">Attribute</th>

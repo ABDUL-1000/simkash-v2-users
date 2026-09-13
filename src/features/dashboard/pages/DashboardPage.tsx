@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const [moreServicesModalOpen, setMoreServicesModalOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6  ">
       {/* Wallet Balance & PayLater Hero Card */}
       <WalletHeroCard
         onTopUpClick={() => setTopUpModalOpen(true)}

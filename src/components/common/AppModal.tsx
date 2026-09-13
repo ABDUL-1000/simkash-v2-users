@@ -4,17 +4,17 @@ import { APP_MODAL_ACTION_STYLES } from "@/constants/modal";
 import type { AppModalAction, AppModalSize } from "@/types/modal.types";
 
 const SIZE_WIDTH: Record<AppModalSize, number | string> = {
-  sm: 420,
-  md: 560,
-  lg: 720,
-  xl: 960,
+  sm: "min(420px, calc(100vw - 1rem))",
+  md: "min(560px, calc(100vw - 1rem))",
+  lg: "min(720px, calc(100vw - 1rem))",
+  xl: "min(960px, calc(100vw - 1rem))",
   full: "calc(100vw - 2rem)",
 };
 
 type AppModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: ReactNode;
+  title?: ReactNode;
   description?: ReactNode;
   descriptionColor?: string;
   children: ReactNode;
@@ -45,6 +45,12 @@ export function AppModal({
       closable={showCloseButton}
       centered
       width={SIZE_WIDTH[size]}
+      styles={{
+        body: {
+          maxHeight: "calc(100vh - 9rem)",
+          overflowY: "auto",
+        },
+      }}
       title={
         <div>
           <p className="text-lg font-bold text-[#0F1F36] sm:text-xl">{title}</p>

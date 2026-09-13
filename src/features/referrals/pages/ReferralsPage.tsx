@@ -416,7 +416,7 @@ export default function ReferralsPage() {
               </div>
 
               {/* Status Tabs */}
-              <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6]">
+              <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] max-w-full overflow-x-auto whitespace-nowrap">
                 {["All", "In Progress", "Closed", "Rejected"].map((tab) => {
                   const isSelected = activeTab === tab;
                   return (
@@ -459,7 +459,7 @@ export default function ReferralsPage() {
 
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[650px] text-left text-xs">
                 <thead className="bg-[#F8FAFC] font-bold text-[#8C909B] border-b border-[#E2ECF6]">
                   <tr>
                     <th className="py-3 px-3">Business</th>

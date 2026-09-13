@@ -1,7 +1,25 @@
 export const appPaths = {
   root: "/",
   dashboard: "/dashboard",
+  userDashboard: "/dashboard",
+  stateCoordinatorDashboard: "/dashboard/state-coordinator",
+  agencyPartnerDashboard: "/dashboard/agency-partner",
+  regionalManagerDashboard: "/dashboard/regional-manager",
+  rmSimInventory: "/sim-inventory/rm",
+  rmRedistributeSims: "/sim-inventory/rm/redistribute",
+  rmScDetails: (id?: string) => ({
+    format: "/dashboard/regional-manager/sc/:id",
+    path: `/dashboard/regional-manager/sc/${id ? encodeURIComponent(id) : "aminat-okafor"}`,
+  }),
+  simActivation: "/sim-activation",
   wallet: "/wallet",
+  scWallet: "/wallet/sc",
+  scSimInventory: "/sim-inventory/sc",
+  scNetwork: "/network/sc",
+  scActivationDetails: (id?: string) => ({
+    format: "/network/sc/activation/:id",
+    path: `/network/sc/activation/${id ? encodeURIComponent(id) : "ACT-2026-008472"}`,
+  }),
   billPayments: "/bill-payments",
   deviceSim: "/device-sim",
   deviceSimDetails: (simId?: string) => ({
@@ -66,6 +84,13 @@ export const appPaths = {
   agencyPartnerSimInventory: (id?: string) => ({
     format: "/distribution/agency-partner/:id/sim-inventory",
     path: `/distribution/agency-partner/${id ? encodeURIComponent(id) : ""}/sim-inventory`,
+  }),
+  agencyPartnerStock: "/distribution/agency-partner/stock",
+  apSimStock: "/sim-stock",
+  apCustomers: "/agency-partner/customers",
+  apCustomerDetails: (id?: string) => ({
+    format: "/agency-partner/customers/:id",
+    path: `/agency-partner/customers/${id ? encodeURIComponent(id) : "cust-1"}`,
   }),
   agenciesManagement: "/distribution/agencies-management",
 
@@ -163,6 +188,8 @@ export const appPaths = {
     path: `/finance/performance/agent/${id ? encodeURIComponent(id) : ""}`,
   }),
   bonusTracking: "/finance/bonus-tracking",
+  scBonusTracker: "/bonus/sc",
+  scBonusHistory: "/bonus/sc/history",
 
   simManagement: {
     simSearch: "/sim-management/sim-search",

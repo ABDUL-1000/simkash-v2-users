@@ -147,6 +147,7 @@ export function SimInventoryTable<T extends { id: React.Key }>({
             dataSource={rows}
             loading={loading}
             scroll={{ x: "max-content" }}
+            tableLayout="auto"
             locale={{ emptyText: emptyState ?? "No records found." }}
             rowSelection={
               selectable

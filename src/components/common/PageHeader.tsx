@@ -25,7 +25,7 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p className="text-lg font-bold tracking-tight text-[#0F1F36] sm:text-[16px]">
+        <p className=" font-bold tracking-tight text-[#0F1F36] text-xs sm:text-lg">
           {title}
         </p>
         {description && (

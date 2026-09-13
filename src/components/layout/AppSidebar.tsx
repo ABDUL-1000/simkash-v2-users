@@ -1,5 +1,6 @@
-import { ChevronRight, LogOut, ArrowRight } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { ChevronDown, ChevronRight, LogOut, ArrowRight } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sidebar,
@@ -30,9 +31,88 @@ function NavigationRow({
 }: {
   item: NavigationItem;
   collapsed: boolean;
-  onNavigate: () => void;
+  onNavigate?: () => void;
 }) {
+  const location = useLocation();
   const Icon = item.icon;
+  const hasChildren = Boolean(item.children && item.children.length > 0);
+
+  // Check if any child is active
+  const isChildActive =
+    hasChildren &&
+    item.children?.some(
+      (child) =>
+        Boolean(child.href) &&
+        (child.href === location.pathname ||
+          (child.href !== "/" && location.pathname.startsWith(child.href!)))
+    );
+  const [expanded, setExpanded] = useState(isChildActive);
+
+  useEffect(() => {
+    if (isChildActive) {
+      setExpanded(true);
+    }
+  }, [isChildActive]);
+
+  if (hasChildren && !collapsed) {
+    return (
+      <div className="space-y-1">
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className={cn(
+            "group flex w-full min-h-10 items-center gap-3 rounded-xl px-3 text-[13px] transition-colors",
+            isChildActive
+              ? "bg-[#EFF4F8] font-bold text-[#1F3A5F]"
+              : "text-[#66738C] hover:bg-slate-100 hover:text-[#0F152A]"
+          )}
+        >
+          {Icon && <Icon className="size-4 shrink-0 opacity-80" />}
+          <span className="min-w-0 flex-1 truncate font-medium text-left">{item.label}</span>
+          {item.badge && (
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-bold",
+                item.badgeTone === "danger"
+                  ? "bg-red-100 text-red-600"
+                  : "bg-blue-100 text-blue-600"
+              )}
+            >
+              {item.badge}
+            </span>
+          )}
+          {expanded ? (
+            <ChevronDown className="size-3.5 text-slate-400 opacity-60" />
+          ) : (
+            <ChevronRight className="size-3.5 text-slate-400 opacity-60" />
+          )}
+        </button>
+
+        {expanded && (
+          <div className="pl-6 space-y-1">
+            {item.children?.map((child) => (
+              <NavLink
+                key={child.id}
+                to={child.href || "#"}
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  cn(
+                    "flex min-h-8 items-center gap-2 rounded-lg px-3 text-xs transition-colors",
+                    isActive
+                      ? "bg-[#2563EB] font-bold text-white shadow-xs"
+                      : "text-[#66738C] hover:bg-slate-100 hover:text-[#0F152A]"
+                  )
+                }
+              >
+                <span className="truncate">{child.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const row = (
     <>
       {Icon && <Icon className="size-4 shrink-0 opacity-80 group-aria-[current=page]:text-[#2563EB]" />}
@@ -43,7 +123,7 @@ function NavigationRow({
             "rounded-full px-2 py-0.5 text-xs font-bold",
             item.badgeTone === "danger"
               ? "bg-red-100 text-red-600"
-              : "bg-blue-100 text-blue-600",
+              : "bg-blue-100 text-blue-600"
           )}
         >
           {item.badge}
@@ -67,7 +147,7 @@ function NavigationRow({
           collapsed && "justify-center px-0",
           isActive
             ? "bg-[#EFF4F8] font-bold text-[#1F3A5F] aria-[current=page]:bg-[#EFF4F8]"
-            : "text-[#66738C] hover:bg-slate-100 hover:text-[#0F152A]",
+            : "text-[#66738C] hover:bg-slate-100 hover:text-[#0F152A]"
         )
       }
     >
@@ -120,11 +200,16 @@ export function AppSidebar() {
           </div>
         )}
 
-        {/* Navigation items */}
+        {/* Navigation items grouped by sections */}
         <nav aria-label="User navigation" className="space-y-4">
           {userNavigation.map((section, idx) => (
             <div key={idx} className="space-y-1">
               {idx > 0 && <div className="my-2 border-t border-[#E2ECF6]" />}
+              {section.label && !collapsed && (
+                <p className="px-3 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
+                  {section.label}
+                </p>
+              )}
               {section.items.map((item) => (
                 <NavigationRow
                   key={item.id}

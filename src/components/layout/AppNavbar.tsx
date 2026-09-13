@@ -23,7 +23,7 @@ export function AppNavbar() {
       <SidebarTrigger className="shrink-0 text-[#0F152A]" />
 
       <div className="min-w-0">
-        <h1 className="text-xl font-bold text-[#0F152A] sm:text-2xl">
+        <h1 className="text-xs sm:text-lg font-bold text-[#0F152A] ">
           {title}
         </h1>
       </div>

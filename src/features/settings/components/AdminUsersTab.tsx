@@ -20,7 +20,7 @@ export function AdminUsersTab({ onAddAdminClick }: AdminUsersTabProps) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full min-w-[600px] text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] font-bold text-[#64748B]">
                 <th className="p-3">NAME</th>

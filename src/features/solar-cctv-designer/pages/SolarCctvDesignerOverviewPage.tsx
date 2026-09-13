@@ -239,8 +239,8 @@ export default function SolarCctvDesignerOverviewPage() {
             </div>
 
             {/* Table */}
-            <div className="overflow-hidden rounded-2xl border border-[#E2ECF6]">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto rounded-2xl border border-[#E2ECF6]">
+              <table className="w-full min-w-[600px] text-left text-xs">
                 <thead className="bg-[#F8FAFC] font-bold text-[#8C909B] border-b border-[#E2ECF6]">
                   <tr>
                     <th className="py-3 px-4">Appliance</th>

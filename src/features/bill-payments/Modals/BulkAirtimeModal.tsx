@@ -256,8 +256,8 @@ export function BulkAirtimeModal({ open, onOpenChange }: BulkAirtimeModalProps) 
           </div>
 
           {/* Numbers Table */}
-          <div className="overflow-hidden rounded-2xl border border-[#E2ECF6]">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto rounded-2xl border border-[#E2ECF6]">
+            <table className="w-full min-w-[500px] text-left text-xs">
               <thead className="bg-[#F8FAFC] font-bold text-[#8C909B] border-b border-[#E2ECF6]">
                 <tr>
                   <th className="py-2.5 px-3">#</th>

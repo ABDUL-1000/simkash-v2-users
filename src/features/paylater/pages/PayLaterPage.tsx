@@ -106,7 +106,7 @@ export default function PayLaterPage() {
           <div className="h-3 w-full overflow-hidden rounded-full bg-[#E2ECF6]">
             <div className="h-full w-[50%] rounded-full bg-[#EF4444]" />
           </div>
-          <div className="flex justify-between text-[11px] font-medium text-[#8C909B]">
+          <div className="flex flex-wrap gap-1 justify-between text-[11px] font-medium text-[#8C909B]">
             <span>₦1,000 used</span>
             <span>50% of credit used</span>
             <span>₦1,000 available</span>
@@ -265,8 +265,8 @@ export default function PayLaterPage() {
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-[#E2ECF6] bg-white shadow-xs">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto rounded-2xl border border-[#E2ECF6] bg-white shadow-xs">
+            <table className="w-full min-w-[600px] text-left text-xs">
               <thead className="bg-[#F8FAFC] font-bold text-[#8C909B] border-b border-[#E2ECF6]">
                 <tr>
                   <th className="py-3 px-4">Service</th>

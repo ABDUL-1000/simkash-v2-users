@@ -17,7 +17,7 @@ export function ApplianceInputTable() {
       <h3 className="text-sm font-bold text-[#0F172A]">Appliance Input</h3>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse">
+        <table className="w-full min-w-[500px] text-left text-xs border-collapse">
           <thead>
             <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] font-bold text-[#64748B]">
               <th className="p-2.5">APPLIANCE</th>

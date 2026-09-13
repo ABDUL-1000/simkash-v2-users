@@ -43,6 +43,12 @@ export default defineConfig([
 ])
 
 ```
+use the colors. in colors.ts for every colors to be used, also make sure every components is mobile responsive
+setup the pages and the necessary modals, i have a resubale comonents for modals, also add success modal to the neccessary modals, 
+make sure the code is well strctured into components not having too much lines of codes in one file, 
+also make every component mobile responsive, 
+the remaining modals will be added, 
+make sure every button is linked correctly to the accurate modal
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 

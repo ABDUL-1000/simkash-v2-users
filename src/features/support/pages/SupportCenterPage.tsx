@@ -225,7 +225,7 @@ export default function SupportCenterPage() {
             </div>
 
             {/* Ticket Filter Tabs */}
-            <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] w-fit">
+            <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] max-w-full overflow-x-auto whitespace-nowrap">
               {["All", "Open", "In Progress", "Resolved", "Closed"].map((tab) => {
                 const isSelected = activeTicketTab === tab;
                 return (
@@ -436,7 +436,7 @@ export default function SupportCenterPage() {
         </div>
 
         {/* FAQ Tabs */}
-        <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] w-fit overflow-x-auto">
+        <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] max-w-full overflow-x-auto whitespace-nowrap">
           {["All", "Wallet", "SIM", "ZeroLimit SIM", "Bills", "Marketplace", "Account"].map((tab) => {
             const isSelected = activeFaqTab === tab;
             return (

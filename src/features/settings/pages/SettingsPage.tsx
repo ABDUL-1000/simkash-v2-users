@@ -44,11 +44,11 @@ export default function SettingsPage() {
         {/* Left Column — Navigation Tabs Sidebar (4 cols on lg, 3 on xl) */}
         <div className="lg:col-span-4 xl:col-span-3">
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-3 shadow-xs space-y-1">
-            <h4 className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#8C909B]">
+            <h4 className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8C909B] hidden lg:block">
               Settings
             </h4>
 
-            <div className="space-y-1">
+            <div className="flex lg:flex-col overflow-x-auto gap-1 lg:gap-1 whitespace-nowrap pb-1 lg:pb-0">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -56,14 +56,14 @@ export default function SettingsPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all relative ${
+                    className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all relative shrink-0 lg:shrink lg:w-full ${
                       isActive
                         ? "bg-[#F8FAFC] text-[#0F152A]"
                         : "text-[#66738C] hover:bg-slate-50 hover:text-[#0F152A]"
                     }`}
                   >
                     {isActive && (
-                      <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#2563EB]" />
+                      <span className="hidden lg:block absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#2563EB]" />
                     )}
                     <span className={isActive ? "text-[#2563EB]" : "text-[#8C909B]"}>
                       {tab.icon}
