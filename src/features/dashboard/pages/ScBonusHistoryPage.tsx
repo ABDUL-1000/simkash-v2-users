@@ -164,7 +164,7 @@ export function ScBonusHistoryPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6 ">
       {/* Header Bar */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">

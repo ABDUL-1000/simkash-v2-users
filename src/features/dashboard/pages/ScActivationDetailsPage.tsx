@@ -25,7 +25,7 @@ export function ScActivationDetailsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 ">
       {/* Top Header & Breadcrumb Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-[#E2ECF6] pb-4">
         <div className="flex items-center gap-3">

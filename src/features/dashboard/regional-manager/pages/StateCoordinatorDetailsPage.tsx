@@ -55,7 +55,7 @@ export function StateCoordinatorDetailsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="space-y-6">
       {/* Top Breadcrumbs & Back Link */}
       <div className="flex items-center justify-between">
         <button

@@ -233,7 +233,7 @@ export function StateCoordinatorDashboardPage() {
   };
 
   return (
-    <div className="w-full min-w-0 space-y-6">
+    <div className="space-y-6">
       {/* 1. Critical Out of Stock Alert Banner */}
       <div className="rounded-2xl border border-[#F7D2D7] bg-[#FFF7F8] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3 min-w-0">

@@ -221,7 +221,7 @@ export function ScWalletPage() {
   ];
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 ">
       {/* Top Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
