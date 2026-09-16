@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, AlertTriangle, ChevronRight } from "lucide-react";
 import type { StateCoordinatorItem } from "../types/regional-manager.types";
 import { APP_COLORS } from "@/constants/colors";
+import { appPaths } from "@/app/router/paths";
 
 type ScFilterTab = "All" | "Active" | "At Risk" | "Suspended";
 
@@ -18,6 +20,7 @@ export function RmScTable({
   onViewSc,
   onDistributeSc,
 }: RmScTableProps) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ScFilterTab>("All");
 
   const filteredScs = useMemo(() => {
@@ -202,8 +205,8 @@ export function RmScTable({
       <div className="border-t border-[#E2ECF6] p-3.5 text-center">
         <button
           type="button"
-          onClick={() => setActiveTab("All")}
-          className="inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline"
+          onClick={() => navigate(appPaths.rmCustomers)}
+          className="inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline cursor-pointer"
         >
           <span>View all 12 SCs</span>
           <ChevronRight className="size-3.5" />

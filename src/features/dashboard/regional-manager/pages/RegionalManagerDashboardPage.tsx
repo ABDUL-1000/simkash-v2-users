@@ -120,7 +120,7 @@ export function RegionalManagerDashboardPage() {
             onDistributeStock={() => handleOpenDistribute()}
             onSendBonusReminder={() => setBonusReminderModalOpen(true)}
             onRequestStockAdmin={() => setRequestAdminStockModalOpen(true)}
-            onViewNetworkReport={() => {}}
+            onViewNetworkReport={() => navigate(appPaths.rmNetworkPerformance)}
             onRedistributeSims={() => navigate(appPaths.rmSimInventory)}
           />
         </div>

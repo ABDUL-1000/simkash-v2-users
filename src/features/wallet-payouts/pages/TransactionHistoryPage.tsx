@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Download, ArrowRight } from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import { SimInventoryTable } from "@/components/sim/sim-inventory-table";
-import { DashboardStats } from "@/features/distribution/agency-partner/components/DashboardStat";
+import { DashboardStats } from "@/features/dashboard/corporate-agent/agency-partner/components/DashboardStat";
 import { appPaths } from "@/app/router/paths";
 
 import { FlagTransactionModal } from "../Modals/FlagTransactionModal";

@@ -35,21 +35,31 @@ export interface AccountTimelineEvent {
 
 export interface StateCoordinatorItem {
   id: string;
+  code?: string;
+  rank?: number;
   initials: string;
   name: string;
   phone: string;
   email: string;
   state: string;
+  status?: "Active" | "At Risk" | "Suspended" | "Pending";
   lga?: string;
   address?: string;
   onboardedBy?: string;
   onboardedOn?: string;
+  sinceDate?: string;
   kycStatus?: "Verified" | "Pending" | "Unverified";
   bank?: string;
   stock: number;
   stockStatus: ScStockStatus;
   apsCount: number;
   activationsCount: number;
+  avgPerAp?: number;
+  commission?: string;
+  totalSales?: string;
+  bonusEarned?: string;
+  distributedSims?: number;
+  totalAllocatedSims?: number;
   bonusStatus: ScBonusStatus;
   lastActive: string;
   avatarBg?: string;

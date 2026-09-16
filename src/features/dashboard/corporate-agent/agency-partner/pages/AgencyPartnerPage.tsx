@@ -184,7 +184,7 @@ export default function AgencyPartnerPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-[#0F152A]">
-            My Agency Partners
+            My Agency PartnersSSSS
           </h1>
           <p className="text-xs font-medium text-[#66738C]">
             All Agency Partners onboarded by you in your SC network

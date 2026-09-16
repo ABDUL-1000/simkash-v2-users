@@ -13,7 +13,7 @@ import { SimSwapRoutes } from "@/features/sim-swap/sim-swap.routes";
 import { DeviceHubRoutes } from "@/features/device-hub/device-hub.routes";
 import { ZeroLimitSimRoutes } from "@/features/zero-limit-sim/zero-limit.routes";
 import { payLaterRoutes } from "@/features/paylater/paylater.routes";
-import { AgencyPartnerRoutes } from "@/features/distribution/agency-partner/agency-partner.routes";
+import { AgencyPartnerRoutes } from "@/features/dashboard/corporate-agent/agency-partner/agency-partner.routes";
 import { SubPartnerRoutes } from "@/features/distribution/sub-partners/sub-partners.routes";
 import { CorporateAgentRoutes } from "@/features/distribution/coperate-agents/corperate-agents.routes";
 import { EnterpriseRoutes } from "@/features/distribution/enterprise/enterprise.routes";

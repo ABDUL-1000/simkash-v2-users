@@ -70,6 +70,27 @@ export const userNavigation: NavigationSection[] = [
         badge: "RM",
       },
       {
+        id: "rm-customers",
+        label: "My State Coordinators",
+        href: appPaths.rmCustomers,
+        icon: Users,
+        badge: "12",
+      },
+      {
+        id: "rm-network-performance",
+        label: "Network Performance",
+        href: appPaths.rmNetworkPerformance,
+        icon: Trophy,
+        badge: "New",
+      },
+      {
+        id: "rm-network-activity",
+        label: "Network Activity",
+        href: appPaths.rmNetworkActivity,
+        icon: Activity,
+        badge: "Live",
+      },
+      {
         id: "rm-sim-inventory",
         label: "SIM Inventory",
         icon: Package,
@@ -85,16 +106,9 @@ export const userNavigation: NavigationSection[] = [
             label: "Redistribute SIMs",
             href: appPaths.rmRedistributeSims,
           },
-
         ],
       },
-      {
-        id: "rm-network-activity",
-        label: "Network Activity",
-        href: appPaths.scNetwork,
-        icon: Activity,
-        badge: "RM",
-      },
+
       {
         id: "rm-bonus-tracker",
         label: "Bonus Tracker",
@@ -102,8 +116,45 @@ export const userNavigation: NavigationSection[] = [
         icon: Trophy,
         badge: "RM",
       },
-      { id: "rm-wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
-
+      {
+        id: "rm-wallet",
+        label: "My Wallet",
+        href: appPaths.wallet,
+        icon: Wallet,
+      },
+    ],
+  },
+  {
+    label: "corporate-agent",
+    items: [
+      {
+        id: "corporate-agent-dashboard",
+        label: "Corporate Agent",
+        href: appPaths.corporateAgentDashboard,
+        icon: Store,
+        badge: "CA",
+      },
+      {
+        id: "agency-partner",
+        label: "Agency Partners",
+        href: appPaths.agencyPartner,
+        icon: Users,
+        badge: "CA",
+      },
+      {
+        id: "ca-sim-inventory",
+        label: "CA SIM Inventory",
+        href: appPaths.caSimInventory,
+        icon: Package,
+        badge: "847",
+      },
+      {
+        id: "ca-sim-activation",
+        label: "CA SIM Activation",
+        href: appPaths.caSimActivation,
+        icon: Smartphone,
+        badge: "New",
+      },
     ],
   },
   {
@@ -144,8 +195,12 @@ export const userNavigation: NavigationSection[] = [
         icon: Users,
         badge: "SC",
       },
-      { id: "sc-wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
-
+      {
+        id: "sc-wallet",
+        label: "My Wallet",
+        href: appPaths.wallet,
+        icon: Wallet,
+      },
     ],
   },
   {
@@ -190,28 +245,80 @@ export const userNavigation: NavigationSection[] = [
         icon: Trophy,
         badge: "AP",
       },
-      { id: "ap-wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
-
+      {
+        id: "ap-wallet",
+        label: "My Wallet",
+        href: appPaths.wallet,
+        icon: Wallet,
+      },
     ],
   },
   {
     label: "Main Navigation",
     items: [
       { id: "wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
-      { id: "bill-payments", label: "Bill Payments", href: appPaths.billPayments, icon: Receipt, hasChevron: true },
-      { id: "device-sim", label: "Device SIM", href: appPaths.deviceSim, icon: Smartphone, hasChevron: true },
-      { id: "zero-limit-sim", label: "Zero Limit SIM", href: appPaths.zeroLimitSim, icon: InfinityIcon, hasChevron: true },
-      { id: "paylater", label: "PayLater", href: appPaths.payLater, icon: Clock },
-      { id: "marketplace", label: "Marketplace", href: appPaths.marketplace, icon: Store },
-      { id: "transactions", label: "Transactions", href: appPaths.transactions, icon: List },
-      { id: "referrals", label: "Referrals", href: appPaths.referrals, icon: Share2 },
+      {
+        id: "bill-payments",
+        label: "Bill Payments",
+        href: appPaths.billPayments,
+        icon: Receipt,
+        hasChevron: true,
+      },
+      {
+        id: "device-sim",
+        label: "Device SIM",
+        href: appPaths.deviceSim,
+        icon: Smartphone,
+        hasChevron: true,
+      },
+      {
+        id: "zero-limit-sim",
+        label: "Zero Limit SIM",
+        href: appPaths.zeroLimitSim,
+        icon: InfinityIcon,
+        hasChevron: true,
+      },
+      {
+        id: "paylater",
+        label: "PayLater",
+        href: appPaths.payLater,
+        icon: Clock,
+      },
+      {
+        id: "marketplace",
+        label: "Marketplace",
+        href: appPaths.marketplace,
+        icon: Store,
+      },
+      {
+        id: "transactions",
+        label: "Transactions",
+        href: appPaths.transactions,
+        icon: List,
+      },
+      {
+        id: "referrals",
+        label: "Referrals",
+        href: appPaths.referrals,
+        icon: Share2,
+      },
     ],
   },
   {
     label: "Account",
     items: [
-      { id: "settings", label: "Settings", href: appPaths.settings, icon: Settings },
-      { id: "support", label: "Support", href: appPaths.support, icon: Headphones },
+      {
+        id: "settings",
+        label: "Settings",
+        href: appPaths.settings,
+        icon: Settings,
+      },
+      {
+        id: "support",
+        label: "Support",
+        href: appPaths.support,
+        icon: Headphones,
+      },
     ],
   },
 ];

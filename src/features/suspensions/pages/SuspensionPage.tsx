@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Download } from "lucide-react";
-import { DashboardStats } from "@/features/distribution/agency-partner/components/DashboardStat";
+import { DashboardStats } from "@/features/dashboard/corporate-agent/agency-partner/components/DashboardStat";
 
 import { SuspensionTable, type SuspensionRow } from "../components/SuspensionTable";
 import { SuspensionSummaryCard } from "../components/SuspensionSummaryCard";

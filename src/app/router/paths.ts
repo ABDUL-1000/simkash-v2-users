@@ -4,9 +4,17 @@ export const appPaths = {
   userDashboard: "/dashboard",
   stateCoordinatorDashboard: "/dashboard/state-coordinator",
   agencyPartnerDashboard: "/dashboard/agency-partner",
+  corporateAgentDashboard: "/dashboard/corporate-agent",
+  caSimInventory: "/sim-inventory/corporate-agent",
+  caSimActivation: "/dashboard/corporate-agent/sim-activation",
   regionalManagerDashboard: "/dashboard/regional-manager",
+  rmCustomers: "/dashboard/regional-manager/customers",
+  rmStateCoordinators: "/dashboard/regional-manager/state-coordinators",
   rmSimInventory: "/sim-inventory/rm",
   rmRedistributeSims: "/sim-inventory/rm/redistribute",
+  rmNetworkActivity: "/dashboard/regional-manager/network-activity",
+  rmNetworkPerformance: "/dashboard/regional-manager/performance",
+  rmNetwork: "/network/rm",
   rmScDetails: (id?: string) => ({
     format: "/dashboard/regional-manager/sc/:id",
     path: `/dashboard/regional-manager/sc/${id ? encodeURIComponent(id) : "aminat-okafor"}`,
@@ -74,6 +82,11 @@ export const appPaths = {
   // Distribution
   agencyPartner: "/distribution/agency-partner",
   agencyPartnerDetails: (id?: string) => ({
+    format: "/corporate-agent/agency-partner/:id",
+    path: `/corporate-agent/agency-partner/${id ? encodeURIComponent(id) : ""}`,
+  }),
+  agencyPartnerCA: "/distribution/agency-partner",
+  agencyPartnerCADetails: (id?: string) => ({
     format: "/distribution/agency-partner/:id",
     path: `/distribution/agency-partner/${id ? encodeURIComponent(id) : ""}`,
   }),

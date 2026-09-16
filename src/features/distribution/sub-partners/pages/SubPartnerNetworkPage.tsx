@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Download, Plus, ArrowLeft } from "lucide-react";
 import { SubPartnerTable } from "../components/SubPartnerTable";
-import { OnboardPartnerModal } from "@/features/distribution/agency-partner/Modals/OnboardPartnerModal";
+import { OnboardPartnerModal } from "@/features/dashboard/corporate-agent/agency-partner/Modals/OnboardPartnerModal";
 import { appPaths } from "@/app/router/paths";
 
 type SubPartnerTab = "all" | "active" | "on_target" | "at_risk" | "inactive";

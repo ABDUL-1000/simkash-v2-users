@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
-import { DashboardStats } from "@/features/distribution/agency-partner/components/DashboardStat";
+import { DashboardStats } from "@/features/dashboard/corporate-agent/agency-partner/components/DashboardStat";
 import { appPaths } from "@/app/router/paths";
 
 import { RMQuickStatsWidget } from "../components/RMQuickStatsWidget";
