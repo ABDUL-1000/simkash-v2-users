@@ -107,4 +107,47 @@
     color: #0f1f36;
     font-weight: 700;
   }
+
+  /* Reusable Ant Design DataTable styling matching design system */
+  .simkash-data-table .ant-table,
+  .simkash-data-table .ant-table-container,
+  .simkash-data-table .ant-table-content {
+    background: transparent;
+  }
+
+  .simkash-data-table .ant-table-thead > tr > th {
+    background: #F8FAFC !important;
+    color: #8C909B !important;
+    border-bottom: 1px solid #E2ECF6 !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    padding: 12px 16px !important;
+  }
+
+  .simkash-data-table .ant-table-thead > tr > th::before {
+    display: none !important;
+  }
+
+  .simkash-data-table .ant-table-tbody > tr > td {
+    color: #0F152A !important;
+    border-bottom: 1px solid #E2ECF6 !important;
+    font-size: 12px !important;
+    padding: 13px 16px !important;
+    transition: background-color 0.15s ease;
+  }
+
+  .simkash-data-table .ant-table-tbody > tr:last-child > td {
+    border-bottom: 0 !important;
+  }
+
+  .simkash-data-table .ant-table-tbody > tr:hover > td {
+    background-color: #F8FAFC !important;
+  }
+
+  .simkash-data-table .ant-pagination {
+    border-top: 1px solid #E2ECF6;
+    margin: 0 !important;
+  }
 }

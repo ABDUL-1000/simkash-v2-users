@@ -7,6 +7,7 @@ export const appPaths = {
   corporateAgentDashboard: "/dashboard/corporate-agent",
   caSimInventory: "/sim-inventory/corporate-agent",
   caSimActivation: "/dashboard/corporate-agent/sim-activation",
+  caNetwork: "/corporate-agent/network",
   regionalManagerDashboard: "/dashboard/regional-manager",
   rmCustomers: "/dashboard/regional-manager/customers",
   rmStateCoordinators: "/dashboard/regional-manager/state-coordinators",
@@ -52,35 +53,35 @@ export const appPaths = {
     path: `/support/faq/${slug ? encodeURIComponent(slug) : ""}`,
   }),
 
-  // SIM Hub & Device paths
-  posSim: "/device-sim/pos",
-  routerDevice: "/device-sim/router-device",
-  cctvSim: "/device-sim/cctv",
-  gpsSim: "/device-sim/gps",
-  routerSim: "/device-sim/router-sim",
-  simRecords: "/device-sim/sim-records",
-  adminSimSearch: "/device-sim/admin-sim-search",
-  adminSimSearchDetails: (simId?: string) => ({
-    format: `/device-sim/admin-sim-search/:simId`,
-    path: `/device-sim/admin-sim-search/${simId ? encodeURIComponent(simId) : ""}`,
-  }),
-  renewalMonitoring: "/device-sim/renewal-monitoring",
-  deviceHub: "/device-sim/device-hub",
-  simSwaps: "/device-sim/sim-swap",
-  zeroLimitSims: "/zero-limit-sim",
+  // // SIM Hub & Device paths
+  // posSim: "/device-sim/pos",
+  // routerDevice: "/device-sim/router-device",
+  // cctvSim: "/device-sim/cctv",
+  // gpsSim: "/device-sim/gps",
+  // routerSim: "/device-sim/router-sim",
+  // simRecords: "/device-sim/sim-records",
+  // adminSimSearch: "/device-sim/admin-sim-search",
+  // adminSimSearchDetails: (simId?: string) => ({
+  //   format: `/device-sim/admin-sim-search/:simId`,
+  //   path: `/device-sim/admin-sim-search/${simId ? encodeURIComponent(simId) : ""}`,
+  // }),
+  // renewalMonitoring: "/device-sim/renewal-monitoring",
+  // deviceHub: "/device-sim/device-hub",
+  // simSwaps: "/device-sim/sim-swap",
+  // zeroLimitSims: "/zero-limit-sim",
 
-  // Solar CCTV Designer
-  solarCctvDesigner: "/solar-cctv-designer",
-  solarComponentPricing: "/solar-cctv-designer/pricing",
-  solarCctvDesignDetails: (id?: string) => ({
-    format: "/solar-cctv-designer/:id",
-    path: `/solar-cctv-designer/${id ? encodeURIComponent(id) : ""}`,
-  }),
-  solarIrradianceData: "/solar-cctv-designer/irradiance",
-  solarDesignerPreview: "/solar-cctv-designer/preview",
+  // // Solar CCTV Designer
+  // solarCctvDesigner: "/solar-cctv-designer",
+  // solarComponentPricing: "/solar-cctv-designer/pricing",
+  // solarCctvDesignDetails: (id?: string) => ({
+  //   format: "/solar-cctv-designer/:id",
+  //   path: `/solar-cctv-designer/${id ? encodeURIComponent(id) : ""}`,
+  // }),
+  // solarIrradianceData: "/solar-cctv-designer/irradiance",
+  // solarDesignerPreview: "/solar-cctv-designer/preview",
 
   // Distribution
-  agencyPartner: "/distribution/agency-partner",
+  agencyPartner: "/corporate-agent/agency-partner",
   agencyPartnerDetails: (id?: string) => ({
     format: "/corporate-agent/agency-partner/:id",
     path: `/corporate-agent/agency-partner/${id ? encodeURIComponent(id) : ""}`,
@@ -201,6 +202,8 @@ export const appPaths = {
     path: `/finance/performance/agent/${id ? encodeURIComponent(id) : ""}`,
   }),
   bonusTracking: "/finance/bonus-tracking",
+  caBonusTracker: "/bonus/ca",
+  caBonusHistory: "/bonus/ca/history",
   scBonusTracker: "/bonus/sc",
   scBonusHistory: "/bonus/sc/history",
 

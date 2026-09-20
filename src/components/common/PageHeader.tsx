@@ -3,24 +3,27 @@ import { Button } from "antd";
 
 export type PageHeaderAction = {
   key: string;
-  label: string;
+  label?: ReactNode;
   icon?: ReactNode;
   onClick?: () => void;
-  variant?: "default" | "outline" | "destructive" | "secondary" | "ghost";
+  variant?: "default" | "outline" | "destructive" | "secondary" | "ghost" | "custom";
   loading?: boolean;
   disabled?: boolean;
+  render?: () => ReactNode;
 };
 
 type PageHeaderProps = {
   title: string;
   description?: string;
   actions?: PageHeaderAction[];
+  extra?: ReactNode;
 };
 
 export function PageHeader({
   title,
   description,
   actions = [],
+  extra,
 }: PageHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -35,9 +38,13 @@ export function PageHeader({
         )}
       </div>
 
-      {actions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+      {(actions.length > 0 || extra) && (
+        <div className="flex flex-wrap items-center gap-2">
           {actions.map((action) => {
+            if (action.render) {
+              return <div key={action.key}>{action.render()}</div>;
+            }
+
             const isPrimary =
               action.variant === undefined || action.variant === "default";
             const isGhost = action.variant === "ghost";
@@ -73,6 +80,7 @@ export function PageHeader({
               </Button>
             );
           })}
+          {extra}
         </div>
       )}
     </div>

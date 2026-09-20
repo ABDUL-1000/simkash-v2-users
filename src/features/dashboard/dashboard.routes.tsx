@@ -1,24 +1,28 @@
 import type { TRouteData } from "@/app/router/route-types";
 import { appPaths } from "@/app/router/paths";
 import DashboardPage from "./pages/DashboardPage";
-import { StateCoordinatorDashboardPage } from "./pages/StateCoordinatorDashboardPage";
-import { ScWalletPage } from "./pages/ScWalletPage";
-import { ScSimInventoryPage } from "./pages/ScSimInventoryPage";
-import { ScNetworkPage } from "./pages/ScNetworkPage";
-import { ScActivationDetailsPage } from "./pages/ScActivationDetailsPage";
-import { ScBonusTrackerPage } from "./pages/ScBonusTrackerPage";
-import { ScBonusHistoryPage } from "./pages/ScBonusHistoryPage";
-import { SimActivationPage } from "./pages/SimActivationPage";
-import { RegionalManagerDashboardPage } from "./regional-manager/pages/RegionalManagerDashboardPage";
-import { StateCoordinatorDetailsPage } from "./regional-manager/pages/StateCoordinatorDetailsPage";
-import { RmSimInventoryPage } from "./regional-manager/pages/RmSimInventoryPage";
-import { RmRedistributeSimsPage } from "./regional-manager/pages/RmRedistributeSimsPage";
-import { RmCustomersPage } from "./regional-manager/pages/RmCustomersPage";
-import { RmNetworkActivityPage } from "./regional-manager/pages/RmNetworkActivityPage";
-import RmNetworkPerformancePage from "./regional-manager/pages/RmNetworkPerformancePage";
-import CorporateAgentDashboardPage from "./corporate-agent/pages/CorporateAgentDashboardPage";
-import CaSimInventoryPage from "./corporate-agent/inventory/pages/CaSimInventoryPage";
-import CaSimActivationPage from "./corporate-agent/sim-activation/pages/CaSimActivationPage";
+import { StateCoordinatorDashboardPage } from "../state-coordinator/pages/StateCoordinatorDashboardPage";
+import { ScWalletPage } from "../state-coordinator/pages/ScWalletPage";
+import { ScSimInventoryPage } from "../state-coordinator/pages/ScSimInventoryPage";
+import { ScNetworkPage } from "../state-coordinator/pages/ScNetworkPage";
+import { ScActivationDetailsPage } from "../state-coordinator/pages/ScActivationDetailsPage";
+import { ScBonusTrackerPage } from "../state-coordinator/pages/ScBonusTrackerPage";
+import { ScBonusHistoryPage } from "../state-coordinator/pages/ScBonusHistoryPage";
+import { SimActivationPage } from "../agency-partner/pages/SimActivationPage";
+import CorporateAgentDashboardPage from "../corporate-agent/pages/CorporateAgentDashboardPage";
+import CaSimInventoryPage from "../corporate-agent/inventory/pages/CaSimInventoryPage";
+import CaSimActivationPage from "../corporate-agent/sim-activation/pages/CaSimActivationPage";
+import CaNetworkPage from "../corporate-agent/network/pages/CaNetworkPage";
+import RegionalManagerDashboardPage from "../regional-manager/pages/RegionalManagerDashboardPage";
+import RmCustomersPage from "../regional-manager/pages/RmCustomersPage";
+import RmNetworkPerformancePage from "../regional-manager/pages/RmNetworkPerformancePage";
+import RmNetworkActivityPage from "../regional-manager/pages/RmNetworkActivityPage";
+import RmSimInventoryPage from "../regional-manager/pages/RmSimInventoryPage";
+import RmRedistributeSimsPage from "../regional-manager/pages/RmRedistributeSimsPage";
+import StateCoordinatorDetailsPage from "../regional-manager/pages/StateCoordinatorDetailsPage";
+import { CaBonusTrackerPage } from "../corporate-agent/bonus/pages/CaBonusTrackerPage";
+import { CaBonusHistoryPage } from "../corporate-agent/bonus/pages/CaBonusHistoryPage";
+
 
 export const dashboardRoutes: TRouteData[] = [
   { path: appPaths.dashboard, element: <DashboardPage />, title: "Dashboard Overview", isSearchable: true },
@@ -28,6 +32,9 @@ export const dashboardRoutes: TRouteData[] = [
   { path: "/dashboard/corporate-agent/inventory", element: <CaSimInventoryPage />, title: "Corporate Agent SIM Inventory", isSearchable: false },
   { path: appPaths.caSimActivation, element: <CaSimActivationPage />, title: "Corporate Agent SIM Activation", isSearchable: true },
   { path: "/sim-activation/corporate-agent", element: <CaSimActivationPage />, title: "Corporate Agent SIM Activation", isSearchable: false },
+  { path: appPaths.caNetwork, element: <CaNetworkPage />, title: "Corporate Agent Network Activity", isSearchable: true },
+  { path: appPaths.caBonusTracker, element: <CaBonusTrackerPage />, title: "Corporate Agent Bonus Tracker", isSearchable: true },
+  { path: appPaths.caBonusHistory, element: <CaBonusHistoryPage />, title: "Corporate Agent Bonus History", isSearchable: true },
   { path: appPaths.regionalManagerDashboard, element: <RegionalManagerDashboardPage />, title: "Regional Manager Dashboard", isSearchable: true },
   { path: appPaths.rmCustomers, element: <RmCustomersPage />, title: "My State Coordinators", isSearchable: true },
   { path: appPaths.rmStateCoordinators, element: <RmCustomersPage />, title: "My State Coordinators", isSearchable: false },

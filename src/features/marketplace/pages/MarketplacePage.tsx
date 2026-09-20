@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Plus, Store, ShoppingCart, Users } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
-import { DashboardStats } from "@/features/dashboard/corporate-agent/agency-partner/components/DashboardStat";
+import { DashboardStats } from "@/features/agency-partner/components/DashboardStat";
 
 import { MarketplaceTable, type ProductRow } from "../components/MarketplaceTable";
 import { RecentOrdersCard } from "../components/RecentOrdersCard";
