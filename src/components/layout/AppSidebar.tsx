@@ -97,7 +97,7 @@ function NavigationRow({
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
-                    "flex min-h-8 items-center gap-2 rounded-lg px-3 text-xs transition-colors",
+                    "flex min-h-8 items-center justify-between gap-2 rounded-lg px-3 text-xs transition-colors",
                     isActive
                       ? "bg-[#2563EB] font-bold text-white shadow-xs"
                       : "text-[#66738C] hover:bg-slate-100 hover:text-[#0F152A]"
@@ -105,6 +105,18 @@ function NavigationRow({
                 }
               >
                 <span className="truncate">{child.label}</span>
+                {child.badge && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.2 text-[10px] font-bold",
+                      child.badgeTone === "danger"
+                        ? "bg-red-100 text-red-600"
+                        : "bg-blue-100 text-blue-600"
+                    )}
+                  >
+                    {child.badge}
+                  </span>
+                )}
               </NavLink>
             ))}
           </div>

@@ -15,12 +15,20 @@ export interface CaActivationRecord {
   agentPhone?: string;
   customerName: string;
   customerPhone?: string;
+  customerAddress?: string;
   date: string;
   time: string;
   timeAgo: string;
   isDirect: boolean;
   commission: string;
   failureReason?: string;
+  plan?: string;
+  expires?: string;
+  rateText?: string;
+  creditedText?: string;
+  bonusBefore?: number;
+  bonusAfter?: number;
+  bonusTarget?: number;
 }
 
 export interface CaNetworkMetricStats {
@@ -49,3 +57,17 @@ export interface CaNetworkFilterState {
   simType: string;
   date: string;
 }
+
+export interface CaAgencyPartnerActivity {
+  id: string;
+  name: string;
+  phone: string;
+  customers: number;
+  actsToday: number;
+  stock: number;
+  stockStatus: string;
+  bonusStatus: string;
+  trend: string;
+  avatar: string;
+}
+

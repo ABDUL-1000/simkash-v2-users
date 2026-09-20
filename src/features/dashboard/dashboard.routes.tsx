@@ -13,6 +13,7 @@ import CorporateAgentDashboardPage from "../corporate-agent/pages/CorporateAgent
 import CaSimInventoryPage from "../corporate-agent/inventory/pages/CaSimInventoryPage";
 import CaSimActivationPage from "../corporate-agent/sim-activation/pages/CaSimActivationPage";
 import CaNetworkPage from "../corporate-agent/network/pages/CaNetworkPage";
+import CorporateAgentActivationDetailPage from "../corporate-agent/network/pages/CorporateAgentActivationDetailPage";
 import RegionalManagerDashboardPage from "../regional-manager/pages/RegionalManagerDashboardPage";
 import RmCustomersPage from "../regional-manager/pages/RmCustomersPage";
 import RmNetworkPerformancePage from "../regional-manager/pages/RmNetworkPerformancePage";
@@ -22,10 +23,29 @@ import RmRedistributeSimsPage from "../regional-manager/pages/RmRedistributeSims
 import StateCoordinatorDetailsPage from "../regional-manager/pages/StateCoordinatorDetailsPage";
 import { CaBonusTrackerPage } from "../corporate-agent/bonus/pages/CaBonusTrackerPage";
 import { CaBonusHistoryPage } from "../corporate-agent/bonus/pages/CaBonusHistoryPage";
+import InstallerDashboardPage from "../installer/pages/InstallerDashboardPage";
+import ActiveJobsPage from "../installer/jobs/pages/ActiveJobsPage";
+import PendingVerificationPage from "../installer/jobs/pages/PendingVerificationPage";
+import CompletedJobsPage from "../installer/jobs/pages/CompletedJobsPage";
+import DisputedJobsPage from "../installer/jobs/pages/DisputedJobsPage";
+import JobDetailsPage from "../installer/jobs/pages/JobDetailsPage";
+import { EasyBuyCommissionPage } from "../installer/jobs/pages/EasyBuyCommissionPage";
+import { EasyBuyJobDetailsPage } from "../installer/jobs/pages/EasyBuyJobDetailsPage";
 
 
 export const dashboardRoutes: TRouteData[] = [
   { path: appPaths.dashboard, element: <DashboardPage />, title: "Dashboard Overview", isSearchable: true },
+  { path: appPaths.installerDashboard, element: <InstallerDashboardPage />, title: "Installer Workspace", isSearchable: true },
+  { path: "/installer", element: <InstallerDashboardPage />, title: "Installer Workspace", isSearchable: false },
+  { path: appPaths.installerJobs, element: <ActiveJobsPage />, title: "Installer My Jobs", isSearchable: true },
+  { path: appPaths.installerJobsActive, element: <ActiveJobsPage />, title: "Active Jobs", isSearchable: true },
+  { path: appPaths.installerJobsPending, element: <PendingVerificationPage />, title: "Pending Verification", isSearchable: true },
+  { path: appPaths.installerJobsCompleted, element: <CompletedJobsPage />, title: "Completed Jobs", isSearchable: true },
+  { path: appPaths.installerJobsDisputed, element: <DisputedJobsPage />, title: "Disputed Jobs", isSearchable: true },
+  { path: appPaths.installerJobsEasyBuy, element: <EasyBuyCommissionPage />, title: "EasyBuy Jobs", isSearchable: true },
+  { path: appPaths.installerJobsEasyBuyDetails().format, element: <EasyBuyJobDetailsPage />, title: "EasyBuy Job Details", isSearchable: false },
+  { path: appPaths.installerJobDetails().format, element: <JobDetailsPage />, title: "Job Details", isSearchable: false },
+  { path: appPaths.installerEarnings, element: <InstallerDashboardPage />, title: "Installer Earnings", isSearchable: false },
   { path: appPaths.corporateAgentDashboard, element: <CorporateAgentDashboardPage />, title: "Corporate Agent Dashboard", isSearchable: true },
   { path: "/corporate-agent", element: <CorporateAgentDashboardPage />, title: "Corporate Agent Dashboard", isSearchable: false },
   { path: appPaths.caSimInventory, element: <CaSimInventoryPage />, title: "Corporate Agent SIM Inventory", isSearchable: true },
@@ -33,6 +53,7 @@ export const dashboardRoutes: TRouteData[] = [
   { path: appPaths.caSimActivation, element: <CaSimActivationPage />, title: "Corporate Agent SIM Activation", isSearchable: true },
   { path: "/sim-activation/corporate-agent", element: <CaSimActivationPage />, title: "Corporate Agent SIM Activation", isSearchable: false },
   { path: appPaths.caNetwork, element: <CaNetworkPage />, title: "Corporate Agent Network Activity", isSearchable: true },
+  { path: appPaths.caActivationDetails().format, element: <CorporateAgentActivationDetailPage />, title: "Corporate Agent Activation Details", isSearchable: false },
   { path: appPaths.caBonusTracker, element: <CaBonusTrackerPage />, title: "Corporate Agent Bonus Tracker", isSearchable: true },
   { path: appPaths.caBonusHistory, element: <CaBonusHistoryPage />, title: "Corporate Agent Bonus History", isSearchable: true },
   { path: appPaths.regionalManagerDashboard, element: <RegionalManagerDashboardPage />, title: "Regional Manager Dashboard", isSearchable: true },

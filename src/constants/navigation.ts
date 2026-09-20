@@ -17,6 +17,7 @@ import {
   List,
   Zap,
   Landmark,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
@@ -26,6 +27,7 @@ export type NavigationChild = {
   label: string;
   href?: string;
   badge?: string;
+  badgeTone?: "info" | "danger";
   outlined?: boolean;
 };
 
@@ -252,6 +254,64 @@ export const userNavigation: NavigationSection[] = [
         href: appPaths.scBonusTracker,
         icon: Trophy,
         badge: "AP",
+      },
+    ],
+  },
+  {
+    label: "Installer",
+    items: [
+      {
+        id: "installer-dashboard",
+        label: "Installer Dashboard",
+        href: appPaths.installerDashboard,
+        icon: Wrench,
+        badge: "INS",
+      },
+      {
+        id: "installer-jobs",
+        label: "My Jobs",
+        icon: Package,
+        badge: "3",
+        children: [
+          {
+            id: "installer-jobs-active",
+            label: "Active Jobs",
+            href: appPaths.installerJobsActive,
+            badge: "3",
+          },
+          {
+            id: "installer-jobs-pending",
+            label: "Pending Verification",
+            href: appPaths.installerJobsPending,
+            badge: "1",
+          },
+          {
+            id: "installer-jobs-completed",
+            label: "Completed Jobs",
+            href: appPaths.installerJobsCompleted,
+            badge: "24",
+          },
+          {
+            id: "installer-jobs-disputed",
+            label: "Disputed Jobs",
+            href: appPaths.installerJobsDisputed,
+            badge: "1",
+            badgeTone: "danger",
+          },
+          {
+            id: "installer-jobs-easybuy",
+            label: "EasyBuy Jobs",
+            href: appPaths.installerJobsEasyBuy,
+            badge: "2",
+            badgeTone: "info",
+          },
+        ],
+      },
+      {
+        id: "installer-earnings",
+        label: "Earnings & Payout",
+        href: appPaths.installerEarnings,
+        icon: Wallet,
       },
     ],
   },

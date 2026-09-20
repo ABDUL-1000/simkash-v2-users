@@ -9,6 +9,8 @@ export type PageHeaderAction = {
   variant?: "default" | "outline" | "destructive" | "secondary" | "ghost" | "custom";
   loading?: boolean;
   disabled?: boolean;
+  style?: React.CSSProperties;
+  className?: string;
   render?: () => ReactNode;
 };
 
@@ -59,20 +61,22 @@ export function PageHeader({
                 loading={action.loading}
                 disabled={action.disabled}
                 onClick={action.onClick}
-                className="h-10 rounded-lg px-4 text-[11px] font-medium"
+                className={`h-10 rounded-lg px-4 text-[11px] font-medium ${action.className ?? ""}`}
                 style={
                   isPrimary
                     ? {
                         backgroundColor: "#2563EB",
                         borderColor: "#2563EB",
                         color: "#FFFFFF",
+                        ...action.style,
                       }
                     : isGhost || isDestructive
-                      ? undefined
+                      ? action.style
                       : {
                           backgroundColor: "#FFFFFF",
                           borderColor: "#C7DAFC",
                           color: "#0F1F36",
+                          ...action.style,
                         }
                 }
               >
