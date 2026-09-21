@@ -13,8 +13,10 @@ import { SupportRoutes } from "@/features/support/support.routes";
 
 import { transactionsRoutes } from "@/features/transactions/transactions.routes";
 import { AgencyPartnerRoutes } from "@/features/corporate-agent/my-partner/agency-partner.routes";
+import { enterpriseProRoutes } from "@/features/enterprise-pro/enterprise-pro.routes";
 
 export const appRouteConfig: TRouteData[] = [
+  ...enterpriseProRoutes,
   ...dashboardRoutes,
   ...billPaymentsRoutes,
   ...ZeroLimitSimRoutes,
@@ -26,5 +28,4 @@ export const appRouteConfig: TRouteData[] = [
   ...WalletPayoutsRoutes,
   ...SettingsRoutes,
   ...SupportRoutes,
-
 ];

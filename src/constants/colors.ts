@@ -65,7 +65,16 @@ export const APP_COLORS = {
 } as const;
 
 export const COLORS = APP_COLORS;
-export const colors = APP_COLORS;
+export const colors = {
+  ...APP_COLORS,
+  primary: APP_COLORS.blues.interactiveCta,
+  border: APP_COLORS.greys.stroke,
+  success: APP_COLORS.greens.green,
+  warning: APP_COLORS.ambers.amber,
+  danger: APP_COLORS.reds.red,
+  textPrimary: APP_COLORS.texts.primary,
+  textSecondary: APP_COLORS.texts.slate,
+};
 
 // Minimal direct flat color constants
 export const background = APP_COLORS.backgrounds.background;

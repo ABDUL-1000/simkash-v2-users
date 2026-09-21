@@ -18,6 +18,7 @@ import {
   Zap,
   Landmark,
   Wrench,
+  Coins,
   type LucideIcon,
 } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
@@ -58,6 +59,53 @@ export const userNavigation: NavigationSection[] = [
         label: "User Dashboard",
         href: appPaths.dashboard,
         icon: LayoutDashboard,
+      },
+    ],
+  },
+  {
+    label: "Enterprise Pro",
+    items: [
+      {
+        id: "ep-dashboard",
+        label: "EP Dashboard",
+        href: appPaths.enterpriseProDashboard,
+        icon: Landmark,
+        badge: "EP",
+      },
+      {
+        id: "ep-wallet",
+        label: "My Wallet",
+        href: appPaths.enterpriseProWallet,
+        icon: Wallet,
+        badge: "₦2.84M",
+      },
+      {
+        id: "ep-investment",
+        label: "My Investment",
+        href: appPaths.enterpriseProInvestment,
+        icon: Coins,
+        badge: "19.0% ROI",
+      },
+      {
+        id: "ep-network",
+        label: "My Network",
+        href: appPaths.enterpriseProNetwork,
+        icon: Users,
+        badge: "12 SCs",
+      },
+      {
+        id: "ep-sim-inventory",
+        label: "SIM Inventory",
+        href: appPaths.enterpriseProSimInventory,
+        icon: Package,
+        badge: "8,247",
+      },
+      {
+        id: "ep-pricing",
+        label: "Commission & Pricing",
+        href: appPaths.enterpriseProPricing,
+        icon: Coins,
+        badge: "₦26.7M Net",
       },
     ],
   },

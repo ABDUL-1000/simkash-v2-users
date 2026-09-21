@@ -1,0 +1,48 @@
+import type { InventoryActivityItem } from "../types";
+
+export const mockActivities: InventoryActivityItem[] = [
+  {
+    id: "act-01",
+    type: "reorder",
+    title: "Batch SIM Order Received",
+    description: "Central Warehouse shipment verified and credited to enterprise stock.",
+    timestamp: "2 hours ago",
+    referenceId: "ORD-008472",
+    simTypeSummary: "500 POS SIMs",
+    totalSims: 500,
+    status: "completed",
+  },
+  {
+    id: "act-02",
+    type: "distribution",
+    title: "Distribution to Aminat Okafor",
+    description: "Dispatched to Lagos coordinator via waybill.",
+    timestamp: "15 Jun, 11:15 AM",
+    referenceId: "DIST-008471",
+    simTypeSummary: "247 CCTV SIMs",
+    totalSims: 247,
+    status: "completed",
+  },
+  {
+    id: "act-03",
+    type: "reorder",
+    title: "Order In From Simkash",
+    description: "Wholesale delivery credited to central inventory.",
+    timestamp: "10 Jun, 3:45 PM",
+    referenceId: "ORD-008465",
+    simTypeSummary: "200 CCTV SIMs",
+    totalSims: 200,
+    status: "completed",
+  },
+  {
+    id: "act-04",
+    type: "distribution",
+    title: "Distribution to Chidi Eze",
+    description: "Allocated to Abuja State Coordinator.",
+    timestamp: "10 Jun, 9:22 AM",
+    referenceId: "DIST-008464",
+    simTypeSummary: "634 POS SIMs",
+    totalSims: 634,
+    status: "completed",
+  },
+];
