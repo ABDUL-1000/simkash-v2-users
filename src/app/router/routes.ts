@@ -14,8 +14,10 @@ import { SupportRoutes } from "@/features/support/support.routes";
 import { transactionsRoutes } from "@/features/transactions/transactions.routes";
 import { AgencyPartnerRoutes } from "@/features/corporate-agent/my-partner/agency-partner.routes";
 import { enterpriseProRoutes } from "@/features/enterprise-pro/enterprise-pro.routes";
+import { enterpriseBasicRoutes } from "@/features/enterprise-basic/enterprise-basic.routes";
 
 export const appRouteConfig: TRouteData[] = [
+  ...enterpriseBasicRoutes,
   ...enterpriseProRoutes,
   ...dashboardRoutes,
   ...billPaymentsRoutes,

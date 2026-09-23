@@ -110,6 +110,53 @@ export const userNavigation: NavigationSection[] = [
     ],
   },
   {
+    label: "Enterprise Basic",
+    items: [
+      {
+        id: "eb-dashboard",
+        label: "EB Dashboard",
+        href: appPaths.enterpriseBasicDashboard,
+        icon: Store,
+        badge: "EB",
+      },
+      {
+        id: "eb-investment",
+        label: "My Investment",
+        href: appPaths.enterpriseBasicInvestment,
+        icon: Coins,
+        badge: "24.8% ROI",
+      },
+      {
+        id: "eb-customers",
+        label: "My Customers",
+        href: appPaths.enterpriseBasicCustomers,
+        icon: Users,
+        badge: "847",
+      },
+      {
+        id: "eb-inventory",
+        label: "Inventory",
+        href: appPaths.enterpriseBasicInventory,
+        icon: Package,
+        badge: "1,247",
+      },
+      {
+        id: "eb-pricing",
+        label: "Commission & Pricing",
+        href: appPaths.enterpriseBasicPricing,
+        icon: Coins,
+        badge: "P&L",
+      },
+      {
+        id: "eb-wallet",
+        label: "My Wallet",
+        href: appPaths.enterpriseBasicWallet,
+        icon: Wallet,
+        badge: "₦866K",
+      },
+    ],
+  },
+  {
     label: "Regional Manager",
     items: [
       {

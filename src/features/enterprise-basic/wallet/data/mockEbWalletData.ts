@@ -1,0 +1,71 @@
+import type { EbWalletSummary, EbWalletTransaction } from "../types";
+
+export const mockEbWalletSummary: EbWalletSummary = {
+  availableBalance: 866000,
+  lastUpdated: "Today, 2:30 PM",
+  marginThisMonth: 246000,
+  lifetimeMargin: 1246000,
+  ordersPlacedCount: 4,
+  bonusPending: 0,
+  totalMargin: 1246000,
+  totalPaidOut: 380000,
+  unsoldStockValue: 415000,
+  unsoldUnitsCount: 166,
+};
+
+export const mockEbTransactions: EbWalletTransaction[] = [
+  {
+    id: "tx-1",
+    type: "margin",
+    title: "POS SIM Activation Margin",
+    subtitle: "Chidi Eze · 08120600542",
+    amount: 2000,
+    date: "Today, 2:15 PM",
+    status: "completed",
+  },
+  {
+    id: "tx-2",
+    type: "margin",
+    title: "CCTV Basic Kit Margin",
+    subtitle: "Aminat Nduka · 2 units",
+    amount: 7000,
+    date: "Today, 11:30 AM",
+    status: "completed",
+  },
+  {
+    id: "tx-3",
+    type: "payout",
+    title: "Distributor Wallet Withdrawal",
+    subtitle: "First Bank · ****4521",
+    amount: -200000,
+    date: "Yesterday",
+    status: "completed",
+  },
+  {
+    id: "tx-4",
+    type: "order",
+    title: "Wholesale SIM Order Placed",
+    subtitle: "100 POS SIM Cards",
+    amount: -250000,
+    date: "Jun 24, 2026",
+    status: "completed",
+  },
+  {
+    id: "tx-5",
+    type: "bill",
+    title: "Bulk Data Bundle Payment",
+    subtitle: "SIM Batch #EB-4029",
+    amount: -12500,
+    date: "Jun 20, 2026",
+    status: "completed",
+  },
+  {
+    id: "tx-6",
+    type: "margin",
+    title: "Solar 1kVA Margin",
+    subtitle: "Ibrahim Musa · 1 unit",
+    amount: 15000,
+    date: "Jun 18, 2026",
+    status: "completed",
+  },
+];

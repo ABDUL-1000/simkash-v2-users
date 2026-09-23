@@ -1,0 +1,61 @@
+import type { PnLSummaryRecord } from "../types";
+
+export const mockPnLSummaryData: PnLSummaryRecord[] = [
+  {
+    simType: "POS SIM",
+    bought: 847,
+    cost: 2117500,
+    sold: 623,
+    revenue: 2803500,
+    marginPerSim: 2000,
+    netPnl: 1246000,
+    unsoldStock: 224,
+    unsoldCost: 560000,
+  },
+  {
+    simType: "CCTV SIM",
+    bought: 247,
+    cost: 1482000,
+    sold: 198,
+    revenue: 1881000,
+    marginPerSim: 3500,
+    netPnl: 693000,
+    unsoldStock: 49,
+    unsoldCost: 294000,
+  },
+  {
+    simType: "GPS SIM",
+    bought: 153,
+    cost: 1224000,
+    sold: 94,
+    revenue: 1128000,
+    marginPerSim: 4000,
+    netPnl: 376000,
+    unsoldStock: 59,
+    unsoldCost: 472000,
+  },
+  {
+    simType: "Router SIM",
+    bought: 0,
+    cost: 0,
+    sold: 0,
+    revenue: 0,
+    marginPerSim: 3000,
+    netPnl: 0,
+    unsoldStock: 0,
+    unsoldCost: 0,
+  },
+];
+
+export const mockPnLOverviewTotals = {
+  totalInvested: 2500000,
+  totalRevenue: 4494000,
+  netProfit: 1994000,
+  roiPct: 79.8,
+  allTimeInvested: 2747000,
+  allTimeRevenue: 4741000,
+  allTimeNetProfit: 1994000,
+  allTimeRoiPct: 72.6,
+  unsoldTotalStock: 332,
+  unsoldTotalCost: 830000,
+};

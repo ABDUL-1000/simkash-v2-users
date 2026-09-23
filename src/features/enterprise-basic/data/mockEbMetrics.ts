@@ -1,0 +1,62 @@
+import type { EbDashboardMetrics, InstalmentScheduleItem } from "../types";
+
+export const mockUpfrontMetrics: EbDashboardMetrics = {
+  productsInStock: 1247,
+  simsInStock: 847,
+  cctvInStock: 312,
+  solarInStock: 88,
+  totalMarginEarned: 8847000,
+  marginThisMonth: 1740000,
+  simsMarginThisMonth: 928000,
+  cctvMarginThisMonth: 456000,
+  solarMarginThisMonth: 356000,
+  productsSold: 389,
+  simsSold: 247,
+  cctvSold: 118,
+  solarSold: 24,
+  totalCustomers: 1847,
+  customersThisMonth: 14,
+  balanceRemaining: 0,
+  balancePaid: 10000000,
+  nextInstalmentAmount: 0,
+  nextInstalmentDate: "",
+  nextInstalmentDueDays: 0,
+  walletBalance: 1247000,
+  bonusProgressPct: 72,
+  bonusTargetCurrent: 360,
+  bonusTargetMax: 500,
+};
+
+export const mockFinancedMetrics: EbDashboardMetrics = {
+  productsInStock: 1247,
+  simsInStock: 847,
+  cctvInStock: 312,
+  solarInStock: 88,
+  totalMarginEarned: 1247000,
+  marginThisMonth: 494000,
+  simsMarginThisMonth: 228000,
+  cctvMarginThisMonth: 156000,
+  solarMarginThisMonth: 110000,
+  productsSold: 247,
+  simsSold: 168,
+  cctvSold: 56,
+  solarSold: 23,
+  totalCustomers: 847,
+  customersThisMonth: 23,
+  balanceRemaining: 4200000,
+  balancePaid: 5800000,
+  nextInstalmentAmount: 350000,
+  nextInstalmentDate: "28 Jun 2026",
+  nextInstalmentDueDays: 0, // due today!
+  walletBalance: 1247000,
+  bonusProgressPct: 72,
+  bonusTargetCurrent: 360,
+  bonusTargetMax: 500,
+};
+
+export const mockInstalmentSchedule: InstalmentScheduleItem[] = [
+  { periodLabel: "Last: 14 Jun", dateStr: "14 Jun 2026", amount: 350000, status: "paid" },
+  { periodLabel: "Next: 28 Jun", dateStr: "28 Jun 2026", amount: 350000, status: "due_today" },
+  { periodLabel: "After: 12 Jul", dateStr: "12 Jul 2026", amount: 350000, status: "scheduled" },
+  { periodLabel: "After: 26 Jul", dateStr: "26 Jul 2026", amount: 350000, status: "scheduled" },
+];
