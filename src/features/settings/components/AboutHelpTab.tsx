@@ -7,7 +7,7 @@ export function AboutHelpTab() {
   return (
     <div className="space-y-6">
       {/* Card 1: About Simkash */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">About Simkash</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -27,7 +27,7 @@ export function AboutHelpTab() {
       </div>
 
       {/* Card 2: Support & Help */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Support & Help</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -54,7 +54,7 @@ export function AboutHelpTab() {
       </div>
 
       {/* Card 3: Legal */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Legal</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -73,7 +73,7 @@ export function AboutHelpTab() {
       </div>
 
       {/* Card 4: Account Actions */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Account Actions</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">

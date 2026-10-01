@@ -3,19 +3,24 @@ import { AppModal } from "@/components/common/AppModal";
 interface MoreServicesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onServiceSelect: (serviceId: string) => void;
 }
 
-export function MoreServicesModal({ open, onOpenChange }: MoreServicesModalProps) {
+export function MoreServicesModal({ open, onOpenChange, onServiceSelect }: MoreServicesModalProps) {
   const services = [
-    { title: "Request SIM", icon: "📊", bg: "bg-[#EFF4F8]" },
-    { title: "SIM Swap", icon: "🔄", bg: "bg-[#EFF4F8]" },
-    { title: "SIM Renewal", icon: "🔄", bg: "bg-[#EBFFF8]" },
-    { title: "Electricity", icon: "⚡", bg: "bg-[#FFF7F8]" },
-    { title: "Cable TV", icon: "📺", bg: "bg-[#EFF4F8]" },
-    { title: "Internet", icon: "🌐", bg: "bg-[#EFF4F8]" },
-    { title: "JAMB", icon: "🎓", bg: "bg-[#EBFFF8]" },
-    { title: "WAEC", icon: "📝", bg: "bg-[#FFF7F8]" },
-    { title: "Bulk Airtime", icon: "📡", bg: "bg-[#EFF4F8]" },
+    { id: "request-sim", title: "Request SIM", icon: "📊", bg: "bg-[#EFF4F8]" },
+    { id: "sim-swap", title: "SIM Swap", icon: "🔄", bg: "bg-[#EFF4F8]" },
+    { id: "sim-renew", title: "SIM Renewal", icon: "🔄", bg: "bg-[#EBFFF8]" },
+    { id: "airtime", title: "Airtime", icon: "📱", bg: "bg-[#FFF7F8]" },
+    { id: "data", title: "Data", icon: "📊", bg: "bg-[#EFF4F8]" },
+    { id: "electricity", title: "Electricity", icon: "⚡", bg: "bg-[#FFF7F8]" },
+    { id: "cable", title: "Cable TV", icon: "📺", bg: "bg-[#EFF4F8]" },
+    { id: "airtime-to-cash", title: "Airtime to Cash", icon: "💱", bg: "bg-[#EBFFF8]" },
+    { id: "data-to-cash", title: "Data to Cash", icon: "🔄", bg: "bg-[#EFF4F8]" },
+    { id: "bulk-airtime", title: "Bulk Airtime", icon: "📡", bg: "bg-[#FFF7F8]" },
+    { id: "bulk-data", title: "Bulk Data", icon: "📦", bg: "bg-[#FFF7F8]" },
+    { id: "jamb", title: "JAMB", icon: "🎓", bg: "bg-[#EBFFF8]" },
+    { id: "waec", title: "WAEC", icon: "📝", bg: "bg-[#FFF7F8]" },
   ];
 
   return (
@@ -27,11 +32,11 @@ export function MoreServicesModal({ open, onOpenChange }: MoreServicesModalProps
       size="sm"
     >
       <div className="grid grid-cols-3 gap-4 py-2">
-        {services.map((item, idx) => (
+        {services.map((item) => (
           <button
-            key={idx}
+            key={item.id}
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={() => { onOpenChange(false); onServiceSelect(item.id); }}
             className="group flex flex-col items-center gap-2 rounded-2xl p-3 text-center transition hover:bg-[#F8FAFC]"
           >
             <div

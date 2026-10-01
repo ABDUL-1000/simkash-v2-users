@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Check, CheckCircle2 } from "lucide-react";
+import { Check, CheckCircle2, Loader2, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
+import { useGetCableServices } from "@/features/bill-payment/api/useGetCableServices";
+import { useGetCableVariations } from "@/features/bill-payment/api/useGetCableVariations";
+import { useVerifyCableCard } from "@/features/bill-payment/api/useVerifyCableCard";
+import { usePurchaseCable } from "@/features/bill-payment/api/usePurchaseCable";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 
 interface CableTvPaymentModalProps {
   open: boolean;
@@ -11,37 +16,92 @@ interface CableTvPaymentModalProps {
 }
 
 export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalProps) {
-  const [provider, setProvider] = useState<"dstv" | "gotv" | "startimes">("dstv");
-  const [smartCardNumber, setSmartCardNumber] = useState<string>("1234567890");
-  const [isVerified, setIsVerified] = useState(true);
-  const [actionTab, setActionTab] = useState<"renew" | "change">("renew");
-  const [amount] = useState<number>(7900);
+  const { wallet, user } = useGetAuthUser();
+  const currentBalance = wallet?.balance ?? 0;
+  const userPhone = user?.phone || "";
+
+  const [provider, setProvider] = useState<string>("");
+  const [smartCardNumber, setSmartCardNumber] = useState<string>("");
+  const [subscriberName, setSubscriberName] = useState<string>("");
+  const [isVerified, setIsVerified] = useState(false);
+  const [selectedVariationCode, setSelectedVariationCode] = useState<string>("");
+
+  const { services: apiServices, isLoading: isServicesLoading } = useGetCableServices();
+  const { variations, isLoading: isVariationsLoading } = useGetCableVariations(provider);
+  const verifyCableMutation = useVerifyCableCard();
+  const purchaseCableMutation = usePurchaseCable();
 
   // Step state: "form" -> "confirm" -> "success" | "failure"
   const [step, setStep] = useState<"form" | "confirm" | "success" | "failure">("form");
   const [pin, setPin] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [txnRef, setTxnRef] = useState<string>("");
+  const [failureReason, setFailureReason] = useState<string>("");
 
-  const providerNames = {
-    dstv: "DStv",
-    gotv: "GOtv",
-    startimes: "Startimes",
+  const availableProviders = apiServices.map((s) => ({
+          id: s.serviceID,
+          label: s.name,
+          avatar: s.name.substring(0, 2).toUpperCase(),
+          bg: "bg-[#2563EB]",
+        }));
+
+  const activeVariations = variations;
+  const currentPlan =
+    activeVariations.find((v) => v.variation_code === selectedVariationCode) ||
+    activeVariations[0];
+
+  const planAmount = Number(currentPlan?.variation_amount || 0);
+
+  const handleVerify = () => {
+    if (!smartCardNumber) return;
+    verifyCableMutation.mutate(
+      {
+        serviceID: provider,
+        billersCode: smartCardNumber,
+      },
+      {
+        onSuccess: (res) => {
+          const name =
+            res.data?.customer_name ||
+            res.data?.Customer_Name ||
+            res.data?.customerName ||
+            "";
+          setSubscriberName(name);
+          setIsVerified(true);
+        },
+      }
+    );
   };
 
   const handleContinue = () => {
+    if (!currentPlan || !isVerified) return;
     setStep("confirm");
   };
 
   const handleConfirmPay = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (pin === "0000") {
-        setStep("failure");
-      } else {
-        setStep("success");
+    if (!currentPlan) return;
+    purchaseCableMutation.mutate(
+      {
+        serviceID: provider,
+        billersCode: smartCardNumber,
+        variation_code: currentPlan.variation_code,
+        packageName: currentPlan.name,
+        amount: planAmount,
+        phone: userPhone,
+        pin,
+      },
+      {
+        onSuccess: (res) => {
+          setTxnRef(res.data?.reference || `TXN-${Date.now()}`);
+          setStep("success");
+        },
+        onError: (err: any) => {
+          setFailureReason(
+            err?.response?.data?.message || err.message || "Cable purchase failed."
+          );
+          setStep("failure");
+        },
       }
-    }, 1000);
+    );
   };
 
   const resetAll = () => {
@@ -54,25 +114,27 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
     onOpenChange(false);
   };
 
+  const balanceAfter = Math.max(0, currentBalance - planAmount);
+
   // Confirm Details mapping
   const confirmDetails: ConfirmDetailItem[] = [
-    { label: "Provider", value: providerNames[provider] },
+    { label: "Provider", value: provider.toUpperCase() },
     { label: "Smart Card / IUC", value: smartCardNumber },
-    { label: "Subscriber", value: "Oluwaseun Adeyemi" },
-    { label: "Plan", value: "DStv Compact" },
-    { label: "Amount", value: `₦${amount.toLocaleString()}` },
-    { label: "Pay from", value: "Wallet (₦50,000)" },
-    { label: "After", value: `₦${(50000 - amount).toLocaleString()}` },
+    { label: "Subscriber", value: subscriberName },
+    { label: "Plan", value: currentPlan?.name || "Selected Package" },
+    { label: "Amount", value: `₦${planAmount.toLocaleString()}` },
+    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "After", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
   // Success Details mapping
   const successDetails: SuccessDetailItem[] = [
     { label: "Smart Card Number", value: smartCardNumber },
-    { label: "Subscriber", value: "Oluwaseun Adeyemi" },
-    { label: "Provider", value: providerNames[provider] },
-    { label: "Plan", value: "DStv Compact" },
-    { label: "Amount", value: `₦${amount.toLocaleString()}` },
-    { label: "Ref", value: "TXN-2026-008475" },
+    { label: "Subscriber", value: subscriberName },
+    { label: "Provider", value: provider.toUpperCase() },
+    { label: "Plan", value: currentPlan?.name || "Selected Package" },
+    { label: "Amount", value: `₦${planAmount.toLocaleString()}` },
+    { label: "Ref", value: txnRef },
   ];
 
   return (
@@ -82,7 +144,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
         open={open && step === "form"}
         onOpenChange={handleClose}
         title="Cable TV Payment"
-        description=""
+        description="Renew subscription or change bouquet"
         size="md"
       >
         <div className="space-y-5 pt-1">
@@ -92,16 +154,16 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
               Select Provider
             </label>
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: "dstv", label: "DStv", avatar: "DS", bg: "bg-[#2563EB]" },
-                { id: "gotv", label: "GOtv", avatar: "GO", bg: "bg-[#10B981]" },
-                { id: "startimes", label: "Startimes", avatar: "ST", bg: "bg-[#EF4444]" },
-              ].map((p) => {
+              {isServicesLoading ? <div className="col-span-3 h-20 animate-pulse rounded-2xl bg-slate-100" /> : availableProviders.length === 0 ? <p className="col-span-3 text-xs text-slate-500">No providers available.</p> : availableProviders.map((p) => {
                 const isSelected = provider === p.id;
                 return (
                   <div
                     key={p.id}
-                    onClick={() => setProvider(p.id as any)}
+                    onClick={() => {
+                      setProvider(p.id);
+                      setIsVerified(false);
+                      setSelectedVariationCode("");
+                    }}
                     className={`cursor-pointer flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition ${
                       isSelected
                         ? "border-[#2563EB] bg-[#EFF4F8] ring-1 ring-[#2563EB]"
@@ -136,14 +198,25 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
               <input
                 type="text"
                 value={smartCardNumber}
-                onChange={(e) => setSmartCardNumber(e.target.value)}
+                onChange={(e) => {
+                  setSmartCardNumber(e.target.value);
+                  setIsVerified(false);
+                }}
+                onBlur={() => {
+                  if (smartCardNumber.length >= 10 && !isVerified) handleVerify();
+                }}
+                placeholder="Enter IUC or Smartcard Number"
                 className="flex-1 rounded-2xl border border-[#E2ECF6] py-3 px-4 text-xs font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
               />
               <button
                 type="button"
-                onClick={() => setIsVerified(true)}
-                className="rounded-xl bg-[#2563EB] px-4 py-3 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700"
+                onClick={handleVerify}
+                disabled={verifyCableMutation.isPending || !smartCardNumber}
+                className="flex items-center gap-1 rounded-xl bg-[#2563EB] px-4 py-3 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700 disabled:opacity-50"
               >
+                {verifyCableMutation.isPending && (
+                  <Loader2 className="size-3 animate-spin" />
+                )}
                 Verify
               </button>
             </div>
@@ -152,71 +225,46 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
                 <CheckCircle2 className="size-4 text-[#10B981] shrink-0" />
                 <div>
                   <span className="block text-[10px] text-[#10B981]">Subscriber Found</span>
-                  <span className="font-bold text-[#0F152A]">Oluwaseun Adeyemi</span>
+                  <span className="font-bold text-[#0F152A]">{subscriberName}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Action Tabs */}
+          {/* Bouquet Selection Dropdown */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              Action
-            </label>
-            <div className="flex rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6]">
-              <button
-                type="button"
-                onClick={() => setActionTab("renew")}
-                className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-                  actionTab === "renew"
-                    ? "bg-white text-[#0F152A] shadow-xs"
-                    : "text-[#8C909B] hover:text-[#0F152A]"
-                }`}
-              >
-                Renew Subscription
-              </button>
-              <button
-                type="button"
-                onClick={() => setActionTab("change")}
-                className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-                  actionTab === "change"
-                    ? "bg-white text-[#0F152A] shadow-xs"
-                    : "text-[#8C909B] hover:text-[#0F152A]"
-                }`}
-              >
-                Change Plan
-              </button>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
+                Select Bouquet / Plan
+              </label>
+              {isVariationsLoading && (
+                <span className="flex items-center gap-1 text-[10px] text-[#2563EB]">
+                  <Loader2 className="size-3 animate-spin" /> Loading bouquets...
+                </span>
+              )}
             </div>
+            <select
+              value={currentPlan?.variation_code}
+              onChange={(e) => setSelectedVariationCode(e.target.value)}
+              className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 px-4 text-xs font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
+            >
+              {isVariationsLoading ? <option>Loading bouquets…</option> : activeVariations.length === 0 ? <option value="">No bouquets available</option> : activeVariations.map((v) => (
+                <option key={v.variation_code} value={v.variation_code}>
+                  {v.name} — ₦{Number(v.variation_amount || v.fixedPrice || 0).toLocaleString()}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Current Plan Card */}
-          <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[#8C909B]">Current Plan</span>
-              <span className="font-semibold text-[#F59E0B]">Expires in 3 days</span>
-            </div>
-            <h4 className="mt-2 text-sm font-bold text-[#0F152A]">DStv Compact</h4>
-            <p className="text-xs text-[#8C909B]">₦7,900 / month · 200+ channels</p>
-          </div>
-
-          {/* Amount Box */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              Amount
-            </label>
-            <div className="flex items-center justify-between rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 text-sm font-bold text-[#0F152A]">
-              <span>₦7,900.00</span>
-              <span className="text-[10px] text-[#10B981] font-semibold">Auto-filled</span>
-            </div>
-          </div>
-
-          {/* Pay From Source */}
+          {/* Pay from Source */}
           <div className="flex items-center justify-between rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 text-xs">
-            <span className="text-[#8C909B]">Pay from</span>
-            <span className="font-bold text-[#0F152A]">Wallet ₦50,000</span>
+            <span className="flex items-center gap-2 text-[#8C909B]">
+              <Wallet className="size-4 text-[#8C909B]" /> Pay from
+            </span>
+            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
-          {/* Footer Actions */}
+          {/* Actions */}
           <div className="flex items-center justify-between border-t border-[#E2ECF6] pt-4">
             <button
               type="button"
@@ -228,9 +276,10 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
             <button
               type="button"
               onClick={handleContinue}
-              className="rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700"
+              disabled={!smartCardNumber || !currentPlan || !planAmount}
+              className="rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
-              Pay ₦7,900
+              Continue to Pay
             </button>
           </div>
         </div>
@@ -240,25 +289,25 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
       <TransactionConfirmModal
         open={open && step === "confirm"}
         onOpenChange={handleClose}
-        title="Confirm Payment"
-        subtitle="Review your cable TV payment"
+        title="Confirm Cable Subscription"
+        subtitle="Review details before paying"
         details={confirmDetails}
         pin={pin}
         onPinChange={setPin}
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
-        confirmButtonText={`Pay ₦${amount.toLocaleString()}`}
-        isLoading={isLoading}
+        confirmButtonText={`Pay ₦${planAmount.toLocaleString()}`}
+        isLoading={purchaseCableMutation.isPending}
       />
 
       {/* 3. Reusable Success Modal */}
       <TransactionSuccessModal
         open={open && step === "success"}
         onOpenChange={handleClose}
-        title="Cable TV Payment Successful!"
-        subtitle={`DStv Compact renewed for Smart Card ${smartCardNumber}`}
+        title="Cable TV Activated!"
+        subtitle={`${provider.toUpperCase()} subscription recharged successfully for ${subscriberName}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${(50000 - amount).toLocaleString()}`}
+        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -268,11 +317,11 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
         open={open && step === "failure"}
         onOpenChange={handleClose}
         title="Payment Failed"
-        subtitle="We couldn't complete this Cable TV renewal. Your wallet was not debited."
-        reason="Smartcard number invalid or provider down. Please try again."
+        subtitle="We couldn't complete this cable TV payment. Your wallet was not debited."
+        reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("confirm")}
+        onTryAgain={() => { setPin(""); setStep("confirm"); }}
         onCancel={handleClose}
       />
     </>

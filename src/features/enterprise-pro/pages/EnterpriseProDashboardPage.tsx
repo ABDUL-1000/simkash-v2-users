@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { initialKpis } from "../data/mockData";
 import type { EpKpiData, SimOrderDraft } from "../types";
 import { EpMetricsHeader } from "../components/EpMetricsHeader";
@@ -25,6 +26,9 @@ import { ReinvestEarningsModal } from "../modals/ReinvestEarningsModal";
 import { Bell, Phone } from "lucide-react";
 
 export function EnterpriseProDashboardPage() {
+  const { user, profile, wallet } = useGetAuthUser();
+  const displayName = profile?.fullname || user?.username || "Enterprise Partner";
+
   const [kpi, setKpi] = useState<EpKpiData>(initialKpis);
 
   // Modal States
@@ -70,11 +74,16 @@ export function EnterpriseProDashboardPage() {
     }));
   };
 
+  const effectiveKpi: EpKpiData = {
+    ...kpi,
+    walletBalance: wallet?.balance ?? kpi.walletBalance,
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header */}
       <PageHeader
-        title="Enterprise Pro Workspace"
+        title={`Welcome back, ${displayName}`}
         description="Manage your regional investment, SIM inventory, pricing margins, and State Coordinator network"
         actions={[
           {
@@ -104,7 +113,7 @@ export function EnterpriseProDashboardPage() {
 
       {/* KPI Metrics Strip */}
       <EpMetricsHeader
-        kpi={kpi}
+        kpi={effectiveKpi}
         onOrderMore={() => setShowOrderSims(true)}
         onReinvest={() => setShowReinvest(true)}
         onPayDown={() => setShowPayDown(true)}

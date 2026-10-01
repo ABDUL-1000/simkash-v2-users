@@ -1,59 +1,14 @@
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useGetWalletSummary } from "@/features/wallet/api/useGetWalletSummary";
+import { TransactionDetailDrawer } from "@/features/wallet/components/TransactionDetailDrawer";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 
 export function RecentTransactionsSection() {
-  const transactions = [
-    {
-      id: 1,
-      title: "Wallet Top Up",
-      subtitle: "Via Flutterwave",
-      amount: "+₦5,000",
-      amountColor: "text-[#10B981]",
-      date: "Today 2:34 PM",
-      icon: "💰",
-      iconBg: "bg-[#EBFFF8]",
-    },
-    {
-      id: 2,
-      title: "Airtime Purchase",
-      subtitle: "MTN · 08065942373",
-      amount: "-₦500",
-      amountColor: "text-[#EF4444]",
-      date: "Today 11:20 AM",
-      icon: "📱",
-      iconBg: "bg-[#FFF7F8]",
-    },
-    {
-      id: 3,
-      title: "Electricity Bill",
-      subtitle: "EKEDC · Meter 1234567",
-      amount: "-₦3,000",
-      amountColor: "text-[#EF4444]",
-      date: "Yesterday",
-      icon: "⚡",
-      iconBg: "bg-[#FFF7F8]",
-    },
-    {
-      id: 4,
-      title: "SIM Renewal",
-      subtitle: "07022222222 · 30-day plan",
-      amount: "-₦5,000",
-      amountColor: "text-[#EF4444]",
-      date: "23 Jun 2026",
-      icon: "🔄",
-      iconBg: "bg-[#EFF4F8]",
-    },
-    {
-      id: 5,
-      title: "Marketplace Order",
-      subtitle: "ORD-2026-00847",
-      amount: "-₦184,999",
-      amountColor: "text-[#EF4444]",
-      date: "20 Jun 2026",
-      icon: "🛍️",
-      iconBg: "bg-[#FFF7F8]",
-    },
-  ];
+  const [selectedTxnId, setSelectedTxnId] = useState<number | null>(null);
+  const { summary, isLoading } = useGetWalletSummary();
+  const transactions = summary?.recent_transactions ?? [];
 
   return (
     <div className="space-y-4">
@@ -68,32 +23,70 @@ export function RecentTransactionsSection() {
       </div>
 
       <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-white p-2 shadow-xs">
-        {transactions.map((tx) => (
-          <div
-            key={tx.id}
-            className="flex items-center justify-between p-3.5 transition hover:bg-[#F8FAFC]"
-          >
-            <div className="flex items-center gap-3.5">
-              <div
-                className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-lg ${tx.iconBg}`}
-              >
-                {tx.icon}
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-[#0F152A]">{tx.title}</h4>
-                <p className="text-xs text-[#8C909B]">{tx.subtitle}</p>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <span className={`text-sm font-bold ${tx.amountColor}`}>
-                {tx.amount}
-              </span>
-              <p className="text-xs text-[#8C909B]">{tx.date}</p>
-            </div>
+        {isLoading ? (
+          <div className="p-6 text-center text-xs text-[#8C909B]">
+            Loading recent transactions...
           </div>
-        ))}
+        ) : transactions.length > 0 ? (
+          transactions.map((tx) => {
+            const isCredit =
+              /credit|inflow|top.?up|deposit|refund|commission/i.test(tx.type);
+
+            return (
+              <div
+                key={tx.id}
+                onClick={() => setSelectedTxnId(tx.id)}
+                className="flex cursor-pointer items-center justify-between p-3.5 transition hover:bg-[#F8FAFC]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-lg ${
+                      isCredit ? "bg-[#EBFFF8]" : "bg-[#FFF7F8]"
+                    }`}
+                  >
+                    {isCredit ? "💰" : "💳"}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-[#0F152A]">
+                    {tx.type}
+                    </h4>
+                    <p className="text-xs text-[#8C909B] font-mono">
+                      {tx.reference || `#${tx.id}`} · {tx.status}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span
+                    className={`text-sm font-bold font-mono ${
+                      isCredit ? "text-[#10B981]" : "text-[#EF4444]"
+                    }`}
+                  >
+                    {isCredit ? "+" : "-"}₦
+                    {Number(tx.amount || 0).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                  <p className="text-xs text-[#8C909B]">
+                    {new Date(tx.createdAt).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <AppEmptyState title="No wallet transactions yet" description="Your recent wallet activity will appear here." />
+        )}
       </div>
+
+      <TransactionDetailDrawer
+        id={selectedTxnId}
+        open={!!selectedTxnId}
+        onClose={() => setSelectedTxnId(null)}
+      />
     </div>
   );
 }

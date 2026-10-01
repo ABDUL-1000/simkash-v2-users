@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Search, Download, } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { APP_COLORS } from "@/constants/colors";
 import { CA_ACTIVATION_HISTORY_DATA } from "../data/corporate-agent.data";
 import type { SimType } from "../types/corporate-agent.types";
@@ -221,9 +222,7 @@ export function AllActivationsModal({
         {/* ACTIVATIONS LIST */}
         <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
           {displayedItems.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
-              No activations found matching your filters.
-            </div>
+            <AppEmptyState title="No activations found" description="Try adjusting your filters or search query." />
           ) : (
             displayedItems.map((item) => {
               const carrierBadge = getCarrierBadge(item.carrier);

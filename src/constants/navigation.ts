@@ -52,13 +52,20 @@ export type NavigationSection = {
 
 export const userNavigation: NavigationSection[] = [
   {
-    label: "Dashboards",
+    label: "User Dashboards",
     items: [
       {
         id: "user-dashboard",
         label: "User Dashboard",
         href: appPaths.dashboard,
         icon: LayoutDashboard,
+      },
+        {
+        id: "device-sim",
+        label: "Device SIM",
+        href: appPaths.deviceSim,
+        icon: Smartphone,
+        hasChevron: true,
       },
     ],
   },
@@ -421,13 +428,7 @@ export const userNavigation: NavigationSection[] = [
         icon: Receipt,
         hasChevron: true,
       },
-      {
-        id: "device-sim",
-        label: "Device SIM",
-        href: appPaths.deviceSim,
-        icon: Smartphone,
-        hasChevron: true,
-      },
+    
       {
         id: "zero-limit-sim",
         label: "Zero Limit SIM",
@@ -458,12 +459,6 @@ export const userNavigation: NavigationSection[] = [
         label: "Referrals",
         href: appPaths.referrals,
         icon: Share2,
-      },
-      {
-        id: "wallet",
-        label: "My Wallet",
-        href: appPaths.wallet,
-        icon: Wallet,
       },
     ],
   },

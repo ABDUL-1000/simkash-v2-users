@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ArrowRight, BookUser, Wallet } from "lucide-react";
+import { ArrowRight, BookUser, Loader2, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
+import { useGetAirtimeNetworks } from "@/features/bill-payment/api/useGetAirtimeNetworks";
+import { useVerifyPhoneNetwork } from "@/features/bill-payment/api/useVerifyPhoneNetwork";
+import { usePurchaseAirtime } from "@/features/bill-payment/api/usePurchaseAirtime";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
 
 interface BuyAirtimeModalProps {
   open: boolean;
@@ -11,17 +16,44 @@ interface BuyAirtimeModalProps {
 }
 
 export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
-  const [network, setNetwork] = useState<string>("MTN");
-  const [phoneNumber, setPhoneNumber] = useState<string>("08065942373");
-  const [amount, setAmount] = useState<string>("500");
-  const [selectedPreset, setSelectedPreset] = useState<number | null>(500);
+  const { wallet } = useGetAuthUser();
+  const currentBalance = wallet?.balance ?? 0;
+
+  const { networks: apiNetworks, isLoading: isLoadingNetworks } = useGetAirtimeNetworks();
+  const verifyNetworkMutation = useVerifyPhoneNetwork();
+  const purchaseAirtimeMutation = usePurchaseAirtime();
+
+  const [network, setNetwork] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [amount, setAmount] = useState<string>("");
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
 
   // Modal Flow Step States: "form" -> "confirm" -> "success" | "failure"
   const [step, setStep] = useState<"form" | "confirm" | "success" | "failure">("form");
   const [pin, setPin] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [txnRef, setTxnRef] = useState<string>("");
+  const [failureReason, setFailureReason] = useState<string>("");
 
   const presets = [50, 100, 200, 500, 1000, 2000];
+
+  const availableNetworks = apiNetworks;
+
+  const handlePhoneChange = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "").slice(0, 11);
+    setPhoneNumber(cleanPhone);
+    if (cleanPhone.length === 11) {
+      verifyNetworkMutation.mutate({ phone: cleanPhone }, {
+        onSuccess: (res) => {
+          const detected = res.data?.network || res.data?.serviceID;
+          const matched = availableNetworks.find((item) =>
+            item.name.toLowerCase() === detected?.toLowerCase() ||
+            item.serviceID.toLowerCase() === detected?.toLowerCase()
+          );
+          if (matched) setNetwork(matched.serviceID);
+        },
+      });
+    }
+  };
 
   const handleSelectPreset = (val: number) => {
     setSelectedPreset(val);
@@ -33,16 +65,26 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
   };
 
   const handleConfirmPay = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      // Simulating PIN check (if pin === "0000" trigger failure for demo, else success)
-      if (pin === "0000") {
-        setStep("failure");
-      } else {
-        setStep("success");
+    purchaseAirtimeMutation.mutate(
+      {
+        network,
+        amount: Number(amount),
+        phone: phoneNumber,
+        pin,
+      },
+      {
+        onSuccess: (res) => {
+          setTxnRef(res.data?.reference || `TXN-${Date.now()}`);
+          setStep("success");
+        },
+        onError: (err: any) => {
+          setFailureReason(
+            err?.response?.data?.message || err.message || "Purchase failed."
+          );
+          setStep("failure");
+        },
       }
-    }, 1000);
+    );
   };
 
   const resetAll = () => {
@@ -55,28 +97,31 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
     onOpenChange(false);
   };
 
+  const parsedAmount = Number(amount) || 0;
+  const balanceAfter = Math.max(0, currentBalance - parsedAmount);
+
   // Confirm Details mapping
   const confirmDetails: ConfirmDetailItem[] = [
     {
       label: "Network",
       value: (
-        <span className="rounded-full bg-[#FFCC00] px-2.5 py-0.5 text-xs font-extrabold text-[#0F152A]">
+        <span className={`rounded-full px-2.5 py-0.5 text-xs font-black uppercase ${getNetworkColor(network)}`}>
           {network}
         </span>
       ),
     },
     { label: "Phone", value: phoneNumber },
-    { label: "Amount", value: `₦${Number(amount).toLocaleString()}` },
-    { label: "Pay from", value: "Wallet (₦50,000)" },
-    { label: "Balance after", value: `₦${(50000 - Number(amount)).toLocaleString()}` },
+    { label: "Amount", value: `₦${parsedAmount.toLocaleString()}` },
+    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "Balance after", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
   // Success Receipt Details mapping
   const successDetails: SuccessDetailItem[] = [
     { label: "Phone", value: phoneNumber },
     { label: "Network", value: network },
-    { label: "Amount", value: `₦${Number(amount).toLocaleString()}` },
-    { label: "Ref", value: "TXN-2026-008473" },
+    { label: "Amount", value: `₦${parsedAmount.toLocaleString()}` },
+    { label: "Ref", value: txnRef },
   ];
 
   return (
@@ -93,7 +138,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
           {/* Wallet Balance Banner */}
           <div className="flex items-center gap-2 rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
             <span>💰</span>
-            <span>Wallet Balance · ₦50,000.00</span>
+            <span>Wallet Balance · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
 
           {/* Select Network */}
@@ -102,21 +147,16 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
               SELECT NETWORK
             </label>
             <div className="flex flex-wrap gap-3">
-              {[
-                { name: "MTN", bg: "bg-[#FFCC00] text-[#0F152A]" },
-                { name: "Airtel", bg: "bg-[#E53333] text-white" },
-                { name: "Glo", bg: "bg-[#10B981] text-white" },
-                { name: "T2", bg: "bg-[#2563EB] text-white" },
-              ].map((net) => {
-                const isSelected = network === net.name;
+          {isLoadingNetworks ? <div className="h-8 w-full animate-pulse rounded-full bg-slate-100" /> : availableNetworks.length === 0 ? <p className="text-xs text-slate-500">No networks available.</p> : availableNetworks.map((net) => {
+                const isSelected = network.toLowerCase() === net.serviceID.toLowerCase();
                 return (
                   <button
                     key={net.name}
                     type="button"
-                    onClick={() => setNetwork(net.name)}
+                    onClick={() => setNetwork(net.serviceID)}
                     className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
                       isSelected
-                        ? net.bg
+                        ? getNetworkColor(net.serviceID)
                         : "border border-[#E2ECF6] bg-white text-[#66738C] hover:bg-[#F8FAFC]"
                     }`}
                   >
@@ -127,19 +167,29 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
             </div>
           </div>
 
-          {/* Phone Number Input */}
+          {/* Phone Number Input with Auto-detection on blur */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              PHONE NUMBER
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
+                PHONE NUMBER
+              </label>
+              {verifyNetworkMutation.isPending && (
+                <span className="flex items-center gap-1 text-[10px] text-[#2563EB]">
+                  <Loader2 className="size-3 animate-spin" /> Detecting network...
+                </span>
+              )}
+            </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base">
                 🇳🇬
               </span>
               <input
-                type="text"
+                type="tel"
+                inputMode="numeric"
+                maxLength={11}
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="08012345678"
                 className="w-full rounded-2xl border border-[#E2ECF6] py-3 pl-10 pr-10 text-sm font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
               />
               <button
@@ -150,12 +200,6 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
                 <BookUser className="size-4" />
               </button>
             </div>
-            <button
-              type="button"
-              className="text-xs font-bold text-[#2563EB] hover:underline"
-            >
-              Use a different number
-            </button>
           </div>
 
           {/* Amount Input */}
@@ -205,7 +249,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
             <span className="flex items-center gap-2 text-[#8C909B]">
               <Wallet className="size-4 text-[#8C909B]" /> Pay from
             </span>
-            <span className="font-bold text-[#0F152A]">Wallet · ₦50,000</span>
+            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
           {/* Footer Actions */}
@@ -220,7 +264,8 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
             <button
               type="button"
               onClick={handleContinue}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700"
+              disabled={!amount || Number(amount) <= 0 || !phoneNumber}
+              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />
             </button>
@@ -239,8 +284,8 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
         onPinChange={setPin}
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
-        confirmButtonText={`Buy Airtime ₦${Number(amount).toLocaleString()}`}
-        isLoading={isLoading}
+        confirmButtonText={`Buy Airtime ₦${parsedAmount.toLocaleString()}`}
+        isLoading={purchaseAirtimeMutation.isPending}
       />
 
       {/* 3. Reusable Success Modal */}
@@ -248,9 +293,9 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
         open={open && step === "success"}
         onOpenChange={handleClose}
         title="Airtime Sent!"
-        subtitle={`₦${Number(amount).toLocaleString()} ${network} airtime sent to ${phoneNumber}`}
+        subtitle={`₦${parsedAmount.toLocaleString()} ${network} airtime sent to ${phoneNumber}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${(50000 - Number(amount)).toLocaleString()}`}
+        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -261,10 +306,10 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
         onOpenChange={handleClose}
         title="Purchase Failed"
         subtitle="We couldn't complete this purchase. Your wallet was not debited."
-        reason="Network provider temporarily unavailable. Please try again."
+        reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("confirm")}
+        onTryAgain={() => { setPin(""); setStep("confirm"); }}
         onCancel={handleClose}
       />
     </>

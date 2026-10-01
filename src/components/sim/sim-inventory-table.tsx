@@ -3,6 +3,7 @@ import { Table, Input, Button, Pagination, ConfigProvider } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Download, Search, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 
 export type SimTableTab = { id: string; label: string; count: number };
 
@@ -148,7 +149,14 @@ export function SimInventoryTable<T extends { id: React.Key }>({
             loading={loading}
             scroll={{ x: "max-content" }}
             tableLayout="auto"
-            locale={{ emptyText: emptyState ?? "No records found." }}
+            locale={{
+              emptyText: emptyState ?? (
+                <AppEmptyState
+                  title="No Records Found"
+                  description="There are no records matching your current filter criteria."
+                />
+              ),
+            }}
             rowSelection={
               selectable
                 ? {

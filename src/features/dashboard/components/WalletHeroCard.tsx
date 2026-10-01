@@ -1,14 +1,28 @@
 import { useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff, LayoutGrid, PhoneCall, Plus } from "lucide-react";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 
 interface WalletHeroCardProps {
   onTopUpClick: () => void;
   onMoreClick: () => void;
+  onSendClick?: () => void;
+  onWithdrawClick?: () => void;
+  onAirtimeClick?: () => void;
 }
 
-export function WalletHeroCard({ onTopUpClick, onMoreClick }: WalletHeroCardProps) {
+export function WalletHeroCard({
+  onTopUpClick,
+  onMoreClick,
+  onSendClick,
+  onWithdrawClick,
+  onAirtimeClick,
+}: WalletHeroCardProps) {
+  const { wallet } = useGetAuthUser();
   const [showWalletBalance, setShowWalletBalance] = useState(true);
   const [showPayLaterCredit, setShowPayLaterCredit] = useState(true);
+
+  const balance = wallet?.balance ?? 50000;
+  const formattedBalance = `₦${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs">
@@ -19,7 +33,7 @@ export function WalletHeroCard({ onTopUpClick, onMoreClick }: WalletHeroCardProp
             <span className="text-xs font-medium text-[#8C909B]">Wallet Balance</span>
             <div className="mt-1 flex items-center gap-2">
               <h2 className="text-2xl font-bold tracking-tight text-[#0F152A] sm:text-3xl">
-                {showWalletBalance ? "₦50,000.00" : "₦ ••••••••"}
+                {showWalletBalance ? formattedBalance : "₦ ••••••••"}
               </h2>
               <button
                 type="button"
@@ -47,6 +61,7 @@ export function WalletHeroCard({ onTopUpClick, onMoreClick }: WalletHeroCardProp
 
             <button
               type="button"
+              onClick={onSendClick}
               className="group flex flex-col items-center gap-1.5"
             >
               <div className="flex size-11 items-center justify-center rounded-xl bg-[#EFF4F8] text-[#2450F6] transition group-hover:bg-[#2450F6] group-hover:text-white">
@@ -57,6 +72,7 @@ export function WalletHeroCard({ onTopUpClick, onMoreClick }: WalletHeroCardProp
 
             <button
               type="button"
+              onClick={onWithdrawClick}
               className="group flex flex-col items-center gap-1.5"
             >
               <div className="flex size-11 items-center justify-center rounded-xl bg-[#EBFFF8] text-[#10B981] transition group-hover:bg-[#10B981] group-hover:text-white">
@@ -67,6 +83,7 @@ export function WalletHeroCard({ onTopUpClick, onMoreClick }: WalletHeroCardProp
 
             <button
               type="button"
+              onClick={onAirtimeClick}
               className="group flex flex-col items-center gap-1.5"
             >
               <div className="flex size-11 items-center justify-center rounded-xl bg-[#FFF7F8] text-[#EF4444] transition group-hover:bg-[#EF4444] group-hover:text-white">

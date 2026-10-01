@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell, Layers } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { appPaths } from "@/app/router/paths";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { useEnterpriseBasicState } from "../hooks/useEnterpriseBasicState";
 import { InstalmentAlertBanner } from "../components/InstalmentAlertBanner";
 import { EbPrimaryMetricCards } from "../components/EbPrimaryMetricCards";
@@ -22,6 +23,7 @@ import { EbModalsManager } from "../components/EbModalsManager";
 
 export const EnterpriseBasicDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, profile, wallet } = useGetAuthUser();
   const {
     paymentModel,
     setPaymentModel,
@@ -36,13 +38,15 @@ export const EnterpriseBasicDashboardPage: React.FC = () => {
   } = useEnterpriseBasicState();
 
   const isUpfront = paymentModel === "upfront";
+  const displayName = profile?.fullname || user?.username || "Partner";
+  const liveWalletBalance = wallet?.balance ?? metrics.walletBalance;
 
   return (
     <div className="space-y-6 pb-12">
       {/* Top PageHeader */}
       <PageHeader
-        title="Dashboard"
-        description="Welcome back! Monitor your stock, sales margin, and inventory orders."
+        title={`Welcome back, ${displayName}`}
+        description="Monitor your inventory, customer activations, and earnings."
         actions={[
           {
             key: "notifications",
@@ -107,6 +111,7 @@ export const EnterpriseBasicDashboardPage: React.FC = () => {
           <EbRecentSalesList
             sales={sales}
             onViewAll={() => updateModalState({ isOpenPnLSummary: true })}
+            onSellToCustomer={() => updateModalState({ isOpenAssignSim: true })}
           />
 
           <EbBalanceStatusCard
@@ -121,7 +126,7 @@ export const EnterpriseBasicDashboardPage: React.FC = () => {
         {/* Right Sidebar (1 col) */}
         <div className="lg:col-span-1 space-y-6">
           <EbWalletSidebarCard
-            balance={metrics.walletBalance}
+            balance={liveWalletBalance}
             onRequestPayout={() => updateModalState({ isOpenPayout: true })}
           />
 
@@ -146,7 +151,7 @@ export const EnterpriseBasicDashboardPage: React.FC = () => {
       <EbModalsManager
         state={modalState}
         onUpdateState={updateModalState}
-        walletBalance={metrics.walletBalance}
+        walletBalance={liveWalletBalance}
         balanceRemaining={metrics.balanceRemaining}
         balancePaid={metrics.balancePaid}
         onConfirmPayment={handlePayInstalment}

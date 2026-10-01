@@ -1,5 +1,14 @@
 export const appPaths = {
   root: "/",
+  login: "/auth/login",
+  register: "/auth/register",
+  forgotPassword: "/auth/forgot-password",
+  verifyEmailOtp: "/auth/verify-otp",
+  resetPassword: "/auth/reset-password",
+  checkEmail: "/auth/check-email",
+  setPin: "/auth/set-pin",
+  confirmPin: "/auth/confirm-pin",
+  profileSetup: "/auth/profile-setup",
   dashboard: "/dashboard",
   userDashboard: "/dashboard",
   enterpriseProDashboard: "/enterprise-pro/dashboard",
@@ -69,10 +78,10 @@ export const appPaths = {
     path: `/network/sc/activation/${id ? encodeURIComponent(id) : "ACT-2026-008472"}`,
   }),
   billPayments: "/bill-payments",
-  deviceSim: "/device-sim",
-  deviceSimDetails: (simId?: string) => ({
-    format: `/device-sim/:simId`,
-    path: `/device-sim/${simId ? encodeURIComponent(simId) : "07022222222"}`,
+  deviceSim: "/dashboard/device-sim",
+  deviceSimDetail: (type?: string, id?: string) => ({
+    format: "/dashboard/device-sim/:type/:id",
+    path: `/dashboard/device-sim/${encodeURIComponent(type || "sim")}/${encodeURIComponent(id || "")}`,
   }),
   esim: "/esim",
   virtualNumber: "/virtual-number",
@@ -259,12 +268,11 @@ export const appPaths = {
     path: `/settings/${tab || "general"}`,
   }),
 
-  login: "/login",
-  logout: "/logout",
+  logout: "/auth/login",
   auth: {
-    login: "/login",
-    register: "/register",
-    forgotPassword: "/forgot-password",
-    resetPassword: "/reset-password",
+    login: "/auth/login",
+    register: "/auth/register",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
   },
 } as const;

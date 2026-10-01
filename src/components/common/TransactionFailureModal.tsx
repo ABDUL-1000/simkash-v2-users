@@ -30,8 +30,8 @@ export function TransactionFailureModal({
   };
 
   const handleTryAgain = () => {
-    onOpenChange(false);
-    onTryAgain?.();
+    if (onTryAgain) onTryAgain();
+    else onOpenChange(false);
   };
 
   return (

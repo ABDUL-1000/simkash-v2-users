@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search, History, LayoutGrid } from "lucide-react";
 import { BuyAirtimeModal } from "../Modals/BuyAirtimeModal";
 import { BuyDataModal } from "../Modals/BuyDataModal";
 import { ElectricityPaymentModal } from "../Modals/ElectricityPaymentModal";
@@ -10,8 +10,10 @@ import { BulkAirtimeModal } from "../Modals/BulkAirtimeModal";
 import { BulkDataModal } from "../Modals/BulkDataModal";
 import { JambPinModal } from "../Modals/JambPinModal";
 import { WaecCheckerModal } from "../Modals/WaecCheckerModal";
+import { BillTransactionsTable } from "@/features/bill-payment/components/BillTransactionsTable";
 
 export default function BillPaymentsPage() {
+  const [activeTab, setActiveTab] = useState<"services" | "history">("services");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<
     | "airtime"
@@ -100,153 +102,118 @@ export default function BillPaymentsPage() {
     },
   ];
 
-  const recentBills = [
-    {
-      id: 1,
-      title: "Airtime",
-      subtitle: "MTN · 08065942373",
-      amount: "-₦500",
-      amountColor: "text-[#0F152A]",
-      date: "Today",
-      icon: "📱",
-      iconBg: "bg-[#FFF7F8]",
-    },
-    {
-      id: 2,
-      title: "Electricity",
-      subtitle: "EKEDC · Meter 00123456",
-      amount: "-₦3,000",
-      amountColor: "text-[#0F152A]",
-      date: "Yesterday",
-      icon: "⚡",
-      iconBg: "bg-[#FFF7F8]",
-    },
-    {
-      id: 3,
-      title: "Cable TV",
-      subtitle: "DSTV · Compact",
-      amount: "-₦7,900",
-      amountColor: "text-[#0F152A]",
-      date: "20 Jun",
-      icon: "📺",
-      iconBg: "bg-[#EFF4F8]",
-    },
-    {
-      id: 4,
-      title: "Data",
-      subtitle: "Airtel · 2GB Bundle",
-      amount: "-₦900",
-      amountColor: "text-[#0F152A]",
-      date: "18 Jun",
-      icon: "📊",
-      iconBg: "bg-[#EFF4F8]",
-    },
-    {
-      id: 5,
-      title: "Airtime to Cash",
-      subtitle: "MTN · ₦500 converted",
-      amount: "+₦425",
-      amountColor: "text-[#10B981]",
-      date: "15 Jun",
-      icon: "💱",
-      iconBg: "bg-[#EBFFF8]",
-    },
-  ];
-
   const filteredServices = services.filter((s) =>
     s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleServiceClick = (id: string) => {
-    setActiveModal(id as any);
-  };
-
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#0F152A]">Bill Payments & Services</h1>
-        <p className="mt-1 text-xs text-[#8C909B]">
-          Pay bills, buy airtime and data, convert airtime to cash
-        </p>
-      </div>
+      {/* Header with Navigation Tabs */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0F152A]">Bill Payments & Services</h1>
+          <p className="mt-1 text-xs text-[#8C909B]">
+            Pay bills, buy airtime and data, and review previous transactions
+          </p>
+        </div>
 
-      {/* Search Input */}
-      <div className="relative max-w-full">
-        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#939393]" />
-        <input
-          type="search"
-          placeholder="Search services..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 pl-11 pr-4 text-xs text-[#0F152A] placeholder:text-[#939393] outline-none focus:border-[#2563EB]"
-        />
-      </div>
-
-      {/* Services Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredServices.map((service) => (
-          <div
-            key={service.id}
-            onClick={() => handleServiceClick(service.id)}
-            className="group cursor-pointer rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs transition hover:border-[#2563EB] hover:shadow-md"
-          >
-            <div
-              className={`flex size-12 items-center justify-center rounded-xl text-xl transition group-hover:scale-105 ${service.bg}`}
-            >
-              {service.icon}
-            </div>
-            <div className="mt-4">
-              <h3 className="text-sm font-bold text-[#0F152A] group-hover:text-[#2563EB]">
-                {service.title}
-              </h3>
-              <p className="mt-1 text-xs text-[#8C909B]">{service.subtitle}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Bills Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-[#0F152A]">Recent Bills</h2>
+        {/* Tab Controls */}
+        <div className="flex rounded-xl border border-[#E2ECF6] bg-white p-1 shadow-xs">
           <button
             type="button"
-            className="flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline"
+            onClick={() => setActiveTab("services")}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold transition ${
+              activeTab === "services"
+                ? "bg-[#2563EB] text-white shadow-xs"
+                : "text-[#66738C] hover:bg-[#F8FAFC]"
+            }`}
           >
-            View all <ArrowRight className="size-3.5" />
+            <LayoutGrid className="size-3.5" />
+            <span>All Services</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("history")}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold transition ${
+              activeTab === "history"
+                ? "bg-[#2563EB] text-white shadow-xs"
+                : "text-[#66738C] hover:bg-[#F8FAFC]"
+            }`}
+          >
+            <History className="size-3.5" />
+            <span>Transactions History</span>
           </button>
         </div>
-
-        <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-white p-2 shadow-xs">
-          {recentBills.map((bill) => (
-            <div
-              key={bill.id}
-              className="flex items-center justify-between p-3.5 transition hover:bg-[#F8FAFC]"
-            >
-              <div className="flex items-center gap-3.5">
-                <div
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-lg ${bill.iconBg}`}
-                >
-                  {bill.icon}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#0F152A]">{bill.title}</h4>
-                  <p className="text-xs text-[#8C909B]">{bill.subtitle}</p>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className={`text-sm font-bold ${bill.amountColor}`}>
-                  {bill.amount}
-                </span>
-                <p className="text-xs text-[#8C909B]">{bill.date}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
+
+      {activeTab === "history" ? (
+        <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs">
+          <div className="mb-4">
+            <h2 className="text-base font-bold text-[#0F152A]">Bill Payment History</h2>
+            <p className="text-xs text-[#8C909B]">All bill utility payments, top-ups, and tokens</p>
+          </div>
+          <BillTransactionsTable />
+        </div>
+      ) : (
+        <>
+          {/* Search Input */}
+          <div className="relative max-w-full">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#939393]" />
+            <input
+              type="search"
+              placeholder="Search services..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 pl-11 pr-4 text-xs text-[#0F152A] placeholder:text-[#939393] outline-none focus:border-[#2563EB]"
+            />
+          </div>
+
+          {/* Services Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredServices.map((service) => (
+              <div
+                key={service.id}
+                onClick={() => setActiveModal(service.id as any)}
+                className="group cursor-pointer rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs transition hover:border-[#2563EB] hover:shadow-md"
+              >
+                <div
+                  className={`flex size-12 items-center justify-center rounded-xl text-xl transition group-hover:scale-105 ${service.bg}`}
+                >
+                  {service.icon}
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-sm font-bold text-[#0F152A] group-hover:text-[#2563EB]">
+                    {service.title}
+                  </h3>
+                  <p className="mt-1 text-xs text-[#8C909B]">{service.subtitle}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bill payment transaction history */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-[#0F152A]">Bill Payment Transaction History</h2>
+                <p className="mt-1 text-xs text-[#8C909B]">Your recent utility payments, top-ups, and tokens</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("history")}
+                className="flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline"
+              >
+                View all <ArrowRight className="size-3.5" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs">
+              <BillTransactionsTable pageSize={5} />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 10 Service Modals */}
       <BuyAirtimeModal

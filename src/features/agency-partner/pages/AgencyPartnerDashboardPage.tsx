@@ -34,9 +34,13 @@ import { CreateSupportTicketModal } from "../modals/CreateSupportTicketModal";
 import { ExportDataModal } from "../modals/ExportDataModal";
 import { ReferPartnerModal } from "../modals/ReferPartnerModal";
 import { appPaths } from "@/app/router/paths";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 
 export function AgencyPartnerDashboardPage() {
   const navigate = useNavigate();
+  const { user, profile, wallet } = useGetAuthUser();
+  const displayName = profile?.fullname || user?.username || "Partner";
+  const liveWalletBalance = wallet?.balance ?? 45000;
 
   // Visibility Toggles
   const [showWalletBalance, setShowWalletBalance] = useState(true);
@@ -203,7 +207,7 @@ export function AgencyPartnerDashboardPage() {
             Agency Partner Dashboard
           </h1>
           <p className="text-xs text-[#66738C] font-medium mt-0.5">
-            Welcome back, Rabiu Sani! 👋 Track activations, inventory, and bonuses.
+            Welcome back, {displayName}! 👋 Track activations, inventory, and bonuses.
           </p>
         </div>
         <button
@@ -241,7 +245,7 @@ export function AgencyPartnerDashboardPage() {
         {/* Card 3: Wallet Balance */}
         <AgentStatCard
           title="Wallet Balance"
-          value={showWalletBalance ? "₦45,000" : "••••••••"}
+          value={showWalletBalance ? `₦${liveWalletBalance.toLocaleString()}` : "••••••••"}
           subtitle="₦45,000 pending payout"
           subtitleColor="text-[#F59E0B]"
           action={

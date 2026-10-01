@@ -1,0 +1,7 @@
+import type { DeviceSimItem } from "../types/api";
+
+export function SimUsageCard({ sim }: { sim: DeviceSimItem }) {
+  const usage = sim.dataUsage;
+  const percent = Math.min(100, usage?.percentage ?? 0);
+  return <section className="rounded-2xl border border-[#E2ECF6] bg-white"><h2 className="border-b border-[#E2ECF6] px-4 py-3 text-sm font-bold">Data Usage</h2><div className="p-4"><div className="mx-auto grid size-24 place-items-center rounded-full" style={{ background: `conic-gradient(#2563EB ${percent}%, #DBEAFE 0)` }}><div className="grid size-[76px] place-items-center rounded-full bg-white text-xl font-bold text-[#2563EB]">{usage ? `${percent}%` : "—"}</div></div><p className="mt-2 text-center text-sm font-semibold">{usage ? `${usage.used} used of ${usage.total}` : "Usage details unavailable"}</p>{usage && <p className="text-center text-xs text-[#8C909B]">{usage.remaining} remaining</p>}<div className="mt-5 space-y-2 text-xs">{[["Today", ""], ["This Week", ""], ["This Month", usage?.used ?? ""]].map(([k, v]) => <div key={k} className="flex justify-between border-b border-slate-100 py-2"><span className="text-[#8C909B]">{k}</span><b>{v || "Not provided"}</b></div>)}</div><p className="mt-4 text-[10px] font-bold text-[#8C909B]">7-day usage</p><p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-[#8C909B]">Daily usage history is not included in the SIM detail response.</p></div></section>;
+}

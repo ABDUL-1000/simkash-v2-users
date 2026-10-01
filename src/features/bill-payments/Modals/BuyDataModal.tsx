@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { ArrowRight, BookUser, Check, Wallet } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight, BookUser, Check, Loader2, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
+import { useGetDataPlans } from "@/features/bill-payment/api/useGetDataPlans";
+import { useGetAirtimeNetworks } from "@/features/bill-payment/api/useGetAirtimeNetworks";
+import { usePurchaseData } from "@/features/bill-payment/api/usePurchaseData";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
 
 interface BuyDataModalProps {
   open: boolean;
@@ -12,49 +17,81 @@ interface BuyDataModalProps {
 
 interface DataBundle {
   id: string;
+  variation_code: string;
   size: string;
   price: number;
   duration: string;
   badge?: string;
-  badgeTone?: "popular" | "best";
 }
 
 export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
-  const [network, setNetwork] = useState<string>("MTN");
-  const [phoneNumber, setPhoneNumber] = useState<string>("08065942373");
-  const [validityTab, setValidityTab] = useState<"daily" | "monthly">("monthly");
-  const [selectedBundleId, setSelectedBundleId] = useState<string>("1gb");
+  const { wallet } = useGetAuthUser();
+  const currentBalance = wallet?.balance ?? 0;
+  const { networks, isLoading: isNetworksLoading } = useGetAirtimeNetworks();
 
-  // Step state: "form" -> "confirm" -> "success" | "failure"
+  const [network, setNetwork] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [validityTab, setValidityTab] = useState<"daily" | "monthly">("monthly");
+  const [selectedBundleId, setSelectedBundleId] = useState<string>("");
+
+  // Map network to serviceID
+  const selectedServiceId = network ? `${network}-data` : "";
+
+  const { plans, isLoading: isPlansLoading } = useGetDataPlans(selectedServiceId);
+  const purchaseDataMutation = usePurchaseData();
+
+  // Modal Flow Step States
   const [step, setStep] = useState<"form" | "confirm" | "success" | "failure">("form");
   const [pin, setPin] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [txnRef, setTxnRef] = useState<string>("");
+  const [failureReason, setFailureReason] = useState<string>("");
 
-  const bundles: DataBundle[] = [
-    { id: "500mb", size: "500MB", price: 300, duration: "30 days" },
-    { id: "1gb", size: "1GB", price: 500, duration: "30 days", badge: "Popular", badgeTone: "popular" },
-    { id: "2gb", size: "2GB", price: 900, duration: "30 days" },
-    { id: "5gb", size: "5GB", price: 2000, duration: "30 days", badge: "Best Value", badgeTone: "best" },
-    { id: "10gb", size: "10GB", price: 3500, duration: "30 days" },
-    { id: "20gb", size: "20GB", price: 6000, duration: "30 days" },
-  ];
+  const dynamicBundles: DataBundle[] = useMemo(() => {
+    if (plans && plans.length > 0) {
+      return plans.map((p) => ({
+        id: p.variation_code,
+        variation_code: p.variation_code,
+        size: p.name,
+        price: Number(p.variation_amount || 0),
+        duration: "Standard",
+      }));
+    }
+    return [];
+  }, [plans]);
 
-  const currentBundle = bundles.find((b) => b.id === selectedBundleId) || bundles[1];
+  const currentBundle =
+    dynamicBundles.find((b) => b.id === selectedBundleId) ||
+    dynamicBundles[0];
 
   const handleContinue = () => {
+    if (!currentBundle) return;
     setStep("confirm");
   };
 
   const handleConfirmPay = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (pin === "0000") {
-        setStep("failure");
-      } else {
-        setStep("success");
+    if (!currentBundle) return;
+    purchaseDataMutation.mutate(
+      {
+        serviceID: selectedServiceId,
+        billersCode: phoneNumber,
+        variation_code: currentBundle.variation_code,
+        amount: currentBundle.price,
+        phone: phoneNumber,
+        pin,
+      },
+      {
+        onSuccess: (res) => {
+          setTxnRef(res.data?.reference || `TXN-${Date.now()}`);
+          setStep("success");
+        },
+        onError: (err: any) => {
+          setFailureReason(
+            err?.response?.data?.message || err.message || "Data recharge failed."
+          );
+          setStep("failure");
+        },
       }
-    }, 1000);
+    );
   };
 
   const resetAll = () => {
@@ -67,30 +104,35 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
     onOpenChange(false);
   };
 
+  const bundlePrice = currentBundle?.price ?? 0;
+  const bundleName = currentBundle?.size ?? "No plan selected";
+  const currentBundleId = currentBundle?.id ?? "";
+  const balanceAfter = Math.max(0, currentBalance - bundlePrice);
+
   // Confirmation Details mapping
   const confirmDetails: ConfirmDetailItem[] = [
     {
       label: "Network",
       value: (
-        <span className="rounded-full bg-[#FFCC00] px-2.5 py-0.5 text-xs font-extrabold text-[#0F152A]">
+        <span className={`rounded-full px-2.5 py-0.5 text-xs font-black uppercase ${getNetworkColor(network)}`}>
           {network}
         </span>
       ),
     },
     { label: "Phone", value: phoneNumber },
-    { label: "Bundle", value: `${currentBundle.size} · ${currentBundle.duration}` },
-    { label: "Amount", value: `₦${currentBundle.price.toLocaleString()}` },
-    { label: "Pay from", value: "Wallet (₦50,000)" },
-    { label: "Balance after", value: `₦${(50000 - currentBundle.price).toLocaleString()}` },
+    { label: "Bundle", value: currentBundle ? `${currentBundle.size} · ${currentBundle.duration}` : "No plan selected" },
+    { label: "Amount", value: `₦${bundlePrice.toLocaleString()}` },
+    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "Balance after", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
   // Success Details mapping
   const successDetails: SuccessDetailItem[] = [
     { label: "Phone", value: phoneNumber },
     { label: "Network", value: network },
-    { label: "Bundle", value: currentBundle.size },
-    { label: "Amount", value: `₦${currentBundle.price.toLocaleString()}` },
-    { label: "Ref", value: "TXN-2026-008474" },
+    { label: "Bundle", value: bundleName },
+    { label: "Amount", value: `₦${bundlePrice.toLocaleString()}` },
+    { label: "Ref", value: txnRef },
   ];
 
   return (
@@ -107,7 +149,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
           {/* Wallet Balance Banner */}
           <div className="flex items-center gap-2 rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
             <span>💰</span>
-            <span>Wallet Balance · ₦50,000.00</span>
+            <span>Wallet Balance · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
 
           {/* Select Network */}
@@ -116,21 +158,19 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
               SELECT NETWORK
             </label>
             <div className="flex flex-wrap gap-3">
-              {[
-                { name: "MTN", bg: "bg-[#FFCC00] text-[#0F152A]" },
-                { name: "Airtel", bg: "bg-[#E53333] text-white" },
-                { name: "Glo", bg: "bg-[#10B981] text-white" },
-                { name: "T2", bg: "bg-[#2563EB] text-white" },
-              ].map((net) => {
-                const isSelected = network === net.name;
+              {isNetworksLoading ? <div className="h-8 w-full animate-pulse rounded-full bg-slate-100" /> : networks.length === 0 ? <p className="text-xs text-slate-500">No networks available.</p> : networks.map((net) => {
+                const isSelected = network.toLowerCase() === net.serviceID.toLowerCase();
                 return (
                   <button
                     key={net.name}
                     type="button"
-                    onClick={() => setNetwork(net.name)}
+                    onClick={() => {
+                      setNetwork(net.serviceID);
+                      setSelectedBundleId("");
+                    }}
                     className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
                       isSelected
-                        ? net.bg
+                        ? getNetworkColor(net.serviceID)
                         : "border border-[#E2ECF6] bg-white text-[#66738C] hover:bg-[#F8FAFC]"
                     }`}
                   >
@@ -151,9 +191,11 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
                 🇳🇬
               </span>
               <input
-                type="text"
+                type="tel"
+                inputMode="numeric"
+                maxLength={11}
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 11))}
                 className="w-full rounded-2xl border border-[#E2ECF6] py-3 pl-10 pr-10 text-sm font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
               />
               <button
@@ -164,19 +206,21 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
                 <BookUser className="size-4" />
               </button>
             </div>
-            <button
-              type="button"
-              className="text-xs font-bold text-[#2563EB] hover:underline"
-            >
-              Use a different number
-            </button>
           </div>
 
           {/* Select Bundle */}
           <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              SELECT BUNDLE
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
+                SELECT BUNDLE
+              </label>
+              {isPlansLoading && (
+                <span className="flex items-center gap-1 text-[10px] text-[#2563EB]">
+                  <Loader2 className="size-3 animate-spin" /> Loading plans...
+                </span>
+              )}
+            </div>
+
             {/* Validity Toggle */}
             <div className="flex gap-2">
               <button
@@ -204,9 +248,9 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
             </div>
 
             {/* Bundle Cards Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {bundles.map((bundle) => {
-                const isSelected = selectedBundleId === bundle.id;
+            <div className="grid grid-cols-2 gap-3 max-h-56 overflow-y-auto pr-1">
+              {isPlansLoading ? <div className="col-span-2 h-24 animate-pulse rounded-2xl bg-slate-100" /> : dynamicBundles.length === 0 ? <p className="col-span-2 text-xs text-slate-500">No plans available.</p> : dynamicBundles.map((bundle) => {
+                const isSelected = (selectedBundleId || currentBundleId) === bundle.id;
                 return (
                   <div
                     key={bundle.id}
@@ -218,26 +262,20 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
                     }`}
                   >
                     {bundle.badge && (
-                      <span
-                        className={`absolute left-3 top-2.5 rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                          bundle.badgeTone === "popular"
-                            ? "bg-blue-100 text-[#2563EB]"
-                            : "bg-emerald-100 text-[#10B981]"
-                        }`}
-                      >
+                      <span className="absolute left-3 top-2.5 rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-[#2563EB]">
                         {bundle.badge}
                       </span>
                     )}
                     <div className={bundle.badge ? "pt-4" : ""}>
-                      <h4 className="text-sm font-bold text-[#0F152A]">
+                      <h4 className="text-xs font-bold text-[#0F152A] line-clamp-1">
                         {bundle.size}
                       </h4>
                       <p className="text-sm font-extrabold text-[#2563EB]">
                         ₦{bundle.price.toLocaleString()}
                       </p>
-                      <p className="text-[11px] text-[#8C909B]">{bundle.duration}</p>
+                      <p className="text-[10px] text-[#8C909B]">{bundle.duration}</p>
                       {isSelected && (
-                        <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-[#2563EB]">
+                        <p className="mt-1 flex items-center gap-1 text-[10px] font-bold text-[#2563EB]">
                           <Check className="size-3" /> Selected
                         </p>
                       )}
@@ -253,7 +291,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
             <span className="flex items-center gap-2 text-[#8C909B]">
               <Wallet className="size-4 text-[#8C909B]" /> Pay from
             </span>
-            <span className="font-bold text-[#0F152A]">Wallet · ₦50,000</span>
+            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
           {/* Footer Actions */}
@@ -268,7 +306,8 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
             <button
               type="button"
               onClick={handleContinue}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700"
+              disabled={!phoneNumber || !currentBundle?.price}
+              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />
             </button>
@@ -287,8 +326,8 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
         onPinChange={setPin}
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
-        confirmButtonText={`Buy Data ₦${currentBundle.price.toLocaleString()}`}
-        isLoading={isLoading}
+        confirmButtonText={`Buy Data ₦${bundlePrice.toLocaleString()}`}
+        isLoading={purchaseDataMutation.isPending}
       />
 
       {/* 3. Reusable Success Modal */}
@@ -296,9 +335,9 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
         open={open && step === "success"}
         onOpenChange={handleClose}
         title="Data Purchase Successful!"
-        subtitle={`${currentBundle.size} ${network} data bundle sent to ${phoneNumber}`}
+        subtitle={`${bundleName} ${network} data bundle sent to ${phoneNumber}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${(50000 - currentBundle.price).toLocaleString()}`}
+        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -309,10 +348,10 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
         onOpenChange={handleClose}
         title="Purchase Failed"
         subtitle="We couldn't complete this data purchase. Your wallet was not debited."
-        reason="Network provider temporarily unavailable. Please try again."
+        reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("confirm")}
+        onTryAgain={() => { setPin(""); setStep("confirm"); }}
         onCancel={handleClose}
       />
     </>

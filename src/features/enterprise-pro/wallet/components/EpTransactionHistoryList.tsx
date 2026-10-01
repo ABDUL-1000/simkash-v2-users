@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Search, Percent, Users, Landmark, Package, TrendingUp, Award, XCircle, FileText } from "lucide-react";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { colors } from "@/constants/colors";
 import { mockTransactionsList } from "../data/mockTransactionsData";
 import type { TransactionItem, TransactionCategory } from "../types";
@@ -125,56 +126,65 @@ export const EpTransactionHistoryList: React.FC<EpTransactionHistoryListProps> =
       </div>
 
       {/* Transactions List */}
-      <div className="divide-y divide-slate-100 pt-2">
-        {filteredTxns.map((t) => {
-          const isFailed = t.type === "failed-payout";
-          return (
-            <div
-              key={t.id}
-              onClick={() => onSelectTransaction(t)}
-              className={`py-3 px-2.5 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition hover:bg-slate-50 ${
-                isFailed ? "bg-red-50/40 hover:bg-red-50/60" : ""
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {getIcon(t.type)}
-                <div>
-                  <span className="font-bold text-xs text-slate-900 block">{t.title}</span>
-                  <span className="text-[11px] text-slate-500 block">{t.subtitle}</span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">{t.timeAgo}</span>
+      {filteredTxns.length === 0 ? (
+        <AppEmptyState
+          title="No Transactions Yet"
+          description="Your transaction history will appear here once activations or payouts occur."
+        />
+      ) : (
+        <>
+          <div className="divide-y divide-slate-100 pt-2">
+            {filteredTxns.map((t) => {
+              const isFailed = t.type === "failed-payout";
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => onSelectTransaction(t)}
+                  className={`py-3 px-2.5 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition hover:bg-slate-50 ${
+                    isFailed ? "bg-red-50/40 hover:bg-red-50/60" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {getIcon(t.type)}
+                    <div>
+                      <span className="font-bold text-xs text-slate-900 block">{t.title}</span>
+                      <span className="text-[11px] text-slate-500 block">{t.subtitle}</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">{t.timeAgo}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className={`text-xs font-black block ${
+                      isFailed
+                        ? "text-red-600"
+                        : t.isOutflow
+                        ? "text-red-500"
+                        : t.amount === 0
+                        ? "text-slate-400"
+                        : "text-emerald-600"
+                    }`}>
+                      {isFailed ? `+₦${t.amount.toLocaleString()}` : t.isOutflow ? `-₦${t.amount.toLocaleString()}` : t.amount === 0 ? "+₦0" : `+₦${t.amount.toLocaleString()}`}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{t.ref}</span>
+                  </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
 
-              <div className="text-right shrink-0">
-                <span className={`text-xs font-black block ${
-                  isFailed
-                    ? "text-red-600"
-                    : t.isOutflow
-                    ? "text-red-500"
-                    : t.amount === 0
-                    ? "text-slate-400"
-                    : "text-emerald-600"
-                }`}>
-                  {isFailed ? `+₦${t.amount.toLocaleString()}` : t.isOutflow ? `-₦${t.amount.toLocaleString()}` : t.amount === 0 ? "+₦0" : `+₦${t.amount.toLocaleString()}`}
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{t.ref}</span>
-              </div>
+          {/* Pagination Footer */}
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
+            <span>Showing 1–{filteredTxns.length} of 94 transactions</span>
+            <div className="flex items-center gap-1">
+              <button type="button" className="px-2 py-1 rounded bg-slate-900 text-white font-bold">1</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">2</button>
+              <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">3</button>
+              <span>...</span>
+              <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">8</button>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-        <span>Showing 1–{filteredTxns.length} of 94 transactions</span>
-        <div className="flex items-center gap-1">
-          <button type="button" className="px-2 py-1 rounded bg-slate-900 text-white font-bold">1</button>
-          <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">2</button>
-          <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">3</button>
-          <span>...</span>
-          <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">8</button>
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -46,7 +46,7 @@ export function LinkedDevicesTab() {
   return (
     <div className="space-y-6">
       {/* Card 1: Your Devices */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[#0F152A]">Your Devices</h3>
           <button
@@ -97,7 +97,7 @@ export function LinkedDevicesTab() {
       </div>
 
       {/* Card 2: App Permissions */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">App Permissions</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">

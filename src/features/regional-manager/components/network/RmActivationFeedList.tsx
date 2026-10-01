@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { RmActivationCard } from "./RmActivationCard";
 import type { NetworkActivationItem } from "../../types/regional-manager-network.types";
 
@@ -62,20 +63,7 @@ export function RmActivationFeedList({
         </div>
 
         {todayItems.length === 0 ? (
-          <div
-            className="rounded-2xl border p-8 text-center"
-            style={{
-              borderColor: APP_COLORS.greys.stroke,
-              backgroundColor: APP_COLORS.backgrounds.surface,
-            }}
-          >
-            <p className="text-xs font-bold" style={{ color: APP_COLORS.texts.primary }}>
-              No activations found matching your filters
-            </p>
-            <p className="text-[11px] mt-1" style={{ color: APP_COLORS.texts.slate }}>
-              Try adjusting your filter selection or search query.
-            </p>
-          </div>
+          <AppEmptyState title="No activations found" description="Try adjusting your filter selection or search query." />
         ) : (
           <div className="space-y-2.5">
             {todayItems.map((item) => (

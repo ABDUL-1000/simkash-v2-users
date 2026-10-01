@@ -1,19 +1,14 @@
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Download, X } from "lucide-react";
+import { useState, useRef, useMemo, useEffect } from "react";
+import { ArrowRight, Check, Loader2, Upload, Wallet, X } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
-
-interface RecipientData {
-  id: string;
-  phone: string;
-  network: string;
-  bundle: string;
-  amount: number;
-  label: string;
-  isValid: boolean;
-}
+import { useBulkPurchaseData } from "@/features/bill-payment/api/useBulkPurchaseData";
+import { useGetAirtimeNetworks } from "@/features/bill-payment/api/useGetAirtimeNetworks";
+import { useGetDataPlans } from "@/features/bill-payment/api/useGetDataPlans";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
 
 interface BulkDataModalProps {
   open: boolean;
@@ -21,67 +16,137 @@ interface BulkDataModalProps {
 }
 
 export function BulkDataModal({ open, onOpenChange }: BulkDataModalProps) {
-  const [network, setNetwork] = useState<string>("MTN");
-  const [defaultBundle, setDefaultBundle] = useState<string>("1GB");
-  const [inputTab, setInputTab] = useState<"manual" | "csv">("manual");
-  const [batchLabel, setBatchLabel] = useState<string>("Staff Data June 2026");
+  const { wallet } = useGetAuthUser();
+  const currentBalance = wallet?.balance ?? 0;
+  const { networks: apiNetworks, isLoading: isLoadingNetworks } = useGetAirtimeNetworks();
+  const bulkPurchaseMutation = useBulkPurchaseData();
 
-  // Input row fields
-  const [inputPhone, setInputPhone] = useState<string>("");
-  const [inputLabel, setInputLabel] = useState<string>("");
+  const [network, setNetwork] = useState<string>("");
+  const [selectedPlanCode, setSelectedPlanCode] = useState<string>("");
+  const [rawRecipientsText, setRawRecipientsText] = useState<string>("");
+  const [batchLabel, setBatchLabel] = useState<string>("");
 
-  const [recipients, setRecipients] = useState<RecipientData[]>([
-    { id: "1", phone: "08065942373", network: "MTN", bundle: "1GB", amount: 500, label: "Chidi", isValid: true },
-    { id: "2", phone: "09122222222", network: "Airtel", bundle: "2GB", amount: 900, label: "Amina", isValid: true },
-    { id: "3", phone: "08120600542", network: "Glo", bundle: "5GB", amount: 2000, label: "Ibrahim", isValid: true },
-    { id: "4", phone: "07055093537", network: "MTN", bundle: "1GB", amount: 500, label: "Fatima", isValid: true },
-    { id: "5", phone: "0812345", network: "—", bundle: "—", amount: 0, label: "Invalid", isValid: false },
-  ]);
+  // Derived data service ID: e.g. "mtn-data", "airtel-data", "glo-data", "etisalat-data"
+  const selectedDataServiceID = network
+    ? network.toLowerCase().endsWith("-data")
+      ? network.toLowerCase()
+      : `${network.toLowerCase()}-data`
+    : "";
 
-  const [wizardStep, setWizardStep] = useState<"configure" | "preview" | "confirm" | "success" | "failure">("configure");
+  const { plans, isLoading: isLoadingPlans } = useGetDataPlans(selectedDataServiceID);
+
+  // Auto-select first plan when plans load or network changes
+  useEffect(() => {
+    if (plans && plans.length > 0) {
+      const exists = plans.some((p) => p.variation_code === selectedPlanCode);
+      if (!exists) {
+        setSelectedPlanCode(plans[0].variation_code);
+      }
+    } else {
+      setSelectedPlanCode("");
+    }
+  }, [plans, selectedPlanCode]);
+
+  // Modal Flow Step States: "form" -> "confirm" -> "success" | "failure"
+  const [step, setStep] = useState<"form" | "confirm" | "success" | "failure">("form");
   const [pin, setPin] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [failureReason, setFailureReason] = useState<string>("");
+  const [successData, setSuccessData] = useState<{
+    totalCount: number;
+    totalCost: number;
+    reference?: string;
+  } | null>(null);
 
-  const handleAddRecipient = () => {
-    if (!inputPhone) return;
-    const isValid = inputPhone.length >= 10;
-    const newItem: RecipientData = {
-      id: crypto.randomUUID(),
-      phone: inputPhone,
-      network: isValid ? network : "—",
-      bundle: isValid ? defaultBundle : "—",
-      amount: isValid ? 500 : 0,
-      label: inputLabel || (isValid ? "Staff" : "Invalid"),
-      isValid,
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Selected plan details
+  const selectedPlan = plans.find((p) => p.variation_code === selectedPlanCode) || plans[0];
+  const selectedPlanAmount = selectedPlan ? Number(selectedPlan.variation_amount || 0) : 0;
+
+  // Recipients Sanitization: exactly 11 digits
+  const validRecipients = useMemo(() => {
+    if (!rawRecipientsText.trim()) return [];
+    return rawRecipientsText
+      .split(/[\n, ]+/)
+      .map((p) => p.replace(/\D/g, ""))
+      .filter((p) => p.length === 11);
+  }, [rawRecipientsText]);
+
+  // Live total cost
+  const totalCost = validRecipients.length * selectedPlanAmount;
+  const balanceAfter = Math.max(0, currentBalance - totalCost);
+  const isInsufficientBalance = totalCost > currentBalance;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        setRawRecipientsText((prev) => {
+          const trimmed = prev.trim();
+          return trimmed ? `${trimmed}\n${content}` : content;
+        });
+      }
     };
-    setRecipients([...recipients, newItem]);
-    setInputPhone("");
-    setInputLabel("");
+    reader.readAsText(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const handleRemoveRecipient = (id: string) => {
-    setRecipients(recipients.filter((r) => r.id !== id));
+  const handleSelectNetwork = (serviceID: string) => {
+    setNetwork(serviceID.toLowerCase());
+    setSelectedPlanCode("");
   };
 
-  const validRecipients = recipients.filter((r) => r.isValid);
-  const invalidRecipients = recipients.filter((r) => !r.isValid);
-  const totalCost = validRecipients.reduce((sum, r) => sum + r.amount, 0);
+  const handleContinue = () => {
+    if (!selectedDataServiceID || !selectedPlanCode || selectedPlanAmount <= 0 || validRecipients.length === 0) {
+      return;
+    }
+    setStep("confirm");
+  };
 
   const handleConfirmPay = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (pin === "0000") {
-        setWizardStep("failure");
-      } else {
-        setWizardStep("success");
+    if (!selectedDataServiceID || !selectedPlanCode || selectedPlanAmount <= 0 || validRecipients.length === 0) {
+      return;
+    }
+
+    bulkPurchaseMutation.mutate(
+      {
+        type: "same",
+        network: selectedDataServiceID,
+        plan: selectedPlanCode,
+        amount: selectedPlanAmount,
+        recipients: validRecipients,
+        pin,
+      },
+      {
+        onSuccess: (res) => {
+          setSuccessData({
+            totalCount: res.data?.total_count ?? validRecipients.length,
+            totalCost: res.data?.totalCost ?? totalCost,
+            reference: res.data?.reference,
+          });
+          setStep("success");
+        },
+        onError: (err: any) => {
+          setFailureReason(
+            err?.response?.data?.message || err.message || "Bulk data purchase failed. Please try again."
+          );
+          setStep("failure");
+        },
       }
-    }, 1000);
+    );
   };
 
   const resetAll = () => {
-    setWizardStep("configure");
+    setStep("form");
     setPin("");
+    setSuccessData(null);
+    setFailureReason("");
   };
 
   const handleClose = () => {
@@ -89,232 +154,287 @@ export function BulkDataModal({ open, onOpenChange }: BulkDataModalProps) {
     onOpenChange(false);
   };
 
-  // Confirm Details mapping
+  // Selected network item name
+  const selectedNetworkItem = apiNetworks.find(
+    (n) => n.serviceID.toLowerCase() === network.toLowerCase()
+  );
+  const networkName = selectedNetworkItem?.name || network.toUpperCase();
+
+  // Confirmation Details mapping
   const confirmDetails: ConfirmDetailItem[] = [
+    {
+      label: "Network",
+      value: (
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase ${getNetworkColor(
+            network
+          )}`}
+        >
+          {networkName}
+        </span>
+      ),
+    },
     { label: "Batch Label", value: batchLabel || "Bulk Data Batch" },
+    { label: "Selected Plan", value: selectedPlan?.name || selectedPlanCode },
+    { label: "Unit Plan Price", value: `₦${selectedPlanAmount.toLocaleString()}` },
     { label: "Total Recipients", value: `${validRecipients.length} valid numbers` },
-    { label: "Total Cost", value: `₦${totalCost.toLocaleString()}` },
-    { label: "Pay from", value: "Wallet (₦50,000)" },
-    { label: "Balance after", value: `₦${(50000 - totalCost).toLocaleString()}` },
+    {
+      label: "Total Deductible",
+      value: (
+        <span className="font-extrabold text-[#2563EB]">
+          ₦{totalCost.toLocaleString()}
+        </span>
+      ),
+    },
+    { label: "Wallet Balance", value: `₦${currentBalance.toLocaleString()}` },
+    {
+      label: "Wallet Balance After",
+      value: (
+        <span
+          className={`font-extrabold ${
+            isInsufficientBalance ? "text-[#EF4444]" : "text-[#10B981]"
+          }`}
+        >
+          ₦{balanceAfter.toLocaleString()}
+        </span>
+      ),
+    },
   ];
 
   // Success Details mapping
   const successDetails: SuccessDetailItem[] = [
+    {
+      label: "Network",
+      value: (
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase ${getNetworkColor(
+            network
+          )}`}
+        >
+          {networkName}
+        </span>
+      ),
+    },
     { label: "Batch Label", value: batchLabel || "Bulk Data Batch" },
-    { label: "Processed Numbers", value: `${validRecipients.length} numbers` },
-    { label: "Total Amount", value: `₦${totalCost.toLocaleString()}` },
-    { label: "Batch Ref", value: "BLK-DATA-2026-008479" },
+    { label: "Plan", value: selectedPlan?.name || selectedPlanCode },
+    {
+      label: "Total Recipients",
+      value: `${successData?.totalCount ?? validRecipients.length} numbers`,
+    },
+    {
+      label: "Total Amount",
+      value: `₦${(successData?.totalCost ?? totalCost).toLocaleString()}`,
+    },
+    ...(successData?.reference
+      ? [{ label: "Batch Reference", value: successData.reference }]
+      : []),
   ];
 
   return (
     <>
-      {/* 1. Step 1: Configure & Add Numbers */}
+      {/* 1. Main Input Form Modal */}
       <AppModal
-        open={open && wizardStep === "configure"}
+        open={open && step === "form"}
         onOpenChange={handleClose}
-        title="Bulk Data"
-        description="Step 1 of 3 — Configure & Add Numbers"
+        title="Bulk Data Bundles"
+        description="Activate data plans on multiple mobile numbers simultaneously"
         size="lg"
       >
         <div className="space-y-5 pt-1">
-          {/* Step Progress Bar */}
-          <div className="flex items-center justify-between text-xs font-bold text-[#8C909B] pb-2 border-b border-[#E2ECF6]">
-            <span className="flex items-center gap-1.5 text-[#2563EB]">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#2563EB] text-[10px] text-white">1</span>
-              Configure
-            </span>
-            <span className="flex items-center gap-1.5 opacity-50">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#E2ECF6] text-[10px] text-[#8C909B]">2</span>
-              Preview
-            </span>
-            <span className="flex items-center gap-1.5 opacity-50">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#E2ECF6] text-[10px] text-[#8C909B]">3</span>
-              Confirm
-            </span>
-          </div>
-
           {/* Wallet Balance Banner */}
-          <div className="flex items-center gap-2 rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
-            <span>📊</span>
-            <span>Wallet Balance · ₦50,000.00</span>
-          </div>
-
-          {/* Network Chips */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              NETWORK
-            </label>
-            <div className="flex flex-wrap gap-2.5">
-              {["MTN", "Airtel", "Glo", "9mobile"].map((net) => {
-                const isSelected = network === net;
-                return (
-                  <button
-                    key={net}
-                    type="button"
-                    onClick={() => setNetwork(net)}
-                    className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
-                      isSelected
-                        ? "bg-[#2563EB] text-white"
-                        : "border border-[#E2ECF6] bg-white text-[#66738C] hover:bg-[#F8FAFC]"
-                    }`}
-                  >
-                    {net}
-                  </button>
-                );
-              })}
+          <div className="flex items-center justify-between rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
+            <div className="flex items-center gap-2">
+              <Wallet className="size-4" />
+              <span>Wallet Balance</span>
             </div>
+            <span className="font-extrabold text-[#0F152A]">
+              ₦{currentBalance.toLocaleString()}
+            </span>
           </div>
 
-          {/* Default Bundle */}
-          <div className="space-y-1">
+          {/* Network Selection */}
+          <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              DEFAULT BUNDLE PER NUMBER
+              SELECT NETWORK
             </label>
-            <select
-              value={defaultBundle}
-              onChange={(e) => setDefaultBundle(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-2.5 px-4 text-xs font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
-            >
-              <option value="500MB">500MB (₦300)</option>
-              <option value="1GB">1GB (₦500)</option>
-              <option value="2GB">2GB (₦900)</option>
-              <option value="5GB">5GB (₦2,000)</option>
-            </select>
-          </div>
-
-          {/* Input Method Toggle Tabs */}
-          <div className="space-y-3">
-            <div className="flex rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6]">
-              <button
-                type="button"
-                onClick={() => setInputTab("manual")}
-                className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-                  inputTab === "manual"
-                    ? "bg-white text-[#2563EB] shadow-xs"
-                    : "text-[#8C909B]"
-                }`}
-              >
-                Manual Entry
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputTab("csv")}
-                className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-                  inputTab === "csv"
-                    ? "bg-white text-[#2563EB] shadow-xs"
-                    : "text-[#8C909B]"
-                }`}
-              >
-                CSV Upload
-              </button>
-            </div>
-
-            {/* Manual Entry Inputs */}
-            {inputTab === "manual" && (
-              <div className="space-y-2 rounded-2xl border border-[#E2ECF6] p-3.5 bg-[#F8FAFC]">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter phone number"
-                    value={inputPhone}
-                    onChange={(e) => setInputPhone(e.target.value)}
-                    className="flex-1 rounded-xl border border-[#E2ECF6] bg-white py-2 px-3 text-xs font-bold text-[#0F152A] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddRecipient}
-                    className="rounded-xl bg-[#2563EB] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700"
-                  >
-                    Add
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Staff Name / Label (optional)"
-                  value={inputLabel}
-                  onChange={(e) => setInputLabel(e.target.value)}
-                  className="w-full rounded-xl border border-[#E2ECF6] bg-white py-2 px-3 text-xs text-[#0F152A] outline-none"
-                />
+            {isLoadingNetworks ? (
+              <div className="flex items-center gap-2 text-xs text-[#8C909B] py-2">
+                <Loader2 className="size-4 animate-spin text-[#2563EB]" />
+                <span>Loading available networks...</span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2.5">
+                {apiNetworks.map((net) => {
+                  const isSelected = network === net.serviceID.toLowerCase();
+                  return (
+                    <button
+                      key={net.serviceID}
+                      type="button"
+                      onClick={() => handleSelectNetwork(net.serviceID)}
+                      className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-xs font-bold transition ${
+                        isSelected
+                          ? `${getNetworkColor(net.serviceID)} ring-2 ring-[#2563EB]/40 shadow-xs`
+                          : "border border-[#E2ECF6] bg-white text-[#66738C] hover:bg-[#F8FAFC]"
+                      }`}
+                    >
+                      {isSelected && <Check className="size-3" />}
+                      {net.name}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Numbers Table */}
-          <div className="overflow-x-auto rounded-2xl border border-[#E2ECF6]">
-            <table className="w-full min-w-[500px] text-left text-xs">
-              <thead className="bg-[#F8FAFC] font-bold text-[#8C909B] border-b border-[#E2ECF6]">
-                <tr>
-                  <th className="py-2.5 px-3">#</th>
-                  <th className="py-2.5 px-3">PHONE</th>
-                  <th className="py-2.5 px-3">NETWORK</th>
-                  <th className="py-2.5 px-3">BUNDLE</th>
-                  <th className="py-2.5 px-3">AMOUNT</th>
-                  <th className="py-2.5 px-3">LABEL</th>
-                  <th className="py-2.5 px-3 text-right">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E2ECF6]">
-                {recipients.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-[#F8FAFC]">
-                    <td className="py-2 px-3 text-[#8C909B] font-medium">{idx + 1}</td>
-                    <td className={`py-2 px-3 font-bold ${!item.isValid ? "text-[#EF4444]" : "text-[#0F152A]"}`}>
-                      {item.phone}
-                    </td>
-                    <td className="py-2 px-3">
-                      {item.isValid ? (
-                        <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                            item.network === "MTN"
-                              ? "bg-[#FFCC00] text-[#0F152A]"
-                              : item.network === "Airtel"
-                              ? "bg-[#E53333] text-white"
-                              : "bg-[#10B981] text-white"
-                          }`}
-                        >
-                          {item.network}
-                        </span>
-                      ) : (
-                        <span className="text-[#8C909B]">—</span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 font-bold text-[#0F152A]">{item.bundle}</td>
-                    <td className="py-2 px-3 font-bold text-[#0F152A]">
-                      {item.isValid ? `₦${item.amount.toLocaleString()}` : "—"}
-                    </td>
-                    <td className="py-2 px-3">
-                      {item.isValid ? (
-                        <span className="text-[#66738C]">{item.label}</span>
-                      ) : (
-                        <span className="rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-bold text-[#EF4444]">
-                          Invalid
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRecipient(item.id)}
-                        className="text-[#8C909B] hover:text-[#EF4444]"
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Dynamic Plans Selector */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
+                SELECT DATA PLAN
+              </label>
+              {selectedPlan && (
+                <span className="text-xs font-extrabold text-[#2563EB]">
+                  ₦{selectedPlanAmount.toLocaleString()} per number
+                </span>
+              )}
+            </div>
+
+            {!network ? (
+              <div className="rounded-2xl border border-dashed border-[#E2ECF6] p-4 text-center text-xs text-[#8C909B]">
+                Please select a network above to view available data plans.
+              </div>
+            ) : isLoadingPlans ? (
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] py-4 text-xs text-[#8C909B]">
+                <Loader2 className="size-4 animate-spin text-[#2563EB]" />
+                <span>Loading {networkName} data plans...</span>
+              </div>
+            ) : plans.length === 0 ? (
+              <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 text-center text-xs text-[#8C909B]">
+                No data plans found for {networkName}. Please choose another network.
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={selectedPlanCode}
+                  onChange={(e) => setSelectedPlanCode(e.target.value)}
+                  className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 px-4 text-xs font-bold text-[#0F152A] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 cursor-pointer"
+                >
+                  {plans.map((plan) => (
+                    <option key={plan.variation_code} value={plan.variation_code}>
+                      {plan.name} — ₦{Number(plan.variation_amount).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          {/* Batch Label */}
+          {/* Recipients Textarea & File Upload */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
+                RECIPIENT PHONE NUMBERS
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 rounded-xl border border-[#E2ECF6] bg-white px-3 py-1 text-xs font-bold text-[#2563EB] transition hover:bg-[#F8FAFC]"
+                >
+                  <Upload className="size-3.5" />
+                  Upload CSV / TXT
+                </button>
+                {rawRecipientsText && (
+                  <button
+                    type="button"
+                    onClick={() => setRawRecipientsText("")}
+                    className="flex items-center gap-1 rounded-xl px-2 py-1 text-xs font-bold text-[#EF4444] hover:bg-red-50"
+                  >
+                    <X className="size-3" /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <textarea
+              rows={4}
+              placeholder="Paste or type recipient phone numbers separated by commas, spaces, or new lines...&#10;e.g. 08012345678, 08087654321, 09011223344"
+              value={rawRecipientsText}
+              onChange={(e) => setRawRecipientsText(e.target.value)}
+              className="w-full rounded-2xl border border-[#E2ECF6] p-3 font-mono text-xs font-medium text-[#0F152A] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10 resize-y min-h-[90px]"
+            />
+
+            {/* Real-time Summary Pill Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 text-xs">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#8C909B] font-medium">Valid Recipients:</span>
+                  <span
+                    className={`font-bold ${
+                      validRecipients.length > 0 ? "text-[#10B981]" : "text-[#8C909B]"
+                    }`}
+                  >
+                    {validRecipients.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#8C909B] font-medium">Total Cost:</span>
+                  <span className="font-extrabold text-[#0F152A]">
+                    ₦{totalCost.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {isInsufficientBalance && validRecipients.length > 0 && (
+                <span className="font-bold text-[#EF4444] text-[11px]">
+                  Insufficient wallet balance
+                </span>
+              )}
+            </div>
+
+            {/* Recipient Chips Preview (First 10 items) */}
+            {validRecipients.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#8C909B]">
+                  Sanitized Preview ({validRecipients.length} numbers):
+                </p>
+                <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
+                  {validRecipients.slice(0, 10).map((num, idx) => (
+                    <span
+                      key={`${num}-${idx}`}
+                      className="rounded-lg border border-[#E2ECF6] bg-white px-2 py-0.5 font-mono text-[11px] font-bold text-[#0F152A]"
+                    >
+                      {num}
+                    </span>
+                  ))}
+                  {validRecipients.length > 10 && (
+                    <span className="rounded-lg bg-[#EFF4F8] px-2 py-0.5 text-[11px] font-bold text-[#2563EB]">
+                      +{validRecipients.length - 10} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Optional Batch Label */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
               BATCH LABEL (OPTIONAL)
             </label>
             <input
               type="text"
+              placeholder="e.g. June Data Distribution for Field Agents"
               value={batchLabel}
               onChange={(e) => setBatchLabel(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2ECF6] py-2.5 px-4 text-xs font-bold text-[#0F152A] outline-none"
+              className="w-full rounded-2xl border border-[#E2ECF6] py-2 px-3.5 text-xs font-medium text-[#0F152A] outline-none transition focus:border-[#2563EB]"
             />
           </div>
 
@@ -329,167 +449,65 @@ export function BulkDataModal({ open, onOpenChange }: BulkDataModalProps) {
             </button>
             <button
               type="button"
-              onClick={() => setWizardStep("preview")}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700"
+              disabled={
+                !selectedDataServiceID ||
+                !selectedPlanCode ||
+                selectedPlanAmount <= 0 ||
+                validRecipients.length === 0 ||
+                isInsufficientBalance
+              }
+              onClick={handleContinue}
+              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
-              Preview <ArrowRight className="size-3.5" />
+              Review & Pay ₦{totalCost.toLocaleString()}{" "}
+              <ArrowRight className="size-3.5" />
             </button>
           </div>
         </div>
       </AppModal>
 
-      {/* 2. Step 2: Preview & Validate */}
-      <AppModal
-        open={open && wizardStep === "preview"}
-        onOpenChange={handleClose}
-        title="Bulk Data"
-        description="Step 2 of 3 — Preview & Validate"
-        size="lg"
-      >
-        <div className="space-y-5 pt-1">
-          {/* Step Progress Bar */}
-          <div className="flex items-center justify-between text-xs font-bold text-[#8C909B] pb-2 border-b border-[#E2ECF6]">
-            <span className="flex items-center gap-1.5 text-[#10B981]">
-              <CheckCircle2 className="size-4" /> Configure
-            </span>
-            <span className="flex items-center gap-1.5 text-[#2563EB]">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#2563EB] text-[10px] text-white">2</span>
-              Preview
-            </span>
-            <span className="flex items-center gap-1.5 opacity-50">
-              <span className="flex size-5 items-center justify-center rounded-full bg-[#E2ECF6] text-[10px] text-[#8C909B]">3</span>
-              Confirm
-            </span>
-          </div>
-
-          {/* Metric Overview Cards */}
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-3">
-              <span className="text-xl font-extrabold text-[#10B981]">{validRecipients.length}</span>
-              <p className="text-[11px] font-semibold text-[#8C909B]">Valid</p>
-            </div>
-            <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-3">
-              <span className="text-xl font-extrabold text-[#EF4444]">{invalidRecipients.length}</span>
-              <p className="text-[11px] font-semibold text-[#8C909B]">Invalid</p>
-            </div>
-            <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-3">
-              <span className="text-xl font-extrabold text-[#8C909B]">0</span>
-              <p className="text-[11px] font-semibold text-[#8C909B]">Duplicates</p>
-            </div>
-            <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-3">
-              <span className="text-xs font-extrabold text-[#0F152A]">MTN·Airtel·Glo</span>
-              <p className="text-[11px] font-semibold text-[#8C909B]">Networks</p>
-            </div>
-          </div>
-
-          {/* Cost Breakdown & Projection */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 text-xs space-y-2">
-              <h4 className="font-bold text-[#8C909B] uppercase tracking-wider text-[10px]">
-                Network cost breakdown
-              </h4>
-              <div className="flex justify-between text-[#0F152A]">
-                <span>MTN (2 numbers)</span>
-                <span className="font-bold">₦1,000</span>
-              </div>
-              <div className="flex justify-between text-[#0F152A]">
-                <span>Airtel (1 number)</span>
-                <span className="font-bold">₦900</span>
-              </div>
-              <div className="flex justify-between text-[#0F152A]">
-                <span>Glo (1 number)</span>
-                <span className="font-bold">₦2,000</span>
-              </div>
-              <div className="border-t border-[#E2ECF6] pt-2 flex justify-between font-extrabold text-sm text-[#0F152A]">
-                <span>Total</span>
-                <span className="text-[#10B981]">₦{totalCost.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 text-xs space-y-2">
-              <h4 className="font-bold text-[#8C909B] uppercase tracking-wider text-[10px]">
-                Balance Projection
-              </h4>
-              <div className="flex justify-between text-[#0F152A]">
-                <span>Current balance</span>
-                <span className="font-bold">₦50,000</span>
-              </div>
-              <div className="flex justify-between text-[#EF4444]">
-                <span>This batch</span>
-                <span className="font-bold">-₦{totalCost.toLocaleString()}</span>
-              </div>
-              <div className="border-t border-[#E2ECF6] pt-2 flex justify-between font-extrabold text-sm text-[#0F152A]">
-                <span>After send</span>
-                <span className="text-[#10B981]">₦{(50000 - totalCost).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="flex items-center justify-between border-t border-[#E2ECF6] pt-4">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setWizardStep("configure")}
-                className="flex items-center gap-1 rounded-xl border border-[#E2ECF6] px-5 py-2.5 text-xs font-bold text-[#0F152A] hover:bg-slate-50"
-              >
-                <ArrowLeft className="size-3.5" /> Back
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-xl border border-[#E2ECF6] px-5 py-2.5 text-xs font-bold text-[#0F152A] hover:bg-slate-50"
-              >
-                <Download className="size-3.5" /> Download Errors
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setWizardStep("confirm")}
-              className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-700"
-            >
-              Confirm & Send <ArrowRight className="size-3.5" />
-            </button>
-          </div>
-        </div>
-      </AppModal>
-
-      {/* 3. Reusable Confirm Modal */}
+      {/* 2. Transaction Confirm Modal with PIN */}
       <TransactionConfirmModal
-        open={open && wizardStep === "confirm"}
+        open={open && step === "confirm"}
         onOpenChange={handleClose}
         title="Confirm Bulk Data Purchase"
         subtitle="Review batch parameters before final execution"
         details={confirmDetails}
         pin={pin}
         onPinChange={setPin}
-        onBack={() => setWizardStep("preview")}
+        onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
         confirmButtonText={`Send Data Batch ₦${totalCost.toLocaleString()}`}
-        isLoading={isLoading}
+        isLoading={bulkPurchaseMutation.isPending}
       />
 
-      {/* 4. Reusable Success Modal */}
+      {/* 3. Success Modal */}
       <TransactionSuccessModal
-        open={open && wizardStep === "success"}
+        open={open && step === "success"}
         onOpenChange={handleClose}
         title="Bulk Data Sent!"
-        subtitle={`Successfully dispatched data bundles to ${validRecipients.length} valid numbers`}
+        subtitle={`Successfully dispatched data plans to ${
+          successData?.totalCount ?? validRecipients.length
+        } valid numbers`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${(50000 - totalCost).toLocaleString()}`}
+        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
         doneButtonText="Done"
         onDone={handleClose}
       />
 
-      {/* 5. Reusable Failure Modal */}
+      {/* 4. Failure Modal */}
       <TransactionFailureModal
-        open={open && wizardStep === "failure"}
+        open={open && step === "failure"}
         onOpenChange={handleClose}
-        title="Batch Send Failed"
+        title="Bulk Data Failed"
         subtitle="We couldn't process the bulk data batch. Your wallet was not debited."
-        reason="Network provider gateway error. Please try again."
+        reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setWizardStep("confirm")}
+        onTryAgain={() => {
+          setPin("");
+          setStep("confirm");
+        }}
         onCancel={handleClose}
       />
     </>

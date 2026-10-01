@@ -1,6 +1,7 @@
 "use client";
 
 import { AppModal } from "@/components/common/AppModal";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { Calendar } from "lucide-react";
 
 type BonusHistoryModalProps = {
@@ -56,13 +57,12 @@ export function BonusHistoryModal({
         </div>
 
         {/* Table / Empty State */}
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 text-center space-y-3">
-          <div className="size-12 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mx-auto text-[#64748B]">
-            <Calendar className="size-6 text-[#64748B]" />
-          </div>
-          <p className="text-xs text-[#64748B] max-w-xs mx-auto leading-relaxed">
-            No bonus history yet. This agent has not completed any bonus periods.
-          </p>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-2">
+          <AppEmptyState
+            title="No Bonus History"
+            description="This agent has not completed any bonus periods yet."
+            icon={<Calendar className="size-6 text-[#64748B]" />}
+          />
         </div>
 
         <div className="flex items-center gap-2 pt-2">

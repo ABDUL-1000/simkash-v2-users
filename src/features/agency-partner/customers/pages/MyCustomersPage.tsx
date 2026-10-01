@@ -176,6 +176,7 @@ export function MyCustomersPage() {
           <CustomerTable
             customers={filteredCustomers}
             onRemindClick={handleOpenReminder}
+            onAddCustomer={() => setAddCustomerModalOpen(true)}
           />
         </div>
 

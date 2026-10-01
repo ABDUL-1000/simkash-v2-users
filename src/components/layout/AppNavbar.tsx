@@ -1,7 +1,9 @@
-import { Bell, LogOut, Search, Settings } from "lucide-react";
+import { Bell, Loader2, LogOut, Search, Settings } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { appRouteConfig } from "@/app/router/routes";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { useLogoutUser } from "@/features/auth/api/useLogoutUser";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,9 +16,29 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function AppNavbar() {
+  const { user, profile } = useGetAuthUser();
+  const { mutate: logoutUser, isPending: isLoggingOut } = useLogoutUser();
   const { pathname } = useLocation();
   const title =
     appRouteConfig.find((route) => route.path === pathname)?.title ?? "Dashboard";
+
+  const displayName =
+    profile?.fullname ||
+    user?.username ||
+    user?.email?.split("@")[0] ||
+    "User";
+  const displayEmail = user?.email || "";
+  const initials =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((n: string) => n[0].toUpperCase())
+      .join("") || "U";
+
+  const handleLogout = () => {
+    logoutUser();
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[#E2ECF6] bg-white px-4 sm:px-6 lg:px-8">
@@ -59,26 +81,39 @@ export function AppNavbar() {
             }
           >
             <Avatar className="size-10 rounded-full">
+              {profile?.profile_picture ? (
+                <AvatarImage src={profile.profile_picture} alt={displayName} />
+              ) : null}
               <AvatarFallback className="rounded-full bg-[#2563EB] font-bold text-white">
-                YA
+                {initials}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <span className="block text-sm font-semibold text-[#0F152A]">
-                Yusuf Adam Baba
+                {displayName}
               </span>
               <span className="mt-0.5 block text-xs text-[#8C909B]">
-                yusufababah50@gmail.com
+                {displayEmail}
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Settings className="mr-2 size-4" /> Settings
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive">
-              <LogOut className="mr-2 size-4" /> Logout
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="cursor-pointer"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <LogOut className="mr-2 size-4" />
+              )}
+              Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

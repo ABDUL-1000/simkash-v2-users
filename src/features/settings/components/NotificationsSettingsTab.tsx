@@ -30,7 +30,7 @@ export function NotificationsSettingsTab() {
   return (
     <div className="space-y-6">
       {/* Card 1: Push Notifications */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Push Notifications</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -64,7 +64,7 @@ export function NotificationsSettingsTab() {
       </div>
 
       {/* Card 2: SMS Notifications */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">SMS Notifications</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -97,7 +97,7 @@ export function NotificationsSettingsTab() {
       </div>
 
       {/* Card 3: Email Notifications */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Email Notifications</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -131,7 +131,7 @@ export function NotificationsSettingsTab() {
       </div>
 
       {/* Card 4: Renewal Reminders Radio Group */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Renewal Reminders</h3>
 
         <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] text-xs">

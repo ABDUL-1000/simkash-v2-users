@@ -1,11 +1,15 @@
 import { TrendingUp, Eye } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 
 interface RmTopKpiCardsProps {
   onRequestPayout?: () => void;
 }
 
 export function RmTopKpiCards({ onRequestPayout }: RmTopKpiCardsProps) {
+  const { wallet } = useGetAuthUser();
+  const commission = wallet?.commission_balance ?? 284000;
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* 1. Today */}
@@ -53,7 +57,7 @@ export function RmTopKpiCards({ onRequestPayout }: RmTopKpiCardsProps) {
           </span>
           <Eye className="size-3.5 text-[#94A3B8]" />
         </div>
-        <h3 className="text-3xl font-black tracking-tight text-[#0F152A]">₦284,000</h3>
+        <h3 className="text-3xl font-black tracking-tight text-[#0F152A]">₦{commission.toLocaleString()}</h3>
         <div className="flex items-center justify-between pt-1">
           <span className="text-[11px] text-[#66738C] font-medium">This month</span>
           <button

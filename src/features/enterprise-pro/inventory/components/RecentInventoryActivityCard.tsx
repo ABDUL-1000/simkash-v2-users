@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowDownLeft, ArrowUpRight, RotateCcw, Clock, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { colors } from "@/constants/colors";
 import { appPaths } from "@/app/router/paths";
 import type { InventoryActivityItem } from "../types";
@@ -59,7 +60,13 @@ export const RecentInventoryActivityCard: React.FC<RecentInventoryActivityCardPr
         </button>
       </div>
 
-      <div className="space-y-3">
+      {activities.length === 0 ? (
+        <AppEmptyState
+          title="No Recent Activity"
+          description="Stock intakes, coordinator dispatches, and returns will appear here as they occur."
+        />
+      ) : (
+        <div className="space-y-3">
         {activities.map((act) => {
           const { icon: Icon, color } = getIcon(act.type);
 
@@ -105,6 +112,7 @@ export const RecentInventoryActivityCard: React.FC<RecentInventoryActivityCardPr
           );
         })}
       </div>
+      )}
     </div>
   );
 };

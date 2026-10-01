@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Table } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { Search } from "lucide-react";
+import { AppEmptyState } from "./AppEmptyState";
 
 export interface DataTableProps<T> {
   columns: ColumnsType<T>;
@@ -16,6 +17,11 @@ export interface DataTableProps<T> {
   rowKey?: string | ((record: T) => string);
   className?: string;
   scroll?: { x?: number | string | true; y?: number | string };
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyActionText?: string;
+  onEmptyAction?: () => void;
+  emptyIcon?: ReactNode;
 }
 
 export function DataTable<T extends object>({
@@ -31,6 +37,11 @@ export function DataTable<T extends object>({
   rowKey = "id",
   className = "",
   scroll,
+  emptyTitle,
+  emptyDescription,
+  emptyActionText,
+  onEmptyAction,
+  emptyIcon,
 }: DataTableProps<T>) {
   const [localSearch, setLocalSearch] = useState("");
 
@@ -85,6 +96,20 @@ export function DataTable<T extends object>({
           }
           rowKey={rowKey}
           scroll={scroll ?? { x: "max-content" }}
+          locale={{
+            emptyText: (
+              <AppEmptyState
+                title={emptyTitle || "No Results Found"}
+                description={
+                  emptyDescription ||
+                  "No records match the current filters or query."
+                }
+                actionText={emptyActionText}
+                onAction={onEmptyAction}
+                icon={emptyIcon}
+              />
+            ),
+          }}
           onRow={(record) => ({
             onClick: () => onRowClick?.(record),
             className: onRowClick ? "cursor-pointer transition-colors hover:!bg-[#F8FAFC]" : "transition-colors hover:!bg-[#F8FAFC]",

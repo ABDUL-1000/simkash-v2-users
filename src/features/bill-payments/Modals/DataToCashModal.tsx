@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
 import { ArrowRight } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
@@ -12,7 +13,7 @@ interface DataToCashModalProps {
 
 export function DataToCashModal({ open, onOpenChange }: DataToCashModalProps) {
   const [network, setNetwork] = useState<string>("MTN");
-  const [fromPhone, setFromPhone] = useState<string>("08065942373");
+  const [fromPhone, setFromPhone] = useState<string>("");
   const [dataSize, setDataSize] = useState<string>("5GB");
 
   // Step state: "form" -> "confirm" -> "success" | "failure"
@@ -50,7 +51,7 @@ export function DataToCashModal({ open, onOpenChange }: DataToCashModalProps) {
 
   // Confirm Details mapping
   const confirmDetails: ConfirmDetailItem[] = [
-    { label: "Network", value: network },
+    { label: "Network", value: <span className={`rounded-full border px-2.5 py-0.5 text-xs font-black uppercase ${getNetworkColor(network)}`}>{network}</span> },
     { label: "Data Sender", value: fromPhone },
     { label: "Data Bundle", value: dataSize },
     { label: "Estimated Cash", value: `+₦${receiveAmount.toLocaleString()}` },
@@ -106,7 +107,7 @@ export function DataToCashModal({ open, onOpenChange }: DataToCashModalProps) {
                     onClick={() => setNetwork(net)}
                     className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
                       isSelected
-                        ? "bg-[#2563EB] text-white"
+                        ? getNetworkColor(net)
                         : "border border-[#E2ECF6] bg-white text-[#66738C] hover:bg-[#F8FAFC]"
                     }`}
                   >
@@ -123,9 +124,11 @@ export function DataToCashModal({ open, onOpenChange }: DataToCashModalProps) {
               DATA SENDER PHONE
             </label>
             <input
-              type="text"
+              type="tel"
+              inputMode="numeric"
+              maxLength={11}
               value={fromPhone}
-              onChange={(e) => setFromPhone(e.target.value)}
+              onChange={(e) => setFromPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
               className="w-full rounded-2xl border border-[#E2ECF6] py-3 px-4 text-xs font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
             />
           </div>
@@ -214,7 +217,7 @@ export function DataToCashModal({ open, onOpenChange }: DataToCashModalProps) {
         reason="Data transfer code error or insufficient data balance."
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("confirm")}
+        onTryAgain={() => { setPin(""); setStep("confirm"); }}
         onCancel={handleClose}
       />
     </>

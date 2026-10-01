@@ -159,6 +159,8 @@ export const ApOverviewTable: React.FC<ApOverviewTableProps> = ({
         rowKey="id"
         pagination={{ pageSize: 10 }}
         scroll={{ x: 800 }}
+        emptyTitle="No Agency Partners Found"
+        emptyDescription="No agency partners match the current search or filters."
         onRowClick={onSelectAp ? (record) => onSelectAp(record) : undefined}
       />
     </div>

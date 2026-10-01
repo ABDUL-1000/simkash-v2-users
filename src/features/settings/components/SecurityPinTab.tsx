@@ -13,7 +13,7 @@ export function SecurityPinTab() {
   return (
     <div className="space-y-6">
       {/* Card 1: Transaction PIN */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[#0F152A]">Transaction PIN</h3>
           <button
@@ -46,7 +46,7 @@ export function SecurityPinTab() {
       </div>
 
       {/* Card 2: Account Password */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[#0F152A]">Account Password</h3>
           <button
@@ -70,7 +70,7 @@ export function SecurityPinTab() {
       </div>
 
       {/* Card 3: Two-Factor Authentication (2FA) */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">Two-Factor Authentication (2FA)</h3>
 
         <div className="flex items-center justify-between border-b border-[#E2ECF6] pb-4">
@@ -95,11 +95,11 @@ export function SecurityPinTab() {
         </div>
 
         <div className="space-y-3 text-xs">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => setTwoFactorMethod("SMS")}
-              className={`rounded-xl px-5 py-2 font-bold transition ${
+              className={`rounded-xl px-4 sm:px-5 py-2 font-bold transition text-xs ${
                 twoFactorMethod === "SMS"
                   ? "border border-[#2563EB] bg-[#EFF4F8] text-[#2563EB]"
                   : "border border-[#E2ECF6] bg-white text-[#8C909B]"
@@ -110,7 +110,7 @@ export function SecurityPinTab() {
             <button
               type="button"
               onClick={() => setTwoFactorMethod("Authenticator App")}
-              className={`rounded-xl px-5 py-2 font-bold transition ${
+              className={`rounded-xl px-4 sm:px-5 py-2 font-bold transition text-xs ${
                 twoFactorMethod === "Authenticator App"
                   ? "border border-[#2563EB] bg-[#EFF4F8] text-[#2563EB]"
                   : "border border-[#E2ECF6] bg-white text-[#8C909B]"
@@ -125,7 +125,7 @@ export function SecurityPinTab() {
       </div>
 
       {/* Card 4: Active Sessions */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[#0F152A]">Active Sessions</h3>
           <button

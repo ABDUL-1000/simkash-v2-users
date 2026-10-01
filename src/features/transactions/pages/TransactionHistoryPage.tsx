@@ -16,9 +16,14 @@ import {
   TransactionDetailsModal,
   type TransactionItemData,
 } from "../Modals/TransactionDetailsModal";
+import { WalletTransactionsTable } from "@/features/wallet/components/WalletTransactionsTable";
+import { WalletSummaryCards } from "@/features/wallet/components/WalletSummaryCards";
 
 export default function TransactionHistoryPage() {
   const navigate = useNavigate();
+
+  // View state
+  const [viewMode, setViewMode] = useState<"table" | "list">("table");
 
   // Filter States
   const [activeCategory, setActiveCategory] = useState("All");
@@ -322,29 +327,8 @@ export default function TransactionHistoryPage() {
         </button>
       </div>
 
-      {/* 2. Top Summary Metric Cards (3 Cards) */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* Money In */}
-        <div className="rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold text-[#8C909B]">Money In</span>
-          <h2 className="text-2xl font-extrabold text-[#10B981] mt-1">+₦30,000</h2>
-          <p className="text-[11px] text-[#8C909B] mt-0.5 font-medium">This month · 3 transactions</p>
-        </div>
-
-        {/* Money Out */}
-        <div className="rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold text-[#8C909B]">Money Out</span>
-          <h2 className="text-2xl font-extrabold text-[#EF4444] mt-1">-₦215,399</h2>
-          <p className="text-[11px] text-[#8C909B] mt-0.5 font-medium">This month · 44 transactions</p>
-        </div>
-
-        {/* Net */}
-        <div className="rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold text-[#8C909B]">Net</span>
-          <h2 className="text-2xl font-extrabold text-[#EF4444] mt-1">-₦185,399</h2>
-          <p className="text-[11px] text-[#8C909B] mt-0.5 font-medium">This month</p>
-        </div>
-      </div>
+      {/* Live wallet summary metrics */}
+      <WalletSummaryCards />
 
       {/* 3. Category Filter Pills */}
       <div className="flex flex-wrap gap-2">
@@ -421,7 +405,29 @@ export default function TransactionHistoryPage() {
         <div className="lg:col-span-8 space-y-6">
           <div className="rounded-2xl border border-[#E2ECF6] bg-white shadow-xs overflow-hidden">
             <div className="flex items-center justify-between border-b border-[#E2ECF6] p-4 text-xs">
-              <span className="font-extrabold text-[#0F152A]">47 transactions</span>
+              <div className="flex items-center gap-3">
+                <span className="font-extrabold text-[#0F152A]">All Transactions</span>
+                <div className="flex rounded-lg bg-[#F1F5F9] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                      viewMode === "table" ? "bg-white text-[#0F152A] shadow-xs" : "text-[#64748B]"
+                    }`}
+                  >
+                    Table View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                      viewMode === "list" ? "bg-white text-[#0F152A] shadow-xs" : "text-[#64748B]"
+                    }`}
+                  >
+                    List View
+                  </button>
+                </div>
+              </div>
               <select className="border-none bg-transparent font-bold text-[#8C909B] outline-none">
                 <option>Sort: Newest</option>
                 <option>Sort: Oldest</option>
@@ -429,7 +435,13 @@ export default function TransactionHistoryPage() {
               </select>
             </div>
 
-            <div className="divide-y divide-[#E2ECF6]">
+            {viewMode === "table" ? (
+              <div className="p-4">
+                <WalletTransactionsTable />
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-[#E2ECF6]">
               {transactions.map((group) => (
                 <div key={group.section} className="space-y-0">
                   <div className="bg-[#F8FAFC] px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[#8C909B] border-b border-[#E2ECF6]">
@@ -485,14 +497,16 @@ export default function TransactionHistoryPage() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
 
-            <div className="p-4 text-center border-t border-[#E2ECF6] bg-[#F8FAFC]">
-              <span className="text-xs text-[#8C909B] block font-medium">Showing 15 of 47 transactions</span>
-              <button type="button" className="mt-1 text-xs font-bold text-[#2563EB] hover:underline">
-                Load more →
-              </button>
-            </div>
+                <div className="p-4 text-center border-t border-[#E2ECF6] bg-[#F8FAFC]">
+                  <span className="text-xs text-[#8C909B] block font-medium">Showing 15 of 47 transactions</span>
+                  <button type="button" className="mt-1 text-xs font-bold text-[#2563EB] hover:underline">
+                    Load more →
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

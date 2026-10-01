@@ -1,17 +1,32 @@
 import { useNavigate } from "react-router-dom";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import type { CustomerItem } from "../types/customer.types";
 
 interface CustomerTableProps {
   customers: CustomerItem[];
   onRemindClick: (customer: CustomerItem) => void;
+  onAddCustomer?: () => void;
 }
 
-export function CustomerTable({ customers, onRemindClick }: CustomerTableProps) {
+export function CustomerTable({
+  customers,
+  onRemindClick,
+  onAddCustomer,
+}: CustomerTableProps) {
   const navigate = useNavigate();
 
   return (
     <div className="rounded-3xl border border-[#E2ECF6] bg-white overflow-hidden shadow-xs">
-      <div className="overflow-x-auto">
+      {customers.length === 0 ? (
+        <AppEmptyState
+          title="No Customers Found"
+          description="There are no customer records matching your current filter criteria."
+          actionText={onAddCustomer ? "Add New Customer" : undefined}
+          onAction={onAddCustomer}
+        />
+      ) : (
+        <>
+          <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-[#E2ECF6] bg-[#F8FAFC] text-[10px] font-black uppercase tracking-wider text-[#8C909B]">
@@ -195,6 +210,8 @@ export function CustomerTable({ customers, onRemindClick }: CustomerTableProps) 
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

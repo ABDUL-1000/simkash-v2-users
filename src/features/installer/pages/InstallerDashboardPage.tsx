@@ -3,6 +3,7 @@ import { Wallet, Bell } from "lucide-react";
 import { message } from "antd";
 import { PageHeader } from "@/components/common/PageHeader";
 import { APP_COLORS } from "@/constants/colors";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import type { InstallerJob, InstallerCompletedJob } from "../types";
 import { ACTIVE_JOBS } from "../data/installer.data";
 import { InstallerStatsHeader } from "../components/InstallerStatsHeader";
@@ -21,6 +22,8 @@ import { ActivityFeedCard } from "../components/ActivityFeedCard";
 import { InstallerModalsManager, type InstallerModalsState } from "../modals/InstallerModalsManager";
 
 export default function InstallerDashboardPage() {
+  const { user, profile } = useGetAuthUser();
+  const displayName = profile?.fullname || user?.username || "Installer";
   const [activeTab, setActiveTab] = useState<InstallerTabType>("jobs");
   const [modalsState, setModalsState] = useState<InstallerModalsState>({
     requestPayoutOpen: false,
@@ -59,7 +62,7 @@ export default function InstallerDashboardPage() {
     <div className="space-y-6 pb-12">
       {/* Page Header */}
       <PageHeader
-        title="Installer Workspace"
+        title={`Welcome back, ${displayName}`}
         description="Track your assigned CCTV & Solar installations, payouts, and customer reviews"
         actions={[
           {

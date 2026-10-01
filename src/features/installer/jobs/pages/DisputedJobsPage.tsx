@@ -2,6 +2,7 @@ import { useState } from "react";
 import { message } from "antd";
 import { AlertCircle, PlusCircle } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { DISPUTED_JOB } from "../data/jobs.data";
 import { DisputedJobCard } from "../components/DisputedJobCard";
 import { DisputeDetailModal } from "../modals/DisputeDetailModal";
@@ -12,6 +13,7 @@ import { RaiseDisputeModal } from "../modals/RaiseDisputeModal";
 import { ContactClientModal } from "../modals/ContactClientModal";
 
 export default function DisputedJobsPage() {
+  const [disputedJob] = useState(DISPUTED_JOB);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [responseModalOpen, setResponseModalOpen] = useState(false);
   const [submittedModalOpen, setSubmittedModalOpen] = useState(false);
@@ -36,29 +38,40 @@ export default function DisputedJobsPage() {
         ]}
         extra={
           <span className="rounded-full bg-[#FEE2E2] px-3.5 py-1 text-xs font-bold text-[#EF4444]">
-            1 Disputed
+            {disputedJob ? "1 Disputed" : "0 Disputed"}
           </span>
         }
       />
 
       {/* Red Warning Banner */}
-      <div className="flex items-center gap-2.5 rounded-2xl border border-[#FECACA] bg-[#FFF7F8] p-4 text-xs font-semibold text-[#B91C1C]">
-        <AlertCircle className="size-5 shrink-0 text-[#EF4444]" />
-        <span>
-          Disputed jobs require resolution before payment can be released. Respond to disputes within 48 hours to avoid account penalties.
-        </span>
-      </div>
+      {disputedJob && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-[#FECACA] bg-[#FFF7F8] p-4 text-xs font-semibold text-[#B91C1C]">
+          <AlertCircle className="size-5 shrink-0 text-[#EF4444]" />
+          <span>
+            Disputed jobs require resolution before payment can be released. Respond to disputes within 48 hours to avoid account penalties.
+          </span>
+        </div>
+      )}
 
       {/* Disputed card */}
       <div className="max-w-4xl">
-        <DisputedJobCard
-          job={DISPUTED_JOB}
-          onViewDetails={() => setDetailsModalOpen(true)}
-          onContactClient={() => setContactModalOpen(true)}
-          onUpdateResponse={() => setResponseModalOpen(true)}
-          onContactAdmin={() => message.info("Connecting to Super Admin support")}
-          onViewResolution={() => setResolvedModalOpen(true)}
-        />
+        {!disputedJob ? (
+          <div className="rounded-3xl border border-[#E2ECF6] bg-white p-6 shadow-xs">
+            <AppEmptyState
+              title="No Disputed Jobs"
+              description="You have no jobs currently under dispute or flagged for review."
+            />
+          </div>
+        ) : (
+          <DisputedJobCard
+            job={disputedJob}
+            onViewDetails={() => setDetailsModalOpen(true)}
+            onContactClient={() => setContactModalOpen(true)}
+            onUpdateResponse={() => setResponseModalOpen(true)}
+            onContactAdmin={() => message.info("Connecting to Super Admin support")}
+            onViewResolution={() => setResolvedModalOpen(true)}
+          />
+        )}
       </div>
 
       {/* Modals */}

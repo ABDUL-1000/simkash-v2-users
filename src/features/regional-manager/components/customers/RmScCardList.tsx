@@ -1,4 +1,5 @@
 import { APP_COLORS } from "@/constants/colors";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { RmScCard } from "./RmScCard";
 import type { StateCoordinatorItem } from "../../types/regional-manager.types";
 
@@ -41,20 +42,7 @@ export function RmScCardList({
 
       {/* Cards Stack */}
       {scs.length === 0 ? (
-        <div
-          className="rounded-2xl border p-8 text-center"
-          style={{
-            borderColor: APP_COLORS.greys.stroke,
-            backgroundColor: APP_COLORS.backgrounds.background,
-          }}
-        >
-          <p className="text-sm font-bold" style={{ color: APP_COLORS.texts.primary }}>
-            No State Coordinators found
-          </p>
-          <p className="text-xs mt-1" style={{ color: APP_COLORS.texts.slate }}>
-            Try adjusting your search terms or filter selection.
-          </p>
-        </div>
+        <AppEmptyState title="No State Coordinators found" description="Try adjusting your search terms or filter selection." />
       ) : (
         <div className="space-y-3.5">
           {scs.map((sc) => (

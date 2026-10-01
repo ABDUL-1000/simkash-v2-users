@@ -29,9 +29,12 @@ import { ScPayoutModal } from "../modals/ScPayoutModal";
 import { ActionSuccessModal, type DetailItem } from "../modals/ActionSuccessModal";
 import { appPaths } from "@/app/router/paths";
 import { ConfirmDistributionModal } from "../modals/ConfirmDistributionModal";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 
 export function StateCoordinatorDashboardPage() {
   const navigate = useNavigate();
+  const { wallet } = useGetAuthUser();
+  const liveCommission = wallet?.commission_balance ?? 35395;
 
   // Visibility Toggles
   const [showStock, setShowStock] = useState(true);
@@ -336,7 +339,7 @@ export function StateCoordinatorDashboardPage() {
             </button>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-[#0F152A] break-words">
-            {showCommission ? "₦35,395" : "••••••••"}
+            {showCommission ? `₦${liveCommission.toLocaleString()}` : "••••••••"}
           </h2>
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <span className="text-[11px] font-medium text-[#8C909B] truncate">This month</span>

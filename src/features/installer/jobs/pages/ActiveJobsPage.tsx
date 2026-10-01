@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, Briefcase } from "lucide-react";
 import { message } from "antd";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { appPaths } from "@/app/router/paths";
 import type { JobDetailItem } from "../types";
 import { ACTIVE_JOBS_LIST } from "../data/jobs.data";
@@ -136,47 +137,56 @@ export default function ActiveJobsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          {filteredJobs.map((job) => (
-            <ActiveJobCard
-              key={job.id}
-              job={job}
-              onViewDetails={() => {
-                if (job.isEasyBuy) {
-                  navigate(appPaths.installerJobsEasyBuyDetails(job.reference).path);
-                } else {
-                  navigate(appPaths.installerJobDetails(job.reference).path);
-                }
-              }}
-              onViewPlan={() => {
-                setSelectedJob(job);
-                setEasyBuyPlanModalOpen(true);
-              }}
-              onNavigate={() => {
-                setSelectedJob(job);
-                setMapModalOpen(true);
-              }}
-              onContactClient={() => {
-                setSelectedJob(job);
-                setContactModalOpen(true);
-              }}
-              onStartJob={() => {
-                setSelectedJob(job);
-                if (job.isEasyBuy) {
-                  setStartEasyBuyModalOpen(true);
-                } else {
-                  setStartModalOpen(true);
-                }
-              }}
-              onUpdateProgress={() => {
-                setSelectedJob(job);
-                setProgressModalOpen(true);
-              }}
-              onMarkComplete={() => {
-                setSelectedJob(job);
-                setSubmitModalOpen(true);
-              }}
-            />
-          ))}
+          {filteredJobs.length === 0 ? (
+            <div className="rounded-3xl border border-[#E2ECF6] bg-white p-6 shadow-xs">
+              <AppEmptyState
+                title="No Active Jobs"
+                description="You have no active installation jobs matching your current filter criteria."
+              />
+            </div>
+          ) : (
+            filteredJobs.map((job) => (
+              <ActiveJobCard
+                key={job.id}
+                job={job}
+                onViewDetails={() => {
+                  if (job.isEasyBuy) {
+                    navigate(appPaths.installerJobsEasyBuyDetails(job.reference).path);
+                  } else {
+                    navigate(appPaths.installerJobDetails(job.reference).path);
+                  }
+                }}
+                onViewPlan={() => {
+                  setSelectedJob(job);
+                  setEasyBuyPlanModalOpen(true);
+                }}
+                onNavigate={() => {
+                  setSelectedJob(job);
+                  setMapModalOpen(true);
+                }}
+                onContactClient={() => {
+                  setSelectedJob(job);
+                  setContactModalOpen(true);
+                }}
+                onStartJob={() => {
+                  setSelectedJob(job);
+                  if (job.isEasyBuy) {
+                    setStartEasyBuyModalOpen(true);
+                  } else {
+                    setStartModalOpen(true);
+                  }
+                }}
+                onUpdateProgress={() => {
+                  setSelectedJob(job);
+                  setProgressModalOpen(true);
+                }}
+                onMarkComplete={() => {
+                  setSelectedJob(job);
+                  setSubmitModalOpen(true);
+                }}
+              />
+            ))
+          )}
         </div>
 
         <div className="space-y-4 lg:col-span-1">

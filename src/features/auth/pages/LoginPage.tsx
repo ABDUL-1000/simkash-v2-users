@@ -1,103 +1,134 @@
-// src/features/auth/pages/LoginPage.tsx
-
-import { LockOutlined, MailOutlined } from "@ant-design/icons";
-import { Button, Form } from "antd";
-import { useNavigate } from "react-router-dom";
-import { notify } from "@/lib/notify";
-
-import { FormInput } from "@/components/forms/FormInput";
-import { useAuthStore } from "@/store/auth-store";
-
-import { useLogin } from "../hooks/useLogin";
-import type { ILoginPayload } from "../types/auth.types";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
-import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
+import { AuthLayout } from "../components/AuthLayout";
+import { PasswordInputField } from "../components/PasswordInputField";
+import { useLoginUser } from "../api/useLoginUser";
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const setAuth = useAuthStore((state) => state.setAuth);
 
-  const { mutate: login, isPending } = useLogin();
+  const [phoneOrEmail, setPhoneOrEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (values: ILoginPayload) => {
-    login(values, {
-      onSuccess: (response) => {
-        setAuth({
-          token: response.data.token,
-          user: response.data.user,
-        });
+  const { mutate: loginUser, isPending } = useLoginUser({
+    onError: (err) => {
+      const msg =
+        (err as any)?.response?.data?.message ||
+        err?.message ||
+        "Invalid credentials. Please try again.";
+      setError(msg);
+    },
+  });
 
-        notify.success(response.message || "Login successful");
-        navigate(appPaths.dashboard, {
-          replace: true,
-        });
-      },
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!phoneOrEmail.trim() || !password) {
+      setError("Please fill in both your email/phone and password.");
+      return;
+    }
+
+    loginUser({
+      phoneOrEmail: phoneOrEmail.trim(),
+      password,
     });
   };
 
   return (
-    <main className="min-h-screen bg-[#f8f5fc]">
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
-        <section className="w-full max-w-md rounded-2xl border border-[#e2e4e9] bg-white p-6 shadow-sm sm:p-8">
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-[#9244d4] text-xl font-semibold text-white">
-              SK
-            </div>
-
-            <h1 className="text-2xl font-semibold text-gray-900">
-              SimKash Admin
-            </h1>
-
-            <p className="mt-2 text-sm text-gray-500">
-              Enter your admin credentials to continue.
-            </p>
-          </div>
-
-          <Form<ILoginPayload>
-            layout="vertical"
-            requiredMark={false}
-            onFinish={handleSubmit}
-          >
-            <FormInput
-              name="email"
-              label="Email address"
-              required
-              size="large"
-              autoComplete="email"
-              placeholder="admin@simkash.com"
-              prefix={<MailOutlined className="text-gray-400" />}
-              rules={[
-                {
-                  type: "email",
-                  message: "Enter a valid email address",
-                },
-              ]}
-            />
-
-            <FormPasswordInput
-              name="password"
-              label="Password"
-              required
-              size="large"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              prefix={<LockOutlined className="text-gray-400" />}
-            />
-
-            <Button
-              block
-              type="primary"
-              size="large"
-              htmlType="submit"
-              loading={isPending}
-              disabled={isPending}
-              className="mt-2"
-            >
-              Sign in
-            </Button>
-          </Form>
-        </section>
+    <AuthLayout>
+      {/* Title & Subtext */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-[#0F172A]">
+          Welcome Back
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Sign in to your account to manage your SIMs, devices, and wallet.
+        </p>
       </div>
-    </main>
+
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 animate-in fade-in">
+          {error}
+        </div>
+      ) : null}
+
+      {/* Sign In Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Identifier Input */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="phoneOrEmail"
+            className="block text-sm font-semibold text-[#0F172A]"
+          >
+            Email or Phone Number <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="phoneOrEmail"
+            name="phoneOrEmail"
+            type="text"
+            required
+            autoComplete="username"
+            value={phoneOrEmail}
+            onChange={(e) => setPhoneOrEmail(e.target.value)}
+            placeholder="Enter your email or phone number"
+            className="w-full rounded-xl border border-[#E2ECF6] bg-white px-4 py-3 text-sm text-[#0F172A] placeholder-[#8C909B] transition-all outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="space-y-1.5">
+          <PasswordInputField
+            id="password"
+            name="password"
+            label="Password"
+            requiredMark
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+          />
+        </div>
+
+        {/* Forgot Password Link */}
+        <div className="flex justify-start">
+          <Link
+            to={appPaths.forgotPassword}
+            className="text-sm font-semibold text-[#2563EB] transition-colors hover:text-blue-700 hover:underline"
+          >
+            Forgot Password?
+          </Link>
+        </div>
+
+        {/* Primary CTA */}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] py-3.5 px-4 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition-all hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isPending ? (
+            <span className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+          ) : (
+            <>
+              <span>Sign In</span>
+              <span aria-hidden="true">→</span>
+            </>
+          )}
+        </button>
+      </form>
+
+      {/* Footer Link */}
+      <p className="pt-2 text-center text-sm text-slate-500">
+        Don&apos;t have an account?{" "}
+        <Link
+          to={appPaths.register}
+          className="font-semibold text-[#2563EB] transition-colors hover:text-blue-700 hover:underline"
+        >
+          Sign Up
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

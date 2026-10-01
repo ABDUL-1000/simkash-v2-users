@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
 import { ArrowRight } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
@@ -12,7 +13,7 @@ interface AirtimeToCashModalProps {
 
 export function AirtimeToCashModal({ open, onOpenChange }: AirtimeToCashModalProps) {
   const [network, setNetwork] = useState<string>("MTN");
-  const [fromPhone, setFromPhone] = useState<string>("08065942373");
+  const [fromPhone, setFromPhone] = useState<string>("");
   const [amount, setAmount] = useState<string>("500");
 
   // Step state: "form" -> "confirm" -> "success" | "failure"
@@ -51,7 +52,7 @@ export function AirtimeToCashModal({ open, onOpenChange }: AirtimeToCashModalPro
 
   // Confirm Details mapping
   const confirmDetails: ConfirmDetailItem[] = [
-    { label: "Network", value: network },
+    { label: "Network", value: <span className={`rounded-full border px-2.5 py-0.5 text-xs font-black uppercase ${getNetworkColor(network)}`}>{network}</span> },
     { label: "Airtime From", value: fromPhone },
     { label: "Airtime Amount", value: `₦${numAmount.toLocaleString()}` },
     { label: "Conversion Fee", value: "15%" },
@@ -108,7 +109,7 @@ export function AirtimeToCashModal({ open, onOpenChange }: AirtimeToCashModalPro
                     onClick={() => setNetwork(net)}
                     className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
                       isSelected
-                        ? "bg-[#2563EB] text-white"
+                        ? getNetworkColor(net)
                         : "border border-[#E2ECF6] bg-white text-[#66738C] hover:bg-[#F8FAFC]"
                     }`}
                   >
@@ -139,9 +140,11 @@ export function AirtimeToCashModal({ open, onOpenChange }: AirtimeToCashModalPro
               SEND AIRTIME FROM
             </label>
             <input
-              type="text"
+              type="tel"
+              inputMode="numeric"
+              maxLength={11}
               value={fromPhone}
-              onChange={(e) => setFromPhone(e.target.value)}
+              onChange={(e) => setFromPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
               className="w-full rounded-2xl border border-[#E2ECF6] py-3 px-4 text-xs font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
             />
             <p className="text-[11px] text-[#8C909B]">This number must have enough airtime balance</p>
@@ -233,7 +236,7 @@ export function AirtimeToCashModal({ open, onOpenChange }: AirtimeToCashModalPro
         reason="Airtime transfer timeout or insufficient balance on sender SIM."
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("confirm")}
+        onTryAgain={() => { setPin(""); setStep("confirm"); }}
         onCancel={handleClose}
       />
     </>

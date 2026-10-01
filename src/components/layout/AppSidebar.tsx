@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, LogOut, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut, ArrowRight, Loader2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/sidebar";
 import { userNavigation, type NavigationItem } from "@/constants/navigation";
 import { useSidebar } from "@/hooks/useSidebar";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { useLogoutUser } from "@/features/auth/api/useLogoutUser";
 import { cn } from "@/lib/utils";
 import { APP_COLORS } from "@/constants/colors";
 
@@ -170,6 +172,27 @@ function NavigationRow({
 
 export function AppSidebar() {
   const { collapsed, setMobileOpen } = useSidebar();
+  const { user, profile, role } = useGetAuthUser();
+  const { mutate: logoutUser, isPending: isLoggingOut } = useLogoutUser();
+
+  const displayName =
+    profile?.fullname ||
+    user?.username ||
+    user?.email?.split("@")[0] ||
+    "User";
+  const displayEmail = user?.email || "";
+  const initials =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((n: string) => n[0].toUpperCase())
+      .join("") || "U";
+  const roleName = role || profile?.role || user?.role || "User";
+
+  const handleLogout = () => {
+    logoutUser();
+  };
 
   return (
     <Sidebar
@@ -198,16 +221,19 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="mb-4 flex items-center gap-3 rounded-2xl bg-[#F0F4F9] p-3">
             <Avatar className="size-11 shrink-0 rounded-full">
+              {profile?.profile_picture ? (
+                <AvatarImage src={profile.profile_picture} alt={displayName} />
+              ) : null}
               <AvatarFallback className="rounded-full bg-[#2563EB] font-bold text-white">
-                YA
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium text-[#8C909B]">Good Afternoon</p>
               <p className="truncate text-sm font-bold text-[#0F152A]">
-                Yusuf Adam Baba
+                {displayName}
               </p>
-              <p className="text-[11px] text-[#8C909B]">Normal User</p>
+              <p className="text-[11px] text-[#8C909B] capitalize">{roleName.toLowerCase()}</p>
             </div>
           </div>
         )}
@@ -259,27 +285,50 @@ export function AppSidebar() {
             collapsed && "justify-center",
           )}
         >
-          <Avatar className="size-9 rounded-full">
-            <AvatarFallback className="rounded-full bg-[#D0DFF0] font-bold text-[#1F3A5F]">
-              YA
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="cursor-pointer rounded-lg p-1.5 text-[#8C909B] transition-colors hover:bg-slate-100 hover:text-red-600 disabled:opacity-50"
+              title="Logout"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="size-5 animate-spin text-blue-600" />
+              ) : (
+                <LogOut className="size-5" />
+              )}
+            </button>
+          ) : (
             <>
+              <Avatar className="size-9 rounded-full">
+                {profile?.profile_picture ? (
+                  <AvatarImage src={profile.profile_picture} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="rounded-full bg-[#D0DFF0] font-bold text-[#1F3A5F]">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-bold text-[#0F152A]">
-                  Yusuf Adam Baba
+                  {displayName}
                 </p>
                 <p className="truncate text-[11px] text-[#8C909B]">
-                  yusufababah50@gmail.com
+                  {displayEmail}
                 </p>
               </div>
               <button
                 type="button"
-                className="rounded-lg p-1.5 text-[#8C909B] hover:bg-slate-100 hover:text-red-600"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="cursor-pointer rounded-lg p-1.5 text-[#8C909B] transition-colors hover:bg-slate-100 hover:text-red-600 disabled:opacity-50"
                 title="Logout"
               >
-                <LogOut className="size-4" />
+                {isLoggingOut ? (
+                  <Loader2 className="size-4 animate-spin text-blue-600" />
+                ) : (
+                  <LogOut className="size-4" />
+                )}
               </button>
             </>
           )}

@@ -123,16 +123,20 @@ export function EasyBuyCommissionTable({
         rowKey="id"
         pagination={false}
         scroll={{ x: "max-content" }}
+        emptyTitle="No EasyBuy Commission Records"
+        emptyDescription="You currently have no active EasyBuy installation jobs or pending commissions."
       />
 
       {/* Summary Footer Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E2ECF6] bg-white p-3.5 text-xs font-semibold text-[#66738C] shadow-xs">
-        <span>2 EasyBuy jobs</span>
-        <span>₦110,000 job fees paid</span>
-        <span className="font-bold text-[#2563EB]">
-          ₦61,500 EB commission pending
-        </span>
-      </div>
+      {records.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E2ECF6] bg-white p-3.5 text-xs font-semibold text-[#66738C] shadow-xs">
+          <span>{records.length} EasyBuy jobs</span>
+          <span>₦110,000 job fees paid</span>
+          <span className="font-bold text-[#2563EB]">
+            ₦61,500 EB commission pending
+          </span>
+        </div>
+      )}
     </div>
   );
 }

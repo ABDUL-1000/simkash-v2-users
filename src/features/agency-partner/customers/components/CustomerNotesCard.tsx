@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 
 interface CustomerNotesCardProps {
   onAddNoteClick?: () => void;
@@ -70,9 +71,7 @@ export function CustomerNotesCard({ onAddNoteClick, notes: initialNotes = [] }: 
       )}
 
       {notes.length === 0 ? (
-        <p className="text-xs text-[#8C909B] italic">
-          No notes added yet. Add a note about this customer for your own reference.
-        </p>
+        <AppEmptyState title="No notes yet" description="Add a private note about this customer." actionText="Add Note" onAction={handleOpenAdd} />
       ) : (
         <div className="space-y-2 text-xs">
           {notes.map((n, i) => (

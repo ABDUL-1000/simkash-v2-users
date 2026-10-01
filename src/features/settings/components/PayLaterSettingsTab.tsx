@@ -11,7 +11,7 @@ export function PayLaterSettingsTab() {
   return (
     <div className="space-y-6">
       {/* Card 1: PayLater Credit Overview */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">PayLater Credit Overview</h3>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -38,7 +38,7 @@ export function PayLaterSettingsTab() {
       </div>
 
       {/* Card 2: PayLater Preferences */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="text-base font-bold text-[#0F152A]">PayLater Preferences</h3>
 
         <div className="divide-y divide-[#E2ECF6] text-xs">
@@ -105,7 +105,7 @@ export function PayLaterSettingsTab() {
       </div>
 
       {/* Card 3: Repayment History */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-[#0F152A]">Repayment History</h3>
           <button

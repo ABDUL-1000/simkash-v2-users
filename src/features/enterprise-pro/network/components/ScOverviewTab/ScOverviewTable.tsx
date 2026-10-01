@@ -36,6 +36,8 @@ export const ScOverviewTable: React.FC<ScOverviewTableProps> = ({ data, onSelect
         rowKey="id"
         pagination={{ pageSize: 12 }}
         scroll={{ x: 1080 }}
+        emptyTitle="No State Coordinators Found"
+        emptyDescription="No coordinators match your search criteria. Check your query or filters."
         onRowClick={(record) => onSelectSc(record)}
       />
 

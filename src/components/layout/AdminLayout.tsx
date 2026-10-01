@@ -1,9 +1,12 @@
 import { Outlet } from "react-router-dom";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { AppNavbar } from "./AppNavbar";
 import { AppSidebar } from "./AppSidebar";
 
 export function AdminLayout() {
+  useGetAuthUser();
+
   return (
     <SidebarProvider>
       <div className="flex h-svh w-full overflow-hidden bg-[#F7F9FC]">
