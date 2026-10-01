@@ -4,6 +4,7 @@ import type { ColumnsType } from "antd/es/table";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useGetWalletTransactions } from "../api/useGetWalletTransactions";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import type { WalletTransactionItem } from "../types/api";
 
 interface WalletTransactionsTableProps {
@@ -20,6 +21,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
   const {
     page,
     pageSize,
+    setPage,
     paginationConfig,
   } = useTablePagination({
     initialPage: 1,
@@ -30,6 +32,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
     transactions,
     total,
     isLoading,
+    isError,
   } = useGetWalletTransactions({
     page,
     limit: pageSize,
@@ -41,6 +44,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       title: "REFERENCE",
       dataIndex: "transaction_reference",
       key: "transaction_reference",
+      width: 150,
       render: (ref: string, record) => (
         <div>
           <span className="font-mono text-xs font-semibold text-[#0F152A] hover:text-[#2563EB]">
@@ -53,12 +57,15 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       title: "DESCRIPTION",
       dataIndex: "description",
       key: "description",
+      width: 190,
+      responsive: ["lg"],
       render: (description?: string) => <span className="text-xs text-[#66738C]">{description || "—"}</span>,
     },
     {
       title: "TYPE",
       dataIndex: "transaction_type",
       key: "transaction_type",
+      width: 120,
       render: (txnType: string) => {
         const isCredit =
           txnType?.toLowerCase().includes("credit") ||
@@ -81,6 +88,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       title: "AMOUNT",
       dataIndex: "amount",
       key: "amount",
+      width: 130,
       render: (amount: number, record) => {
         const isCredit =
           record.transaction_type?.toLowerCase().includes("credit") ||
@@ -101,6 +109,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       title: "STATUS",
       dataIndex: "status",
       key: "status",
+      width: 100,
       render: (status: string) => {
         const s = status?.toLowerCase();
         let color = "default";
@@ -119,6 +128,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       title: "DATE",
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 165,
       render: (dateStr: string) => {
         if (!dateStr) return <span className="text-xs text-[#8C909B]">—</span>;
         const d = new Date(dateStr);
@@ -138,22 +148,55 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
   ];
 
   return (
-    <div className="space-y-4">
-      <Table<WalletTransactionItem>
-        rowKey="id"
-        columns={columns}
-        dataSource={transactions}
-        loading={isLoading}
-        pagination={{
-          ...paginationConfig,
-          total,
-        }}
-        onRow={(record) => ({
-          onClick: () => setSelectedTxnId(record.id),
-          className: "cursor-pointer transition hover:bg-slate-50",
+    <div className="w-full min-w-0 max-w-full space-y-4">
+      <div className="hidden w-full min-w-0 overflow-hidden lg:block">
+        <Table<WalletTransactionItem>
+          rowKey="id"
+          size="small"
+          columns={columns}
+          dataSource={transactions}
+          loading={isLoading}
+          pagination={{ ...paginationConfig, total, responsive: true }}
+          onRow={(record) => ({
+            onClick: () => setSelectedTxnId(record.id),
+            className: "cursor-pointer transition hover:bg-slate-50",
+          })}
+          scroll={{ x: "max-content" }}
+        />
+      </div>
+
+      <div className="space-y-3 lg:hidden">
+        {isLoading ? (
+          <div className="space-y-2">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-xl bg-slate-100" />)}</div>
+        ) : isError ? (
+          <AppEmptyState title="Transactions unavailable" description="We could not load wallet transactions. Please try again." />
+        ) : transactions.length === 0 ? (
+          <AppEmptyState title="No wallet transactions yet" description="Your wallet activity will appear here." />
+        ) : transactions.map((transaction) => {
+          const isCredit = /credit|inflow|top.?up|deposit|refund|commission/i.test(transaction.transaction_type ?? "");
+          return (
+            <button key={transaction.id} type="button" onClick={() => setSelectedTxnId(transaction.id)} className="w-full min-w-0 rounded-xl border border-[#E2ECF6] bg-white p-3 text-left transition active:bg-slate-50">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-bold text-[#0F152A]">{transaction.transaction_type || "Transaction"}</p>
+                  <p className="mt-1 truncate font-mono text-[10px] text-[#8C909B]">{transaction.transaction_reference || `#${transaction.id}`}</p>
+                </div>
+                <p className={`shrink-0 text-xs font-bold ${isCredit ? "text-[#10B981]" : "text-[#0F152A]"}`}>{isCredit ? "+" : "−"}₦{Number(transaction.amount || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-[10px] text-[#66738C]">{transaction.description || "—"}</p>
+                <Tag color={transaction.status?.toLowerCase() === "failed" ? "error" : transaction.status?.toLowerCase() === "pending" ? "warning" : "success"} className="m-0 shrink-0 rounded-full text-[9px] uppercase">{transaction.status || "Completed"}</Tag>
+              </div>
+              <p className="mt-2 text-[10px] text-[#8C909B]">{transaction.createdAt ? new Date(transaction.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+            </button>
+          );
         })}
-        scroll={{ x: 600 }}
-      />
+        {!isLoading && total > pageSize && <div className="flex items-center justify-between gap-3 border-t border-[#E2ECF6] pt-3 text-xs">
+          <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-[#E2ECF6] px-3 py-2 font-semibold disabled:opacity-40">Previous</button>
+          <span className="text-[#66738C]">Page {page} of {Math.max(1, Math.ceil(total / pageSize))}</span>
+          <button type="button" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage(page + 1)} className="rounded-lg border border-[#E2ECF6] px-3 py-2 font-semibold disabled:opacity-40">Next</button>
+        </div>}
+      </div>
 
       <TransactionDetailDrawer
         id={selectedTxnId}

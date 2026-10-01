@@ -314,14 +314,14 @@ export default function TransactionHistoryPage() {
     <div className="space-y-6">
       {/* 1. Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-[#0F152A]">Transaction History</h1>
           <p className="mt-0.5 text-xs text-[#8C909B]">All your financial activity in one place</p>
         </div>
         <button
           type="button"
           onClick={() => setDownloadModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl border border-[#E2ECF6] bg-white px-4 py-2.5 text-xs font-bold text-[#0F152A] shadow-xs hover:bg-slate-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E2ECF6] bg-white px-4 py-2.5 text-xs font-bold text-[#0F152A] shadow-xs hover:bg-slate-50 sm:w-auto"
         >
           <Download className="size-4" /> Download Statement
         </button>
@@ -400,12 +400,12 @@ export default function TransactionHistoryPage() {
       </div>
 
       {/* 6. Main 2-Column Grid */}
-      <div className="grid gap-6 lg:grid-cols-12">
+      <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-12">
         {/* Left Column — Transactions List (8 cols) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-8">
           <div className="rounded-2xl border border-[#E2ECF6] bg-white shadow-xs overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#E2ECF6] p-4 text-xs">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 border-b border-[#E2ECF6] p-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:p-4">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:justify-start sm:gap-3">
                 <span className="font-extrabold text-[#0F152A]">All Transactions</span>
                 <div className="flex rounded-lg bg-[#F1F5F9] p-0.5">
                   <button
@@ -428,7 +428,7 @@ export default function TransactionHistoryPage() {
                   </button>
                 </div>
               </div>
-              <select className="border-none bg-transparent font-bold text-[#8C909B] outline-none">
+              <select className="max-w-full border-none bg-transparent py-1 text-[11px] font-bold text-[#8C909B] outline-none sm:text-xs">
                 <option>Sort: Newest</option>
                 <option>Sort: Oldest</option>
                 <option>Sort: Highest Amount</option>
@@ -436,12 +436,12 @@ export default function TransactionHistoryPage() {
             </div>
 
             {viewMode === "table" ? (
-              <div className="p-4">
+              <div className="min-w-0 p-2 sm:p-4">
                 <WalletTransactionsTable />
               </div>
             ) : (
               <>
-                <div className="divide-y divide-[#E2ECF6]">
+                <div className="min-w-0 divide-y divide-[#E2ECF6]">
               {transactions.map((group) => (
                 <div key={group.section} className="space-y-0">
                   <div className="bg-[#F8FAFC] px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[#8C909B] border-b border-[#E2ECF6]">
@@ -455,9 +455,9 @@ export default function TransactionHistoryPage() {
                         onClick={() => handleOpenTxn(item)}
                         className="cursor-pointer flex items-center justify-between p-4 transition hover:bg-[#F8FAFC]"
                       >
-                        <div className="flex items-center gap-3.5">
+                        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
                           {getItemIcon(item.type, item.status)}
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <h4 className="text-xs font-extrabold text-[#0F152A]">{item.type}</h4>
                               {item.category === "PayLater" && (
@@ -471,7 +471,7 @@ export default function TransactionHistoryPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-[#8C909B] mt-0.5">{item.description}</p>
+                            <p className="truncate text-[11px] text-[#8C909B] mt-0.5">{item.description}</p>
                             <p className="text-[10px] text-[#8C909B] mt-0.5">{item.date}</p>
                           </div>
                         </div>
@@ -511,7 +511,7 @@ export default function TransactionHistoryPage() {
         </div>
 
         {/* Right Column — Sidebar Widgets (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-4">
           {/* Card 1: This Month Stats */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3 text-xs">
             <h4 className="font-extrabold text-[#0F152A]">This Month</h4>
