@@ -1,0 +1,1 @@
+export { useGetRmPayoutAccount } from "./wallet";

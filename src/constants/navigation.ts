@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
+import type { CanonicalRole } from "@/utils/auth/roleRouting";
 
 export type NavigationChild = {
   id: string;
@@ -45,6 +46,7 @@ export type NavigationItem = {
 };
 
 export type NavigationSection = {
+  roles?: CanonicalRole[];
   label?: string;
   collapsible?: boolean;
   items: NavigationItem[];
@@ -53,6 +55,7 @@ export type NavigationSection = {
 export const userNavigation: NavigationSection[] = [
   {
     label: "User Dashboards",
+    roles: ["USER"],
     items: [
       {
         id: "user-dashboard",
@@ -71,6 +74,7 @@ export const userNavigation: NavigationSection[] = [
   },
   {
     label: "Enterprise Pro",
+    roles: ["ENTERPRISE_PRO"],
     items: [
       {
         id: "ep-dashboard",
@@ -118,6 +122,7 @@ export const userNavigation: NavigationSection[] = [
   },
   {
     label: "Enterprise Basic",
+    roles: ["ENTERPRISE_BASIC"],
     items: [
       {
         id: "eb-dashboard",
@@ -165,6 +170,7 @@ export const userNavigation: NavigationSection[] = [
   },
   {
     label: "Regional Manager",
+    roles: ["REGIONAL_MANAGER"],
     items: [
       {
         id: "rm-dashboard",
@@ -176,24 +182,31 @@ export const userNavigation: NavigationSection[] = [
       {
         id: "rm-customers",
         label: "My State Coordinators",
-        href: appPaths.rmCustomers,
+        href: appPaths.rmStateCoordinators,
         icon: Users,
-        badge: "12",
+        // badge: "12", // Disabled: a static count does not represent the live coordinator API.
       },
       {
-        id: "rm-network-performance",
-        label: "Network Performance",
-        href: appPaths.rmNetworkPerformance,
-        icon: Trophy,
-        badge: "New",
+        id: "rm-wallet",
+        label: "RM Wallet",
+        href: appPaths.rmWallet,
+        icon: Wallet,
       },
-      {
-        id: "rm-network-activity",
-        label: "Network Activity",
-        href: appPaths.rmNetworkActivity,
-        icon: Activity,
-        badge: "Live",
-      },
+      // Disabled: dedicated RM performance/activity page APIs were not supplied; dashboard activity remains available.
+      // {
+      // id: "rm-network-performance",
+      // label: "Network Performance",
+      // href: appPaths.rmNetworkPerformance,
+      // icon: Trophy,
+      // badge: "New",
+      // },
+      // {
+      // id: "rm-network-activity",
+      // label: "Network Activity",
+      // href: appPaths.rmNetworkActivity,
+      // icon: Activity,
+      // badge: "Live",
+      // },
       {
         id: "rm-sim-inventory",
         label: "SIM Inventory",
@@ -213,17 +226,19 @@ export const userNavigation: NavigationSection[] = [
         ],
       },
 
-      {
-        id: "rm-bonus-tracker",
-        label: "Bonus Tracker",
-        href: appPaths.scBonusTracker,
-        icon: Trophy,
-        badge: "RM",
-      },
+      // Disabled: no dedicated RM bonus-tracker endpoint; the old link opened SC data.
+      // {
+      //   id: "rm-bonus-tracker",
+      //   label: "Bonus Tracker",
+      //   href: appPaths.scBonusTracker,
+      //   icon: Trophy,
+      //   badge: "RM",
+      // },
     ],
   },
   {
     label: "corporate-agent",
+    roles: ["CORPORATE_AGENT"],
     items: [
       {
         id: "corporate-agent-dashboard",
@@ -271,6 +286,7 @@ export const userNavigation: NavigationSection[] = [
   },
   {
     label: "State Coordinator",
+    roles: ["STATE_COORDINATOR"],
     items: [
       {
         id: "sc-dashboard",
@@ -280,7 +296,7 @@ export const userNavigation: NavigationSection[] = [
         badge: "SC",
       },
       {
-        id: "sim-inventory",
+        id: "sc-sim-inventory",
         label: "SIM Inventory",
         href: appPaths.scSimInventory,
         icon: Package,
@@ -301,22 +317,23 @@ export const userNavigation: NavigationSection[] = [
         badge: "SC",
       },
       {
-        id: "agency-partner",
+        id: "sc-agency-partners",
         label: "Agency Partners",
-        href: appPaths.agencyPartner,
+        href: appPaths.scAgencyPartners,
         icon: Users,
         badge: "SC",
       },
       {
         id: "sc-wallet",
         label: "My Wallet",
-        href: appPaths.wallet,
+        href: appPaths.scWallet,
         icon: Wallet,
       },
     ],
   },
   {
     label: "Agency Partner",
+    roles: ["PARTNER"],
     items: [
       {
         id: "ap-dashboard",
@@ -350,17 +367,26 @@ export const userNavigation: NavigationSection[] = [
           },
         ],
       },
+      // Hidden: this AP item pointed into the SC portal; restore when an AP bonus route is available.
+      // {
+      //   id: "ap-bonus-tracker",
+      //   label: "Bonus Tracker",
+      //   href: appPaths.scBonusTracker,
+      //   icon: Trophy,
+      //   badge: "AP",
+      // },
       {
-        id: "ap-bonus-tracker",
-        label: "Bonus Tracker",
-        href: appPaths.scBonusTracker,
-        icon: Trophy,
+        id: "ap-wallet",
+        label: "Commission Wallet",
+        href: appPaths.apWallet,
+        icon: Wallet,
         badge: "AP",
       },
     ],
   },
   {
     label: "Installer",
+    roles: ["INSTALLER"],
     items: [
       {
         id: "installer-dashboard",
@@ -420,7 +446,7 @@ export const userNavigation: NavigationSection[] = [
   {
     label: "Main Navigation",
     items: [
-      { id: "wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
+      { id: "user-wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
       {
         id: "bill-payments",
         label: "Bill Payments",

@@ -3,10 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Clock, MapPin, Truck, Wrench } from "lucide-react";
 import { ConfirmDeliveryModal } from "../Modals/ConfirmDeliveryModal";
 import { CancelOrderModal } from "../Modals/CancelOrderModal";
+import { useGetOrderDetail } from "../api/useGetOrderDetail";
 
 export default function OrderDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { order } = useGetOrderDetail(id);
   const orderRef = id || "ORD-2026-00847";
 
   // Modals state
@@ -249,6 +251,7 @@ export default function OrderDetailsPage() {
             <button
               type="button"
               onClick={() => setCancelOrderOpen(true)}
+              disabled={!order || !["pending", "paid"].includes(order.status)}
               className="w-full rounded-xl border border-[#EF4444] text-[#EF4444] py-2.5 text-xs font-bold hover:bg-red-50"
             >
               Cancel Order
@@ -275,7 +278,7 @@ export default function OrderDetailsPage() {
       <CancelOrderModal
         open={cancelOrderOpen}
         onOpenChange={setCancelOrderOpen}
-        orderRef={orderRef}
+        order={order ?? null}
       />
     </div>
   );

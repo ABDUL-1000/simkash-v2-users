@@ -1,0 +1,1 @@
+export { useRmQuickDistributeToSc } from "./dashboard";

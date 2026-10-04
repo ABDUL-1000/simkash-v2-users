@@ -1,0 +1,1 @@
+export { useActivateDeviceSim } from "./mutations";

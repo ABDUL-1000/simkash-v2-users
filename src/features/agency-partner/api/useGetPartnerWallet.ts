@@ -1,0 +1,1 @@
+export { useGetPartnerWallet } from "./partnerQueries";

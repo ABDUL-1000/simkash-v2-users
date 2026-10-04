@@ -1,0 +1,1 @@
+export { useGetScAgentDetail } from "./agents";

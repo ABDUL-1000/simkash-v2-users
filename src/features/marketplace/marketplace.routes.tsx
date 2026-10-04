@@ -4,8 +4,8 @@ import MarketplaceStorePage from "./pages/MarketplaceStorePage";
 import ProductDetailsPage from "./pages/ProductDetailsPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
-import MyOrdersPage from "./pages/MyOrdersPage";
 import OrderDetailsPage from "./pages/OrderDetailsPage";
+import OrdersHistoryPage from "./pages/OrdersHistoryPage";
 
 export const MarketplaceRoutes: TRouteData[] = [
   {
@@ -28,7 +28,7 @@ export const MarketplaceRoutes: TRouteData[] = [
   },
   {
     path: appPaths.orders,
-    element: <MyOrdersPage />,
+    element: <OrdersHistoryPage />,
     title: "My Orders",
     isSearchable: true,
   },

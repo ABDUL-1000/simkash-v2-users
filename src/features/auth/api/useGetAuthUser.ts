@@ -24,9 +24,13 @@ export const useGetAuthUser = (
   const navigate = useNavigate();
   const accessToken = useAuthStore((state) => state.accessToken);
   const setAuth = useAuthStore((state) => state.setAuth);
+  const storedUser = useAuthStore(state => state.user);
+  const storedProfile = useAuthStore(state => state.userProfile);
+  const storedWallet = useAuthStore(state => state.wallet);
+  const refreshToken = useAuthStore(state => state.refreshToken);
 
   const query = useQuery({
-    queryKey: QUERY_KEY_AUTH_USER,
+    queryKey: [...QUERY_KEY_AUTH_USER, storedUser?.id],
     queryFn: getAuthUserApi,
     enabled: Boolean(accessToken),
     staleTime: 1000 * 60 * 5, // 5 minutes fresh
@@ -34,25 +38,26 @@ export const useGetAuthUser = (
   });
 
   const responseData = query.data?.data;
-  const user = responseData?.userDetails || (responseData as any)?.user;
-  const profile = responseData?.userProfile;
-  const wallet = responseData?.wallet;
-  const role =
-    responseData?.role || profile?.role || user?.role || "USER";
+  const responseUser = responseData?.userDetails || responseData?.user;
+  const user = responseUser || storedUser;
+  const profile = responseData?.userProfile || storedProfile;
+  const wallet = responseData?.wallet || storedWallet;
+  const role = user?.role || responseData?.role || profile?.role;
 
   useEffect(() => {
-    if (!responseData || !accessToken || !user) return;
+    if (!responseData || !accessToken || !responseUser || responseUser.id !== storedUser?.id) return;
 
     // 1. Sync store state with live user data
     setAuth({
       accessToken,
-      user,
-      userProfile: profile,
-      wallet,
+      refreshToken: refreshToken ?? undefined,
+      user: { ...responseUser, role: responseUser.role || responseData.role || storedUser.role },
+      userProfile: responseData.userProfile,
+      wallet: responseData.wallet,
     });
 
     // 2. Universal onboarding check
-    if (user.isProfileComplete === false) {
+    if (responseUser.isProfileComplete === false) {
       if (
         typeof window !== "undefined" &&
         !window.location.pathname.startsWith("/auth/")
@@ -60,7 +65,7 @@ export const useGetAuthUser = (
         navigate(appPaths.profileSetup, { replace: true });
       }
     }
-  }, [responseData, user, profile, wallet, accessToken, setAuth, navigate]);
+  }, [responseData, responseUser, storedUser?.id, storedUser?.role, refreshToken, accessToken, setAuth, navigate]);
 
   return {
     ...query,

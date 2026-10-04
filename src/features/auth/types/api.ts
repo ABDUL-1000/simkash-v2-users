@@ -90,6 +90,7 @@ export interface UserWalletData {
 }
 
 export interface AuthMeResponseData {
+  user?: UserDetails;
   userDetails: UserDetails;
   role?: string;
   userProfile?: UserProfileData;
@@ -97,6 +98,7 @@ export interface AuthMeResponseData {
 }
 
 export interface AuthResponseData {
+  token?: string;
   accessToken: string;
   refreshToken?: string;
   user: UserState;

@@ -1,0 +1,1 @@
+export { useGetScInventoryHistory } from "./inventory";

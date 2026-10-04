@@ -1,4 +1,4 @@
-import { useMutation, type UseMutationOptions } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { authedHttpClient } from "@/utils/http/auth";
 import { useAuthStore } from "@/store/authStore";
@@ -18,25 +18,31 @@ export const useLogoutUser = (
 ) => {
   const navigate = useNavigate();
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const client = useQueryClient();
+  const finishLogout = async () => {
+    // Stop profile requests before clearing auth so late responses cannot restore the session.
+    await client.cancelQueries();
+    clearAuth();
+    client.removeQueries();
+    navigate(appPaths.login, { replace: true });
+  };
 
   return useMutation({
     ...options,
     mutationFn: logoutUserApi,
-    onSuccess: (...args) => {
+    onSuccess: async (...args) => {
       const [data] = args;
-      clearAuth();
+      await finishLogout();
       openNotification({
         state: "info",
         title: "Signed Out",
         description: data?.message || "Logged out successfully",
       });
-      navigate(appPaths.login, { replace: true });
-      options?.onSuccess?.(...args);
+      await options?.onSuccess?.(...args);
     },
-    onError: (...args) => {
-      clearAuth();
-      navigate(appPaths.login, { replace: true });
-      options?.onError?.(...args);
+    onError: async (...args) => {
+      await finishLogout();
+      await options?.onError?.(...args);
     },
     onSettled: (...args) => {
       options?.onSettled?.(...args);

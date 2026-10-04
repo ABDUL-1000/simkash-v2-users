@@ -1,0 +1,1 @@
+export { useGetRmCoordinatorDetail } from "./dashboard";

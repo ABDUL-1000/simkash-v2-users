@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Table } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { Search } from "lucide-react";
@@ -10,6 +10,7 @@ export interface DataTableProps<T> {
   loading?: boolean;
   pagination?: TablePaginationConfig | false;
   onRowClick?: (record: T) => void;
+  rowStyle?: (record: T) => CSSProperties | undefined;
   searchPlaceholder?: string;
   onSearch?: (value: string) => void;
   extraFilters?: ReactNode;
@@ -30,6 +31,7 @@ export function DataTable<T extends object>({
   loading = false,
   pagination = { pageSize: 10 },
   onRowClick,
+  rowStyle,
   searchPlaceholder = "Search...",
   onSearch,
   extraFilters,
@@ -111,6 +113,7 @@ export function DataTable<T extends object>({
             ),
           }}
           onRow={(record) => ({
+            style: rowStyle?.(record),
             onClick: () => onRowClick?.(record),
             className: onRowClick ? "cursor-pointer transition-colors hover:!bg-[#F8FAFC]" : "transition-colors hover:!bg-[#F8FAFC]",
           })}

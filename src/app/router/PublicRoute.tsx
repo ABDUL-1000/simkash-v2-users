@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { appPaths } from "./paths";
+import { getDashboardRouteByRole } from "@/utils/auth/roleRouting";
 
 /**
  * Route guard that ensures unauthenticated users see public auth pages (Login, Register, etc.).
@@ -9,6 +10,7 @@ import { appPaths } from "./paths";
  */
 export function PublicRoute() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore(state => state.user);
   const location = useLocation();
 
   // Allow profile and PIN setup onboarding flows even if user has a token
@@ -18,7 +20,7 @@ export function PublicRoute() {
     location.pathname === appPaths.confirmPin;
 
   if (isAuthenticated && !isOnboardingRoute) {
-    return <Navigate to={appPaths.dashboard} replace />;
+    return <Navigate to={user?.isProfileComplete === false ? appPaths.profileSetup : getDashboardRouteByRole(user?.role)} replace />;
   }
 
   return <Outlet />;

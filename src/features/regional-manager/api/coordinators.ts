@@ -1,0 +1,12 @@
+import { useRmMutation, useRmQuery, type RmMutationOptions } from "./dashboardClient";
+import { useRmCsvExport } from "./exports";
+import type { RmMyScOverviewData, RmScComparisonData } from "../types/coordinators";
+import type { RmMyScParams, RmNewCoordinatorPayload, RmScReminderPayload } from "../types/territory";
+import type { RmSuspendPayload } from "../types/dashboard";
+const base = "/regional-manager/my-state-coordinator";
+export const useGetMyStateCoordinatorsOverview = (params: RmMyScParams) => useRmQuery<RmMyScOverviewData>("rm-my-sc-overview", "/overview", params, true, base);
+export const useGetScComparison = () => useRmQuery<RmScComparisonData>("rm-sc-comparison", "/comparison", undefined, true, base);
+export const useOnboardStateCoordinator = (options?: RmMutationOptions<RmNewCoordinatorPayload>) => useRmMutation("/onboard", options, base);
+export const useSendScBonusReminder = (options?: RmMutationOptions<RmScReminderPayload>) => useRmMutation("/remind", options, base);
+export const useSuspendScAccount = (id: number, options?: RmMutationOptions<RmSuspendPayload>) => useRmMutation(`/${id}/suspend`, options, base);
+export const useExportScReport = () => useRmCsvExport(`${base}/export`, "regional-state-coordinators.csv");

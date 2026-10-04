@@ -66,7 +66,7 @@ export default function SetTransactionPinPage() {
       useAuthStore.getState().updateUser({ isProfileComplete: true });
 
       notify.success("Transaction PIN set successfully! Welcome to Simkash.");
-      const role = userProfile?.role || user?.role || "USER";
+      const role = user?.role || userProfile?.role || "USER";
       navigate(getDashboardRouteByRole(role), { replace: true });
     }, 700);
   };

@@ -35,7 +35,8 @@ export const useProfileSetup = (
     onSuccess: (...args) => {
       const [data, variables] = args;
       // Mark profile complete in Zustand
-      updateUser({ isProfileComplete: true });
+      const role = data?.data?.role || user?.role || userProfile?.role || "USER";
+      updateUser({ isProfileComplete: true, role });
       if (variables) {
         updateUserProfile({
           fullname: variables.fullname,
@@ -50,7 +51,6 @@ export const useProfileSetup = (
         description: data?.message || "Your profile and security PIN are ready.",
       });
 
-      const role = data?.data?.role || userProfile?.role || user?.role || "USER";
       navigate(getDashboardRouteByRole(role), { replace: true });
 
       options?.onSuccess?.(...args);
@@ -61,7 +61,6 @@ export const useProfileSetup = (
         state: "error",
         title: "Setup Failed",
         description:
-          (error as any)?.response?.data?.message ||
           error.message ||
           "Unable to save profile setup. Please try again.",
       });

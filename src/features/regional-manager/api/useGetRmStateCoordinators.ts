@@ -1,0 +1,1 @@
+export { useGetRmStateCoordinators } from "./dashboard";

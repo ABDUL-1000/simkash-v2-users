@@ -21,6 +21,7 @@ import { BulkDataModal } from "@/features/bill-payments/Modals/BulkDataModal";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { DashboardSkeleton } from "@/components/loaders";
 import { VirtualAccountCard } from "@/features/wallet/components/VirtualAccountCard";
+import { MarketplaceDashboardSection } from "@/features/marketplace/components/MarketplaceDashboardSection";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -61,6 +62,8 @@ export default function DashboardPage() {
         onMoreServicesClick={() => setMoreServicesModalOpen(true)}
         onServiceClick={openService}
       />
+
+      <MarketplaceDashboardSection />
 
       {/* Recent Transactions List */}
       <RecentTransactionsSection />

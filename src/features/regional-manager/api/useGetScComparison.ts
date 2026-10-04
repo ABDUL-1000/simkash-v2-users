@@ -1,0 +1,1 @@
+export { useGetScComparison } from "./coordinators";

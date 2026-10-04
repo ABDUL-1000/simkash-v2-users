@@ -1,0 +1,1 @@
+export { useGetRmInventoryHistory } from "./inventory";

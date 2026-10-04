@@ -1,0 +1,12 @@
+import { useRmMutation, useRmQuery, type RmMutationOptions } from "./dashboardClient";
+import type { RmInventoryOverviewData, RmStockRequestItem, RmUndistributedSimsData } from "../types/inventory";
+import type { RmBulkStockPayload, RmHistoryData, RmHistoryParams, RmInventoryDistribution, RmInventoryParams, RmPage } from "../types/territory";
+import type { RmRedistributePayload } from "../types/dashboard";
+const base = "/regional-manager/sim-inventory";
+export const useGetRmSimInventoryOverview = () => useRmQuery<RmInventoryOverviewData>("rm-sim-inventory-overview", "/overview", undefined, true, base);
+export const useGetRmUndistributedSims = (params: RmInventoryParams) => useRmQuery<RmUndistributedSimsData>("rm-undistributed-sims", "/undistributed", params, true, base);
+export const useGetRmInventoryHistory = (params: RmHistoryParams) => useRmQuery<RmHistoryData>("rm-inventory-history", "/history", params, true, base);
+export const useRmDistributeSimStock = (options?: RmMutationOptions<RmInventoryDistribution>) => useRmMutation("/distribute", options, base);
+export const useRmRedistributeSimStock = (options?: RmMutationOptions<RmRedistributePayload>) => useRmMutation("/redistribute", options, base);
+export const useRmRequestStockFromSuperAdmin = (options?: RmMutationOptions<RmBulkStockPayload>) => useRmMutation("/request-stock", options, base);
+export const useGetRmStockRequests = (params: RmPage) => useRmQuery<RmStockRequestItem[]>("rm-stock-requests", "/requests", params, true, base);

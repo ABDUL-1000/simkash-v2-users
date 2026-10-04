@@ -1,0 +1,4 @@
+import type { ProductCategory } from "../types/api";
+export function CategoryPillsBar({ categories, selectedId, onSelect }: { categories: ProductCategory[]; selectedId?: number; onSelect: (id?: number) => void }) {
+  return <div className="flex max-w-full gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => onSelect(undefined)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold ${selectedId === undefined ? "bg-[#2563EB] text-white" : "border border-[#E2ECF6] bg-white text-[#66738C]"}`}>All products</button>{categories.map((category) => <button key={category.id} type="button" onClick={() => onSelect(category.id)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold ${selectedId === category.id ? "bg-[#2563EB] text-white" : "border border-[#E2ECF6] bg-white text-[#66738C]"}`}>{category.name}{category.productCount !== undefined && <span className="ml-1 opacity-70">{category.productCount}</span>}</button>)}</div>;
+}

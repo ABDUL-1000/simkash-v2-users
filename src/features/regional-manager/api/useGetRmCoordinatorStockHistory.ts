@@ -1,0 +1,1 @@
+export { useGetRmCoordinatorStockHistory } from "./dashboard";

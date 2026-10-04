@@ -1,0 +1,1 @@
+export { useGetRmSimInventoryOverview } from "./inventory";

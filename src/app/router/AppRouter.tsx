@@ -7,9 +7,11 @@ import { authRoutes } from "@/features/auth/auth.routes";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { PublicRoute } from "./PublicRoute";
 import { useAuthStore } from "@/store/authStore";
+import { getDashboardRouteByRole } from "@/utils/auth/roleRouting";
 
 export function AppRouter() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore(state => state.user);
 
   return (
     <Routes>
@@ -18,7 +20,7 @@ export function AppRouter() {
         path={appPaths.root}
         element={
           <Navigate
-            to={isAuthenticated ? appPaths.dashboard : appPaths.login}
+            to={isAuthenticated ? user?.isProfileComplete === false ? appPaths.profileSetup : getDashboardRouteByRole(user?.role) : appPaths.login}
             replace
           />
         }

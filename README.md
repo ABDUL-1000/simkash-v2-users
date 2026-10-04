@@ -41,8 +41,6 @@ export default defineConfig([
     },
   },
 ])
-
-```
 Project Architectural Guidelines & Coding Standards
 1. Unified Page Headers
 Always use PageHeader: Never write custom flexbox wrappers for page titles. Use the standard @/components/.../PageHeader component.
@@ -90,10 +88,10 @@ Granular folder structure for every domain:
 
 Plaintext
 [feature-module]/
-├── components/       # Metric cards, filter bars, charts, list views, sub-tables
-├── modals/           # Dialogs, drawers, confirmation popups, success states
-├── pages/            # Root route pages only (scaffolding, layout, and orchestration)
-└── types/            # Dedicated TypeScript types, interfaces, and enums
+├── components/       # Metric cards, filter bars, charts, list views, sub-tables
+├── modals/           # Dialogs, drawers, confirmation popups, success states
+├── pages/            # Root route pages only (scaffolding, layout, and orchestration)
+└── types/            # Dedicated TypeScript types, interfaces, and enums
 Break complex pages into small, testable sub-components:
 
 Extract stat cards to ...StatsCard.tsx
@@ -127,10 +125,14 @@ Grid layouts: Use grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 for stat card grids.
 Headers and action buttons: Wrap button groups with flex-wrap and ensure full-width buttons collapse gracefully on mobile (w-full sm:w-auto).
 
 Ant Design Table Responsiveness:
+please use the empty components for empty states, also check how the rest are structured, this is just for regional manager dashbaod, any other places that are not presents on the api comment it out, and also add the ui for places needed in the api thats not available on the ui presently
+also use the reusbale usetablepagination hook for my paginations,
+also any ui that the endpoint is not available u can comment it out for now, just commenting not deleting, and state the reason for commenting it.
 
 Wrap tables in horizontally scrollable containers or set scroll={{ x: 'max-content' }} so columns never compress awkwardly on small mobile viewports.
-
+ always use my empty state components fo every empty state 
 Touch-friendly targets: Ensure buttons, pills, and clickable row elements maintain a minimum touch target size (min-h-[38px] or py-2) with comfortable spacing.
+
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 

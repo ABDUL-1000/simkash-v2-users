@@ -255,7 +255,7 @@ export default function MyOrdersPage() {
       <CancelOrderModal
         open={cancelModalOpen}
         onOpenChange={setCancelModalOpen}
-        orderRef={selectedOrderRef}
+        order={null}
       />
     </div>
   );

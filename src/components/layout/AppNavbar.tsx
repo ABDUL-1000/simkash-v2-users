@@ -1,5 +1,6 @@
 import { Bell, Loader2, LogOut, Search, Settings } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { appPaths } from "@/app/router/paths";
 import { appRouteConfig } from "@/app/router/routes";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { useLogoutUser } from "@/features/auth/api/useLogoutUser";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -16,6 +18,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function AppNavbar() {
+  const navigate = useNavigate();
   const { user, profile } = useGetAuthUser();
   const { mutate: logoutUser, isPending: isLoggingOut } = useLogoutUser();
   const { pathname } = useLocation();
@@ -90,6 +93,7 @@ export function AppNavbar() {
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuGroup>
             <DropdownMenuLabel>
               <span className="block text-sm font-semibold text-[#0F152A]">
                 {displayName}
@@ -99,7 +103,7 @@ export function AppNavbar() {
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(appPaths.settings)} disabled={isLoggingOut} className="cursor-pointer">
               <Settings className="mr-2 size-4" /> Settings
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -115,6 +119,7 @@ export function AppNavbar() {
               )}
               Logout
             </DropdownMenuItem>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

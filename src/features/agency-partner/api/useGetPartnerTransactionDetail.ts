@@ -1,0 +1,1 @@
+export { useGetPartnerTransactionDetail } from "./partnerQueries";

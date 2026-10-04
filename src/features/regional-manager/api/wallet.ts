@@ -1,0 +1,13 @@
+import { useRmMutation, useRmQuery, type RmMutationOptions } from "./dashboardClient";
+import { useRmCsvExport } from "./exports";
+import type { RmPayoutAccountData, RmStatementData, RmTransactionsResponseData, RmWalletOverviewData } from "../types/wallet";
+import type { RmBankPayload, RmDates, RmPage, RmPayoutsData, RmWalletParams, RmWalletPayoutPayload } from "../types/territory";
+const base = "/regional-manager/wallet";
+export const useGetRmWalletOverview = () => useRmQuery<RmWalletOverviewData>("rm-wallet-overview", "/overview", undefined, true, base);
+export const useGetRmWalletTransactions = (params: RmWalletParams, enabled = true) => useRmQuery<RmTransactionsResponseData>("rm-wallet-transactions", "/transactions", params, enabled, base);
+export const useGetRmPayoutAccount = () => useRmQuery<RmPayoutAccountData | null>("rm-payout-account", "/payout-account", undefined, true, base);
+export const useSaveRmPayoutAccount = (options?: RmMutationOptions<RmBankPayload>) => useRmMutation("/payout-account", options, base);
+export const useRequestRmPayout = (options?: RmMutationOptions<RmWalletPayoutPayload>) => useRmMutation("/request-payout", { ...options, gcTime: 0 }, base);
+export const useGetRmRecentPayouts = (params: RmPage) => useRmQuery<RmPayoutsData>("rm-recent-payouts", "/recent-payouts", params, true, base);
+export const useGetRmStatement = (params: RmDates, enabled = true) => useRmQuery<RmStatementData>("rm-wallet-statement", "/statement", params, enabled, base);
+export const useExportRmStatement = () => useRmCsvExport(`${base}/statement/export`, "regional-wallet-statement.csv");

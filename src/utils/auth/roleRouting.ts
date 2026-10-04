@@ -1,53 +1,28 @@
 import { appPaths } from "@/app/router/paths";
 
-export type UserRole =
-  | "USER"
-  | "REGIONAL_MANAGER"
-  | "RM"
-  | "STATE_COORDINATOR"
-  | "SC"
-  | "CORPORATE_AGENT"
-  | "CA"
-  | "AGENCY_PARTNER"
-  | "AP"
-  | "INSTALLER"
-  | "INS"
-  | "ENTERPRISE_PRO"
-  | "EP"
-  | "ENTERPRISE_BASIC"
-  | "EB"
-  | string;
+export type CanonicalRole = "USER" | "PARTNER" | "STATE_COORDINATOR" | "REGIONAL_MANAGER" | "CORPORATE_AGENT" | "ENTERPRISE_BASIC" | "ENTERPRISE_PRO" | "INSTALLER";
+export type UserRole = string;
 
-/**
- * Resolves a platform user's role to their designated dashboard route.
- */
-export const getDashboardRouteByRole = (role?: UserRole): string => {
-  if (!role) return appPaths.dashboard;
+export function normalizeRole(role?: string | null): CanonicalRole | null {
+  const value = role?.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  const aliases: Record<string, CanonicalRole> = {
+    USER: "USER", PARTNER: "PARTNER", AGENCY_PARTNER: "PARTNER", AP: "PARTNER",
+    STATE_COORDINATOR: "STATE_COORDINATOR", SC: "STATE_COORDINATOR",
+    REGIONAL_MANAGER: "REGIONAL_MANAGER", RM: "REGIONAL_MANAGER",
+    CORPORATE_AGENT: "CORPORATE_AGENT", CORPERATE_AGENT: "CORPORATE_AGENT", CA: "CORPORATE_AGENT",
+    ENTERPRISE_BASIC: "ENTERPRISE_BASIC", EB: "ENTERPRISE_BASIC",
+    ENTERPRISE_PRO: "ENTERPRISE_PRO", EP: "ENTERPRISE_PRO", INSTALLER: "INSTALLER", INS: "INSTALLER",
+  };
+  return value && Object.hasOwn(aliases, value) ? aliases[value] : null;
+}
 
-  switch (role.toUpperCase()) {
-    case "REGIONAL_MANAGER":
-    case "RM":
-      return appPaths.regionalManagerDashboard;
-    case "STATE_COORDINATOR":
-    case "SC":
-      return appPaths.stateCoordinatorDashboard;
-    case "CORPORATE_AGENT":
-    case "CA":
-      return appPaths.corporateAgentDashboard;
-    case "AGENCY_PARTNER":
-    case "AP":
-      return appPaths.agencyPartnerDashboard;
-    case "INSTALLER":
-    case "INS":
-      return appPaths.installerDashboard;
-    case "ENTERPRISE_PRO":
-    case "EP":
-      return appPaths.enterpriseProDashboard;
-    case "ENTERPRISE_BASIC":
-    case "EB":
-      return appPaths.enterpriseBasicDashboard;
-    case "USER":
-    default:
-      return appPaths.dashboard;
-  }
-};
+export function getDashboardRouteByRole(role?: string | null): string {
+  const dashboards: Record<CanonicalRole, string> = {
+    USER: appPaths.dashboard, PARTNER: appPaths.agencyPartnerDashboard,
+    STATE_COORDINATOR: appPaths.stateCoordinatorDashboard, REGIONAL_MANAGER: appPaths.regionalManagerDashboard,
+    CORPORATE_AGENT: appPaths.corporateAgentDashboard, ENTERPRISE_BASIC: appPaths.enterpriseBasicDashboard,
+    ENTERPRISE_PRO: appPaths.enterpriseProDashboard, INSTALLER: appPaths.installerDashboard,
+  };
+  const normalized = normalizeRole(role);
+  return normalized ? dashboards[normalized] : appPaths.dashboard;
+}

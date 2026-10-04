@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChevronDown, ChevronRight, LogOut, ArrowRight, Loader2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,7 +8,9 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { userNavigation, type NavigationItem } from "@/constants/navigation";
+import { type NavigationItem } from "@/constants/navigation";
+import { getNavigationByRole } from "@/utils/auth/roleNavigation";
+import { useAuthStore } from "@/store/authStore";
 import { useSidebar } from "@/hooks/useSidebar";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { useLogoutUser } from "@/features/auth/api/useLogoutUser";
@@ -48,20 +50,15 @@ function NavigationRow({
         (child.href === location.pathname ||
           (child.href !== "/" && location.pathname.startsWith(child.href!)))
     );
-  const [expanded, setExpanded] = useState(isChildActive);
-
-  useEffect(() => {
-    if (isChildActive) {
-      setExpanded(true);
-    }
-  }, [isChildActive]);
+  const [expansion, setExpansion] = useState<{ pathname: string; expanded: boolean } | null>(null);
+  const expanded = expansion?.pathname === location.pathname ? expansion.expanded : Boolean(isChildActive);
 
   if (hasChildren && !collapsed) {
     return (
       <div className="space-y-1">
         <button
           type="button"
-          onClick={() => setExpanded((prev) => !prev)}
+          onClick={() => setExpansion({ pathname: location.pathname, expanded: !expanded })}
           className={cn(
             "group flex w-full min-h-10 items-center gap-3 rounded-xl px-3 text-[13px] transition-colors",
             isChildActive
@@ -172,7 +169,9 @@ function NavigationRow({
 
 export function AppSidebar() {
   const { collapsed, setMobileOpen } = useSidebar();
-  const { user, profile, role } = useGetAuthUser();
+  const { user, profile } = useGetAuthUser();
+  const role = useAuthStore(state => state.user?.role);
+  const navigation = getNavigationByRole(role);
   const { mutate: logoutUser, isPending: isLoggingOut } = useLogoutUser();
 
   const displayName =
@@ -240,7 +239,7 @@ export function AppSidebar() {
 
         {/* Navigation items grouped by sections */}
         <nav aria-label="User navigation" className="space-y-4">
-          {userNavigation.map((section, idx) => (
+          {navigation.map((section, idx) => (
             <div key={idx} className="space-y-1">
               {idx > 0 && <div className="my-2 border-t border-[#E2ECF6]" />}
               {section.label && !collapsed && (

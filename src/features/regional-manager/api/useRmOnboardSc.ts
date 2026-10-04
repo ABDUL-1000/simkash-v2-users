@@ -1,0 +1,1 @@
+export { useRmOnboardSc } from "./dashboard";

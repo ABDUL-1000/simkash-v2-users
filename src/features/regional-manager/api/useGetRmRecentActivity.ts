@@ -1,0 +1,1 @@
+export { useGetRmRecentActivity } from "./dashboard";

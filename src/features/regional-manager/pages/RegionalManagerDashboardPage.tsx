@@ -1,160 +1,59 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
-import { RmTopKpiCards } from "../components/RmTopKpiCards";
-import { RmOverviewCards } from "../components/RmOverviewCards";
-import { RmScTable } from "../components/RmScTable";
-import { RmRecentActivityCard } from "../components/RmRecentActivityCard";
-import { RmSimInventoryCard } from "../components/RmSimInventoryCard";
-import { RmCommissionCard } from "../components/RmCommissionCard";
-import { RmNetworkHealthCard } from "../components/RmNetworkHealthCard";
-import { RmQuickActionsCard } from "../components/RmQuickActionsCard";
+import { PageHeader, type PageHeaderAction } from "@/components/common/PageHeader";
+import { useGetRmDashboardOverview } from "../api/dashboard";
+import type { RmTarget } from "../types/dashboard";
+import { RmQueryState } from "../components/dashboard/RmDashboardPrimitives";
+import { RmDashboardMetrics } from "../components/dashboard/RmDashboardMetrics";
+import { RmDashboardWidgets } from "../components/dashboard/RmDashboardWidgets";
+import { RmCoordinatorsTable } from "../components/dashboard/RmCoordinatorsTable";
+import { RmRecentActivityFeed } from "../components/dashboard/RmRecentActivityFeed";
+import { RmAdminStockModal, RmDistributeModal, RmRedistributeModal } from "../Modals/dashboard/RmStockModals";
+import { RmOnboardScForm, RmReminderForm } from "../Modals/dashboard/RmPeopleModals";
+// import { RmPayoutForm } from "../Modals/dashboard/RmPeopleModals"; // Legacy amount-only form; dedicated wallet now handles PIN payouts.
+import { RmCoordinatorDrawer } from "../Modals/dashboard/RmCoordinatorDrawer";
 
-// Modals
-import { OnboardScModal } from "../Modals/OnboardScModal";
-import { DistributeStockModal } from "../Modals/DistributeStockModal";
-import { SendBonusReminderModal } from "../Modals/SendBonusReminderModal";
-import { RequestStockFromAdminModal } from "../Modals/RequestStockFromAdminModal";
-
-// Data
-import {
-  INITIAL_STATE_COORDINATORS,
-  RM_RECENT_ACTIVITIES,
-  RM_INVENTORY_DATA,
-  RM_COMMISSION_DATA,
-  RM_NETWORK_HEALTH_DATA,
-} from "../data/regional-manager.data";
-import type { StateCoordinatorItem } from "../types/regional-manager.types";
-
+type DashboardAction = { type: "onboard" | "request" | "redistribute" | "payout" } | { type: "distribute"; target?: RmTarget } | { type: "remind"; target: RmTarget };
 export function RegionalManagerDashboardPage() {
+  const query = useGetRmDashboardOverview();
   const navigate = useNavigate();
-
-  const [scs, setScs] = useState<StateCoordinatorItem[]>(INITIAL_STATE_COORDINATORS);
-  const [selectedScForDist, setSelectedScForDist] = useState<StateCoordinatorItem | null>(null);
-
-  // Modals state
-  const [onboardModalOpen, setOnboardModalOpen] = useState(false);
-  const [distributeModalOpen, setDistributeModalOpen] = useState(false);
-  const [bonusReminderModalOpen, setBonusReminderModalOpen] = useState(false);
-  const [requestAdminStockModalOpen, setRequestAdminStockModalOpen] = useState(false);
-
-  const handleOpenDistribute = (sc?: StateCoordinatorItem) => {
-    setSelectedScForDist(sc || null);
-    setDistributeModalOpen(true);
-  };
-
-  const handleOnboardSuccess = (newSc: any) => {
-    const scToAdd: StateCoordinatorItem = {
-      id: `sc-${Date.now()}`,
-      initials: newSc.name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join(""),
-      name: newSc.name,
-      phone: "0800 000 0000",
-      email: `${newSc.name.toLowerCase().replace(/\s+/g, ".")}@email.com`,
-      state: newSc.state || "Lagos",
-      stock: newSc.stock || 50,
-      stockStatus: "Normal",
-      apsCount: 0,
-      activationsCount: 0,
-      bonusStatus: "On Track",
-      lastActive: "Just now",
-      avatarBg: "#2563EB",
-      simStockBreakdown: { pos: 30, cctv: 20, gps: 0, router: 0 },
-    };
-    setScs((prev) => [scToAdd, ...prev]);
-  };
-
-  const handleDistributeSuccess = (details: { scName: string; total: number }) => {
-    setScs((prev) =>
-      prev.map((sc) =>
-        sc.name === details.scName
-          ? { ...sc, stock: sc.stock + details.total, stockStatus: "Normal" }
-          : sc
-      )
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* 1. Top 4 Header KPI Cards */}
-      <RmTopKpiCards onRequestPayout={() => {}} />
-
-      {/* 2. Secondary 4 Overview Cards */}
-      <RmOverviewCards />
-
-      {/* 3. Main 2-Column Responsive Layout */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column (8 cols): SCs Table & Recent Activities */}
-        <div className="lg:col-span-8 space-y-6">
-          <RmScTable
-            scs={scs}
-            onOnboardSc={() => setOnboardModalOpen(true)}
-            onViewSc={(scId) => navigate(`/dashboard/regional-manager/sc/${scId}`)}
-            onDistributeSc={(sc) => handleOpenDistribute(sc)}
-          />
-
-          <RmRecentActivityCard
-            activities={RM_RECENT_ACTIVITIES}
-            onViewAll={() => {}}
-          />
-        </div>
-
-        {/* Right Column (4 cols): Side Widgets */}
-        <div className="lg:col-span-4 space-y-6">
-          <RmSimInventoryCard
-            inventory={RM_INVENTORY_DATA}
-            onDistributeStock={() => handleOpenDistribute()}
-            onViewInventory={() => navigate(appPaths.rmSimInventory)}
-          />
-
-          <RmCommissionCard
-            commission={RM_COMMISSION_DATA}
-            onRequestPayout={() => {}}
-          />
-
-          <RmNetworkHealthCard health={RM_NETWORK_HEALTH_DATA} />
-
-          <RmQuickActionsCard
-            onDistributeStock={() => handleOpenDistribute()}
-            onSendBonusReminder={() => setBonusReminderModalOpen(true)}
-            onRequestStockAdmin={() => setRequestAdminStockModalOpen(true)}
-            onViewNetworkReport={() => navigate(appPaths.rmNetworkPerformance)}
-            onRedistributeSims={() => navigate(appPaths.rmSimInventory)}
-          />
-        </div>
+  const data = query.data;
+  const [modal, setModal] = useState<DashboardAction | null>(null);
+  const [coordinator, setCoordinator] = useState<RmTarget | null>(null);
+  const close = () => setModal(null);
+  const actions: PageHeaderAction[] = [
+    { key: "wallet", label: "RM Wallet", variant: "outline", onClick: () => navigate(appPaths.rmWallet) },
+    { key: "territory", label: "My coordinators", variant: "outline", onClick: () => navigate(appPaths.rmStateCoordinators) },
+    { key: "inventory", label: "SIM inventory", variant: "outline", onClick: () => navigate(appPaths.rmSimInventory) },
+    { key: "onboard", label: "Onboard SC", onClick: () => setModal({ type: "onboard" }) },
+    { key: "distribute", label: "Distribute stock", variant: "outline", onClick: () => setModal({ type: "distribute" }) },
+    { key: "request", label: "Request from Admin", variant: "outline", onClick: () => setModal({ type: "request" }) },
+    { key: "redistribute", label: "Redistribute", variant: "outline", onClick: () => setModal({ type: "redistribute" }) },
+  ];
+  return <main className="mx-auto w-full min-w-0 max-w-[1440px] space-y-5 p-4 sm:p-6">
+    <PageHeader title="Regional Manager Dashboard" description="Territory operations, network performance, and SIM stock allocation" actions={actions} />
+    <RmQueryState loading={query.isLoading} error={query.error} empty={!data} retry={() => void query.refetch()}>
+      {data && <RmDashboardMetrics data={data} onPayout={() => navigate(appPaths.rmWallet)} />}
+    </RmQueryState>
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+      <div className="min-w-0 space-y-5">
+        <RmCoordinatorsTable summary={data?.my_state_coordinators} onView={setCoordinator} onDistribute={(target) => setModal({ type: "distribute", target })} onRemind={(target) => setModal({ type: "remind", target })} />
+        <RmRecentActivityFeed />
       </div>
-
-      {/* MODALS */}
-      <OnboardScModal
-        open={onboardModalOpen}
-        onOpenChange={setOnboardModalOpen}
-        onSuccess={handleOnboardSuccess}
-      />
-
-      <DistributeStockModal
-        open={distributeModalOpen}
-        onOpenChange={setDistributeModalOpen}
-        preselectedSc={selectedScForDist}
-        onSuccess={handleDistributeSuccess}
-      />
-
-      <SendBonusReminderModal
-        open={bonusReminderModalOpen}
-        onOpenChange={setBonusReminderModalOpen}
-        scName="Glory Effah"
-        phone="08164147750"
-        currentActs={287}
-        targetActs={500}
-      />
-
-      <RequestStockFromAdminModal
-        open={requestAdminStockModalOpen}
-        onOpenChange={setRequestAdminStockModalOpen}
-      />
+      {data && !query.error && <RmDashboardWidgets data={data} onRequest={() => setModal({ type: "request" })} onDistribute={() => setModal({ type: "distribute" })} onPayout={() => navigate(appPaths.rmWallet)} />}
     </div>
-  );
+    {modal?.type === "onboard" && <RmOnboardScForm onClose={close} />}
+    {modal?.type === "request" && <RmAdminStockModal onClose={close} />}
+    {modal?.type === "redistribute" && <RmRedistributeModal onClose={close} />}
+    {modal?.type === "distribute" && <RmDistributeModal target={modal.target} onClose={close} />}
+    {/* Legacy payout UI disabled: dedicated wallet provides the verified bank destination and required PIN contract.
+    {modal?.type === "payout" && data && <RmPayoutForm balance={data.primary_cards.my_commission.amount} formatted={data.primary_cards.my_commission.formatted} onClose={close} />}
+    */}
+    {modal?.type === "remind" && <RmReminderForm target={modal.target} onClose={close} />}
+    {coordinator && <RmCoordinatorDrawer key={coordinator.id} target={coordinator} onClose={() => setCoordinator(null)} />}
+    {/* Network reports remain disabled: no regional network-report endpoint supplied. Inventory and reminders are available through the dedicated pages above. */}
+  </main>;
 }
 
 export default RegionalManagerDashboardPage;

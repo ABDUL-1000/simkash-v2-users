@@ -4,6 +4,7 @@ import { authedHttpClient } from "@/utils/http/auth";
 import { openNotification } from "@/utils/notifications";
 import { useAuthStore } from "@/store/authStore";
 import { appPaths } from "@/app/router/paths";
+import { getDashboardRouteByRole } from "@/utils/auth/roleRouting";
 import type { ApiResponse, VerifyOtpPayload, AuthResponseData } from "../types/api";
 
 export const verifyOtpApi = async (
@@ -37,25 +38,15 @@ export const useVerifyOtp = (
         description: data.message || "Your email has been verified.",
       });
 
-      const resData = (data as any)?.data || data;
-      const token =
-        resData?.accessToken ||
-        resData?.token ||
-        (data as any)?.accessToken ||
-        (data as any)?.token;
-      const user = resData?.user || (data as any)?.user;
+      const resData = data.data;
+      const token = resData?.accessToken || resData?.token;
+      const user = resData?.user;
 
-      if (token) {
+      if (token && user) {
         setAuth({
           accessToken: token,
           refreshToken: resData?.refreshToken,
-          user: user || {
-            id: 1,
-            email: "user@simkash.ng",
-            role: "USER",
-            isProfileComplete: false,
-            isVerified: true,
-          },
+          user,
           userProfile: resData?.userProfile,
           wallet: resData?.wallet,
         });
@@ -64,7 +55,7 @@ export const useVerifyOtp = (
         if (user && !user.isProfileComplete) {
           navigate(appPaths.profileSetup);
         } else {
-          navigate(appPaths.dashboard);
+          navigate(getDashboardRouteByRole(user?.role), { replace: true });
         }
       }
 
@@ -76,7 +67,6 @@ export const useVerifyOtp = (
         state: "error",
         title: "Verification Failed",
         description:
-          (error as any)?.response?.data?.message ||
           error.message ||
           "Invalid or expired OTP code.",
       });

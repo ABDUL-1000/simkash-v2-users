@@ -1,0 +1,10 @@
+import { AppModal } from "@/components/common/AppModal";
+import { colors } from "@/constants/colors";
+import { useGetPartnerTransactionDetail, useRetryTransaction } from "../api";
+
+export function PartnerTransactionDetailModal({ id, open, onOpenChange }: { id?: string; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { transaction, isLoading } = useGetPartnerTransactionDetail(id);
+  const retry = useRetryTransaction();
+  return <AppModal open={open} onOpenChange={onOpenChange} title="Transaction Details" size="sm" footer={null}>{isLoading || !transaction ? <p className="py-8 text-center text-sm" style={{ color: colors.textSecondary }}>Loading transaction…</p> : <div className="space-y-3 text-sm"><Line label="Reference" value={transaction.reference} /><Line label="Transaction" value={transaction.title} /><Line label="Description" value={transaction.subtitle} /><Line label="Category" value={transaction.category_label} /><Line label="Amount" value={transaction.amount_formatted} /><Line label="Status" value={transaction.status} /><Line label="Date" value={new Date(transaction.created_at).toLocaleString()} />{transaction.balance_before !== undefined && <Line label="Balance before" value={`₦${transaction.balance_before.toLocaleString()}`} />}{transaction.balance_after !== undefined && <Line label="Balance after" value={`₦${transaction.balance_after.toLocaleString()}`} />}{transaction.status.toLowerCase() === "failed" && transaction.can_retry && <button type="button" disabled={retry.isPending} onClick={() => retry.mutate(transaction.id)} className="w-full rounded-lg py-2.5 font-semibold text-white disabled:opacity-50" style={{ background: colors.primary }}>{retry.isPending ? "Retrying…" : "Retry Transaction"}</button>}</div>}</AppModal>;
+}
+function Line({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4 border-b py-2" style={{ borderColor: colors.border }}><span style={{ color: colors.textSecondary }}>{label}</span><span className="text-right font-semibold" style={{ color: colors.textPrimary }}>{value}</span></div>; }

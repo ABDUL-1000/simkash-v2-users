@@ -12,6 +12,7 @@ export interface UserState {
   isVerified: boolean;
   isCompany?: boolean;
   source?: string;
+  // Persist the login/API role with the account as the single source for navigation.
   role: string;
   createdAt?: string;
   updatedAt?: string;

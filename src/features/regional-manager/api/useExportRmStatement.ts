@@ -1,0 +1,1 @@
+export { useExportRmStatement } from "./wallet";
