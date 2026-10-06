@@ -10,7 +10,6 @@ import {
   Users,
 } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
-import { AppEmptyState } from "@/components/common/AppEmptyState";
 import {
   ActivationDetailsModal,
   type ActivationRecord,
@@ -479,13 +478,28 @@ export function ScNetworkPage() {
                   </div>
                 </>
               ) : (
-                <AppEmptyState
-                  title={`No activations found for '${searchQuery}'`}
-                  description="Try SIM number, AP name or customer name."
-                  actionText="Clear search"
-                  onAction={() => setSearchQuery("")}
-                  actionVariant="link"
-                />
+                /* Empty Results State (Image 5) */
+                <div className="py-4 text-center space-y-2 text-xs">
+                  <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-[#F8FAFC] text-[#8C909B]">
+                    <Search className="size-5" />
+                  </div>
+                  <h4 className="font-extrabold text-[#0F152A]">
+                    No activations found for '{searchQuery}'
+                  </h4>
+                  <p className="text-[11px] text-[#8C909B]">
+                    Try SIM number, AP name or customer name
+                  </p>
+                  <div className="flex items-center justify-between pt-3 border-t border-[#E2ECF6]">
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="font-extrabold text-[#0F152A] hover:underline text-xs"
+                    >
+                      Clear search ✕
+                    </button>
+                    <span className="text-[11px] text-[#8C909B]">Search tips</span>
+                  </div>
+                </div>
               )}
             </div>
           )}

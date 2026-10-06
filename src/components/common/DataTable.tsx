@@ -46,6 +46,19 @@ export function DataTable<T extends object>({
   emptyIcon,
 }: DataTableProps<T>) {
   const [localSearch, setLocalSearch] = useState("");
+  const rows = Array.isArray(dataSource) ? dataSource : [];
+  const usedRowKeys = new Set<string>();
+
+  const getUniqueRowKey = (record: T, index = 0) => {
+    const key = typeof rowKey === "function"
+      ? String(rowKey(record) ?? index)
+      : String((record as Record<string, unknown>)[rowKey] ?? index);
+    let uniqueKey = key;
+    let suffix = 1;
+    while (usedRowKeys.has(uniqueKey)) uniqueKey = `${key}-${suffix++}`;
+    usedRowKeys.add(uniqueKey);
+    return uniqueKey;
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -85,7 +98,7 @@ export function DataTable<T extends object>({
         <Table<T>
           className="simkash-data-table"
           columns={columns}
-          dataSource={dataSource}
+          dataSource={rows}
           loading={loading}
           pagination={
             pagination === false
@@ -96,7 +109,7 @@ export function DataTable<T extends object>({
                   showSizeChanger: false,
                 }
           }
-          rowKey={rowKey}
+          rowKey={getUniqueRowKey}
           scroll={scroll ?? { x: "max-content" }}
           locale={{
             emptyText: (

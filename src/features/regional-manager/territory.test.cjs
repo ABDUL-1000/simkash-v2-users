@@ -43,6 +43,10 @@ test('RM territory queries forward server pages, filters, dates and cancellation
   const { calls, cache, wallet, inventory, coordinators } = setup();
   const signal = new AbortController().signal;
   const cases = [
+    [wallet.useGetRmWalletOverview, '/regional-manager/wallet/overview', undefined],
+    [wallet.useGetRmPayoutAccount, '/regional-manager/wallet/payout-account', undefined],
+    [inventory.useGetRmSimInventoryOverview, '/regional-manager/sim-inventory/overview', undefined],
+    [coordinators.useGetScComparison, '/regional-manager/my-state-coordinator/comparison', undefined],
     [wallet.useGetRmWalletTransactions, '/regional-manager/wallet/transactions', { category: 'commission', period: 'custom', start_date: '2026-09-01', end_date: '2026-09-30', search: 'NET', page: 2, limit: 12 }],
     [wallet.useGetRmRecentPayouts, '/regional-manager/wallet/recent-payouts', { page: 2, limit: 10 }],
     [wallet.useGetRmStatement, '/regional-manager/wallet/statement', { start_date: '2026-09-01', end_date: '2026-09-30' }],
@@ -80,9 +84,10 @@ test('wallet payout sends the PIN to the dedicated API and invalidates only curr
   assert.deepEqual(keys.map(key => cache.getQueryState(key).isInvalidated), [true, true, true, true, true, false, false, false]);
   cache.clear();
 });
-test('stock, onboarding and suspension mutations keep their dedicated contracts', async () => {
-  const { calls, cache, inventory, coordinators } = setup({ success: true, message: 'Saved', data: {} });
+test('bank, stock, onboarding and suspension mutations keep their dedicated contracts', async () => {
+  const { calls, cache, wallet, inventory, coordinators } = setup({ success: true, message: 'Saved', data: {} });
   const cases = [
+    [wallet.useSaveRmPayoutAccount(), '/regional-manager/wallet/payout-account', { bank_name: 'Test Bank', bank_code: '044', account_number: '0123456789', account_name: 'Test', is_default: true }],
     [inventory.useRmRequestStockFromSuperAdmin(), '/regional-manager/sim-inventory/request-stock', { pos_quantity: 5, cctv_quantity: 0, gps_quantity: 10, router_quantity: 0, urgency: 'urgent', notes: 'Restock' }],
     [inventory.useRmDistributeSimStock(), '/regional-manager/sim-inventory/distribute', { coordinator_ids: [21, 22], sim_type: 'pos', quantity: 5, network: 'MTN', notes: 'Restock' }],
     [inventory.useRmRedistributeSimStock(), '/regional-manager/sim-inventory/redistribute', { from_coordinator_id: 21, to_coordinator_id: 22, sim_type: 'gps', quantity: 3, reason: 'Balance stock' }],
@@ -95,6 +100,12 @@ test('stock, onboarding and suspension mutations keep their dedicated contracts'
     assert.equal(calls.at(-1)[0], endpoint);
     assert.equal(calls.at(-1)[1], payload);
   }
+  cache.clear();
+});
+test('both CSV export hooks target the documented dedicated endpoints', () => {
+  const { cache, wallet, coordinators } = setup();
+  assert.equal(wallet.useExportRmStatement().url, '/regional-manager/wallet/statement/export');
+  assert.equal(coordinators.useExportScReport().url, '/regional-manager/my-state-coordinator/export');
   cache.clear();
 });
 test('rejected payouts do not notify success or invalidate balances', async () => {

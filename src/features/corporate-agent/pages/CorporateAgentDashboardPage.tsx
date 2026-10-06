@@ -29,12 +29,9 @@ import { CaActivateSimModal } from "../Modals/CaActivateSimModal";
 
 import { CA_TOP_KPIS_DATA } from "../data/corporate-agent.data";
 import type { CaAgencyPartnerItem } from "../types/corporate-agent.types";
-import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 
 export default function CorporateAgentDashboardPage() {
   const navigate = useNavigate();
-  const { user, profile, wallet } = useGetAuthUser();
-  const displayName = profile?.fullname || user?.username || "Corporate Agent";
 
   // Modal Visibility States
   const [allActivationsModalOpen, setAllActivationsModalOpen] = useState(false);
@@ -87,7 +84,7 @@ export default function CorporateAgentDashboardPage() {
             <span className="text-xs text-slate-500 font-medium">Lagos Region</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">
-            {displayName} Dashboard
+            Femi Enterprises Dashboard
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage your agency partner network, track activations, and request payouts.
@@ -127,10 +124,7 @@ export default function CorporateAgentDashboardPage() {
 
       {/* 1. TOP 5 MINI KPIS ROW */}
       <CaHeaderTopKpiRow
-        kpis={{
-          ...CA_TOP_KPIS_DATA,
-          myCommission: wallet?.commission_balance ?? CA_TOP_KPIS_DATA.myCommission,
-        }}
+        kpis={CA_TOP_KPIS_DATA}
         onRequestPayout={() => setRequestPayoutModalOpen(true)}
       />
 

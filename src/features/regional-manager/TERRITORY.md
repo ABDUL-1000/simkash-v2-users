@@ -2,6 +2,8 @@
 
 ## Routes
 
+All RM routes are owned by `regional-manager.routes.tsx` and included by the production dashboard route configuration. `routes.test.cjs` exercises that composition and verifies sidebar destinations, live page selection and legacy redirects. This prevents implemented API pages from becoming disconnected while old mock pages remain mounted.
+
 - `/regional-manager/wallet`: dedicated regional wallet (`rm-wallet` sidebar ID).
 - `/regional-manager/sim-inventory`: overview, undistributed SIMs, history and requests.
 - `/regional-manager/my-state-coordinators`: coordinator management and comparison.

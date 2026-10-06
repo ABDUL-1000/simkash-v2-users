@@ -25,7 +25,7 @@ export function RmCoordinatorSelect({ value, onChange, multiple, target, label =
 }) {
   const [search, setSearch] = useState("");
   const query = useGetRmStateCoordinators({ page: 1, limit: 20, search, status: "all" });
-  const options = new Map(query.data?.coordinators.map((item) => [item.id, `${item.name} · ${item.state}`]));
+  const options = new Map((query.data?.coordinators ?? []).map((item) => [item.id, `${item.name} · ${item.state}`]));
   if (target) options.set(target.id, target.name);
   return <div className="space-y-2">
     {query.error && <Alert type="error" title="Unable to load coordinators" description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />}
