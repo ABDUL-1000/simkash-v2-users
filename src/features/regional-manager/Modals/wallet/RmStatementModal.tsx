@@ -1,31 +1,27 @@
 import { useState } from "react";
-import { Alert, DatePicker } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { Alert, Button, DatePicker } from "antd";
+import dayjs from "dayjs";
 import { AppModal } from "@/components/common/AppModal";
-import { DataTable } from "@/components/common/DataTable";
-import { useTablePagination } from "@/hooks/useTablePagination";
 import { useExportRmStatement, useGetRmStatement } from "../../api/wallet";
 import type { RmDates } from "../../types/territory";
-import type { RmStatementData } from "../../types/wallet";
-import { RmMetric, RmQueryState } from "../../components/dashboard/RmDashboardPrimitives";
+import { RmQueryState } from "../../components/dashboard/RmDashboardPrimitives";
+import { RmInfoRows } from "../../components/dashboard/RmDesign";
+import { rmDesignTokens } from "../../components/dashboard/rmDesignTokens";
 export function RmStatementModal({ currency, onClose }: { currency: string; onClose: () => void }) {
   const [dates, setDates] = useState<RmDates>({});
-  const query = useGetRmStatement(dates);
+  const [downloaded, setDownloaded] = useState(false);
+  const valid = (!dates.start_date && !dates.end_date) || Boolean(dates.start_date && dates.end_date && dates.start_date <= dates.end_date);
+  const query = useGetRmStatement(dates, valid);
   const download = useExportRmStatement();
-  const pagination = useTablePagination({ total: query.data?.transactions.length });
-  const money = (value: number) => `${currency} ${value.toLocaleString()}`;
-  const columns: ColumnsType<RmStatementData["transactions"][number]> = [
-    { title: "Reference", dataIndex: "reference" }, { title: "Title", dataIndex: "title" }, { title: "Flow", dataIndex: "flow" },
-    { title: "Amount", dataIndex: "amount", render: money }, { title: "Status", dataIndex: "status" }, { title: "Date", dataIndex: "created_at" },
-  ];
-  return <AppModal open title="Wallet statement" size="xl" onOpenChange={(open) => { if (!open && !download.isPending) onClose(); }} actions={[{ key: "export", label: "Download CSV", loading: download.isPending, disabled: !query.data || query.isFetching || Boolean(query.error), onClick: () => download.mutate(dates) }]}>
-    <div className="space-y-4"><DatePicker.RangePicker onChange={(_, values) => { setDates({ start_date: values[0] || undefined, end_date: values[1] || undefined }); pagination.resetPage(); }} />
-      {download.error && <Alert type="error" title={download.error.message} />}
-      <RmQueryState loading={query.isLoading} error={query.error} empty={!query.data} retry={() => void query.refetch()}>
-        {query.data && <><p>{query.data.period} · {query.data.total_transactions} transactions</p><div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{[["Opening balance", query.data.opening_balance], ["Closing balance", query.data.closing_balance], ["Total credits", query.data.total_credits], ["Total debits", query.data.total_debits]].map(([label, value]) => <RmMetric key={label} label={String(label)} value={money(Number(value))} />)}</div>
-          <DataTable columns={columns} dataSource={query.data.transactions} rowKey="id" pagination={pagination.paginationConfig} emptyTitle="No statement transactions" emptyDescription="No transactions were included in this statement period." />
-        </>}
-      </RmQueryState>
+  const money = (value: number) => `${currency}${value.toLocaleString()}`;
+  const change = (value: RmDates) => { setDates(value); setDownloaded(false); };
+  return <AppModal open title="Download Statement" description="Export your earnings and transaction history" size="sm" showCloseButton={!download.isPending} onOpenChange={open => { if (!open && !download.isPending) onClose(); }} actions={[{ key: "cancel", label: "Cancel", variant: "text", disabled: download.isPending, onClick: onClose }, { key: "export", label: "Generate & Download CSV", loading: download.isPending, disabled: !valid || !query.data || query.isFetching || Boolean(query.error), onClick: () => download.mutate(dates, { onSuccess: () => setDownloaded(true) }) }]}>
+    <div className="rm-design space-y-4" style={rmDesignTokens}><div><p className="mb-2 text-xs font-semibold">FORMAT</p><Button type="primary" size="small">CSV</Button>{/* PDF/Excel and include-section controls are commented out: export endpoint only supports CSV with date filters. */}</div>
+      <p className="text-xs font-semibold">DATE RANGE</p><DatePicker.RangePicker className="w-full" disabled={download.isPending} value={dates.start_date && dates.end_date ? [dayjs(dates.start_date), dayjs(dates.end_date)] : null} onChange={(_, values) => change({ start_date: values[0] || undefined, end_date: values[1] || undefined })} />
+      <div className="flex flex-wrap gap-2">{[{ label: "Today", start: dayjs() }, { label: "This Week", start: dayjs().startOf("week") }, { label: "This Month", start: dayjs().startOf("month") }, { label: "Last 3 Months", start: dayjs().subtract(3, "month") }].map(option => <Button key={option.label} size="small" disabled={download.isPending} onClick={() => change({ start_date: option.start.format("YYYY-MM-DD"), end_date: dayjs().format("YYYY-MM-DD") })}>{option.label}</Button>)}<Button size="small" disabled={download.isPending} onClick={() => change({})}>Default period</Button></div>
+      {download.error && <Alert type="error" showIcon title={download.error.message} />}
+      {downloaded && <Alert type="success" showIcon title="Statement downloaded" />}
+      <RmQueryState loading={query.isLoading} error={query.error} empty={!query.data} retry={() => void query.refetch()}>{query.data && <><p className="text-xs">{query.data.period} · {query.data.total_transactions} transactions</p><RmInfoRows rows={[["Opening balance", money(query.data.opening_balance)], ["Closing balance", money(query.data.closing_balance)], ["Total credits", money(query.data.total_credits)], ["Total debits", money(query.data.total_debits)]]} /></>}</RmQueryState>
     </div>
   </AppModal>;
 }

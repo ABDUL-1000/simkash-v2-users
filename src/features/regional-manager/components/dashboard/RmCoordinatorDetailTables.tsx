@@ -3,17 +3,17 @@ import { Alert, Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DataTable } from "@/components/common/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { colors } from "@/constants/colors";
 import { useGetRmCoordinatorAps, useGetRmCoordinatorStockHistory } from "../../api/dashboard";
 import type { RmApItem, RmStockHistoryItem } from "../../types/dashboard";
 import { RmQueryState, RmStatus } from "./RmDashboardPrimitives";
 
 export function RmCoordinatorApsTable({ id }: { id: number }) {
   const [search, setSearch] = useState("");
-  const pagination = useTablePagination();
+  const pagination = useTablePagination({ initialPageSize: 5 });
   const query = useGetRmCoordinatorAps(id, { page: pagination.page, limit: pagination.pageSize, search });
   const columns: ColumnsType<RmApItem> = [
-    { title: "Agency partner", dataIndex: "name" }, { title: "Activations", dataIndex: "activations_text" },
-    { title: "Status", dataIndex: "status", render: (value: string) => <RmStatus value={value} /> },
+    { title: "Agency partner", dataIndex: "name", render: (name: string, row) => <div className="flex items-center gap-2"><span className="flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold" style={{ background: colors.blues.surfaceLight }}>{row.initials}</span><div className="min-w-0 flex-1"><strong>{name}</strong><p className="mt-1 text-[10px]" style={{ color: colors.texts.muted }}>{row.activations_text}</p></div><RmStatus value={row.status} /></div> },
   ];
   return <div className="space-y-3">
     {query.error && <Alert type="error" title="Unable to load agency partners" description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />}

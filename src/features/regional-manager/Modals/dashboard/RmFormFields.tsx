@@ -20,8 +20,8 @@ export function RmStockFields({ initial = false, optionalType = false }: { initi
   </>;
 }
 
-export function RmCoordinatorSelect({ value, onChange, multiple, target, label = "Coordinator" }: {
-  value?: number | number[]; onChange?: (value: number | number[]) => void; multiple?: boolean; target?: RmTarget; label?: string;
+export function RmCoordinatorSelect({ value, onChange, multiple, target, disabled, label = "Coordinator" }: {
+  value?: number | number[]; onChange?: (value: number | number[]) => void; multiple?: boolean; target?: RmTarget; disabled?: boolean; label?: string;
 }) {
   const [search, setSearch] = useState("");
   const query = useGetRmStateCoordinators({ page: 1, limit: 20, search, status: "all" });
@@ -29,7 +29,7 @@ export function RmCoordinatorSelect({ value, onChange, multiple, target, label =
   if (target) options.set(target.id, target.name);
   return <div className="space-y-2">
     {query.error && <Alert type="error" title="Unable to load coordinators" description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />}
-    <Select className="w-full" aria-label={label} value={value} onChange={onChange} mode={multiple ? "multiple" : undefined} showSearch filterOption={false} onSearch={setSearch} loading={query.isFetching}
+    <Select className="w-full" disabled={disabled} aria-label={label} value={value} onChange={onChange} mode={multiple ? "multiple" : undefined} showSearch filterOption={false} onSearch={setSearch} loading={query.isFetching}
       options={Array.from(options, ([id, name]) => ({ value: id, label: name }))} placeholder="Search coordinator name, state or phone"
       notFoundContent={query.isFetching ? <Spin size="small" /> : <AppEmptyState title="No coordinators found" description="Search by name, state or phone." />} />
   </div>;

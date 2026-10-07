@@ -20,13 +20,13 @@ export function RmInventoryDistributeModal({ target, onClose }: { target?: RmTar
   </RmActionModal>;
 }
 
-export function RmInventoryRedistributeModal({ onClose }: { onClose: () => void }) {
+export function RmInventoryRedistributeModal({ target, onClose }: { target?: RmTarget; onClose: () => void }) {
   const [form] = Form.useForm<RmRedistributePayload>();
   const mutation = useRmRedistributeSimStock();
-  return <RmActionModal title="Redistribute SIM stock" form={form} pending={mutation.isPending} error={mutation.error} onClose={onClose}
+  return <RmActionModal title="Redistribute SIM stock" form={form} initialValues={{ from_coordinator_id: target?.id }} pending={mutation.isPending} error={mutation.error} onClose={onClose}
     onSubmit={(values) => mutation.mutate(values, { onSuccess: onClose })}>
-    <Form.Item name="from_coordinator_id" label="From coordinator" rules={[{ required: true }]}><RmCoordinatorSelect /></Form.Item>
-    <Form.Item name="to_coordinator_id" label="To coordinator" dependencies={["from_coordinator_id"]} rules={[{ required: true }, ({ getFieldValue }) => ({ validator: (_, value) => value === getFieldValue("from_coordinator_id") ? Promise.reject(new Error("Select a different receiving coordinator.")) : Promise.resolve() })]}><RmCoordinatorSelect /></Form.Item>
+    <Form.Item name="from_coordinator_id" label="From coordinator" rules={[{ required: true }]}><RmCoordinatorSelect target={target} /></Form.Item>
+    <Form.Item name="to_coordinator_id" label="To coordinator" dependencies={["from_coordinator_id"]} rules={[{ required: true }, ({ getFieldValue }) => ({ validator: (_, value) => value === getFieldValue("from_coordinator_id") ? Promise.reject(new Error("Select a different receiving coordinator.")) : Promise.resolve() })]}><RmCoordinatorSelect target={target} /></Form.Item>
     <RmStockFields />
     <Form.Item name="reason" label="Reason" rules={[{ required: true, whitespace: true }]}><Input.TextArea /></Form.Item>
   </RmActionModal>;

@@ -11,7 +11,8 @@ import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { colors } from "@/constants/colors";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useGetRmRecentActivity } from "../../api/dashboard";
-import { RmQueryState, RmSection, RmStatus } from "./RmDashboardPrimitives";
+import { RmQueryState } from "./RmDashboardPrimitives";
+import { RmPanel } from "./RmDesign";
 
 const icons: Record<string, typeof Activity> = {
   sim: Smartphone,
@@ -31,7 +32,7 @@ export function RmRecentActivityFeed() {
   });
   const activities = query.data?.activities ?? [];
   return (
-    <RmSection title="Recent network activity">
+    <RmPanel title="Recent Network Activity">
       <RmQueryState
         loading={query.isLoading}
         error={query.error}
@@ -41,18 +42,16 @@ export function RmRecentActivityFeed() {
           <ul className="space-y-4">
             {activities.map((event) => {
               const Icon = icons[event.icon] ?? icons[event.type] ?? Activity;
+              const tone = /alert|risk/i.test(event.type) ? colors.danger : /bonus/i.test(event.type) ? colors.warning : /activat/i.test(event.type) ? colors.success : colors.blues.primary;
               return (
                 <li
                   key={event.id}
                   className="flex gap-3 border-b pb-4"
                   style={{ borderColor: colors.border }}
                 >
-                  <Icon
-                    className="mt-1 size-5 shrink-0"
-                    style={{ color: colors.primary }}
-                  />
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full" style={{ color: tone, background: /activat/i.test(event.type) ? colors.greens.light : colors.blues.surfaceLight }}><Icon size={17} /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{event.title}</p>
+                    <p className="text-sm font-semibold">{event.title}</p>
                     <p
                       className="text-sm"
                       style={{ color: colors.textSecondary }}
@@ -67,8 +66,8 @@ export function RmRecentActivityFeed() {
                       {event.time_ago}
                     </time>
                   </div>
-                  <div>
-                    <RmStatus value={event.badge_text} />
+                  <div className="self-center text-right text-xs font-semibold" style={{ color: tone }}>
+                    {event.badge_text}
                   </div>
                 </li>
               );
@@ -86,6 +85,6 @@ export function RmRecentActivityFeed() {
           responsive
         />
       </RmQueryState>
-    </RmSection>
+    </RmPanel>
   );
 }

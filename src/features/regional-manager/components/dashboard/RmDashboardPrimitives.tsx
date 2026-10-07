@@ -23,8 +23,9 @@ export function RmQueryState({ loading, error, empty, retry, children }: { loadi
 }
 export function RmStatus({ value }: { value: string }) {
   const status = value.toLowerCase().replaceAll("_", " ");
-  const tone = ["active", "all active", "normal", "good", "achieved", "activated", "success", "successful", "approved", "verified", "completed", "paid"].includes(status) ? colors.success
-    : ["critical", "suspended", "out of stock", "failed", "rejected"].includes(status) ? colors.danger
+  const tone = ["active", "all active", "normal", "good", "achieved", "on track", "activated", "success", "successful", "approved", "verified", "completed", "paid"].includes(status) ? colors.success
+    : ["critical", "suspended", "out of stock", "failed", "rejected", "missed"].includes(status) ? colors.danger
       : ["warning", "at risk", "needs action", "low stock", "pending"].includes(status) ? colors.warning : colors.primary;
-  return <Tag style={{ color: tone, borderColor: tone, background: colors.backgrounds.background }}>{value.replaceAll("_", " ")}</Tag>;
+  const surface = tone === colors.success ? colors.greens.light : tone === colors.danger ? colors.reds.light : tone === colors.warning ? colors.ambers.light : colors.blues.surfaceLight;
+  return <Tag style={{ color: tone, borderColor: "transparent", background: surface }}>{value.replaceAll("_", " ")}</Tag>;
 }

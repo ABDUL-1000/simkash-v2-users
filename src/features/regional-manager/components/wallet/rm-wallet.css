@@ -1,0 +1,15 @@
+.rm-wallet { background: var(--rm-base); color: var(--rm-ink); }
+.rm-wallet-balance, .rm-wallet-stat { background: var(--rm-white); border: 1px solid var(--rm-border); border-radius: 16px; }
+.rm-wallet-balance { padding: 24px; box-shadow: 0 2px 6px var(--rm-border); }
+.rm-wallet-stat { display: flex; gap: 12px; padding: 16px; align-items: flex-start; }
+.rm-wallet-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; }
+.rm-design.rm-wallet .rm-wallet-feed .rm-panel-body { padding: 0; }
+.rm-wallet-feed .simkash-datatable-wrapper > .flex { display: none; }
+.rm-wallet-feed .ant-table-thead { display: none; }
+.rm-wallet-feed .ant-table-cell { padding: 14px 18px !important; border-color: var(--rm-border) !important; }
+.rm-wallet-feed .ant-table-wrapper { border: 0 !important; border-radius: 0 !important; }
+.rm-wallet-feed .simkash-datatable-wrapper { margin: 0; }
+.rm-wallet-group { padding: 7px 18px; font-size: 10px; font-weight: 600; color: var(--rm-muted); background: var(--rm-base); }
+.rm-wallet-filter { border: 1px solid var(--rm-border); border-radius: 999px; padding: 5px 13px; font-size: 12px; color: var(--rm-muted); background: var(--rm-base); }
+.rm-wallet-filter[aria-pressed="true"] { background: var(--rm-ink); border-color: var(--rm-ink); color: var(--rm-white); }
+@media (max-width: 640px) { .rm-wallet-balance { padding: 16px; } .rm-wallet-feed .ant-table-cell { padding: 12px !important; } }

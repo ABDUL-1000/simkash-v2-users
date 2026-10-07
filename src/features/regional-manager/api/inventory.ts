@@ -4,7 +4,7 @@ import type { RmBulkStockPayload, RmHistoryData, RmHistoryParams, RmInventoryDis
 import type { RmRedistributePayload } from "../types/dashboard";
 const base = "/regional-manager/sim-inventory";
 export const useGetRmSimInventoryOverview = () => useRmQuery<RmInventoryOverviewData>("rm-sim-inventory-overview", "/overview", undefined, true, base);
-export const useGetRmUndistributedSims = (params: RmInventoryParams) => useRmQuery<RmUndistributedSimsData>("rm-undistributed-sims", "/undistributed", params, true, base);
+export const useGetRmUndistributedSims = (params: RmInventoryParams, enabled = true) => useRmQuery<RmUndistributedSimsData>("rm-undistributed-sims", "/undistributed", params, enabled, base);
 export const useGetRmInventoryHistory = (params: RmHistoryParams) => useRmQuery<RmHistoryData>("rm-inventory-history", "/history", params, true, base);
 export const useRmDistributeSimStock = (options?: RmMutationOptions<RmInventoryDistribution>) => useRmMutation("/distribute", options, base);
 export const useRmRedistributeSimStock = (options?: RmMutationOptions<RmRedistributePayload>) => useRmMutation("/redistribute", options, base);
