@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { colors } from "@/constants/colors";
-import { initialSimPrices } from "../data/mockData";
+import { useGetEnterprisePricing } from "../api/useGetEnterprisePricing";
+import { useUpdateEnterprisePricing } from "../api/useUpdateEnterprisePricing";
+import { enterpriseSimPrices } from "../types/pricing";
+import type { EpSimPriceConfig } from "../types";
+import { EpQueryState } from "../components/EpQueryState";
 import { formatNaira } from "../utils/formatters";
 import { Info, AlertTriangle, Minus, Plus, Video, MapPin, Wifi, XCircle, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
@@ -12,11 +16,18 @@ interface SetRetailPricesModalProps {
 }
 
 export function SetRetailPricesModal({ open, onOpenChange }: SetRetailPricesModalProps) {
-  const [prices, setPrices] = useState(initialSimPrices);
+  const query = useGetEnterprisePricing(open);
+  const [draft, setPrices] = useState<EpSimPriceConfig[] | null>(null);
+  const prices = draft ?? enterpriseSimPrices(query.data).map(sim => ({ type: sim.type, label: sim.type, wholesalePrice: sim.wholesale, retailPrice: sim.retail, marginPerSim: sim.margin, monthlyEstimate: 0 }));
+  const mutation = useUpdateEnterprisePricing({ onSuccess: (...args) => { void args; setPrices(null); onOpenChange(false); } });
+  const handleSave = () => {
+    if (!query.data || query.isError || prices.some(price => !Number.isFinite(price.retailPrice) || price.retailPrice < price.wholesalePrice)) { toast.error("Check the retail prices and try again."); return; }
+    mutation.mutate({ pos_sim_price: prices[0].retailPrice, cctv_sim_price: prices[1].retailPrice, gps_sim_price: prices[2].retailPrice, router_sim_price: prices[3].retailPrice });
+  };
 
   const handleAdjustPrice = (index: number, delta: number) => {
     setPrices((prev) =>
-      prev.map((item, i) => {
+      (prev ?? prices).map((item, i) => {
         if (i !== index) return item;
         const newRetail = Math.max(item.wholesalePrice + 500, item.retailPrice + delta);
         const newMargin = newRetail - item.wholesalePrice;
@@ -60,7 +71,7 @@ export function SetRetailPricesModal({ open, onOpenChange }: SetRetailPricesModa
   return (
     <AppModal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(value) => { if (!value) setPrices(null); onOpenChange(value); }}
       title="Set Your Retail Prices"
       description="Control your margin across all SIM types"
       descriptionColor={colors.textSecondary}
@@ -76,6 +87,7 @@ export function SetRetailPricesModal({ open, onOpenChange }: SetRetailPricesModa
           </p>
         </div>
 
+        <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch} />
         {/* 4 Product Rows */}
         <div className="space-y-2">
           {prices.map((item, idx) => (
@@ -123,20 +135,20 @@ export function SetRetailPricesModal({ open, onOpenChange }: SetRetailPricesModa
                   Margin: {formatNaira(item.marginPerSim)}/SIM
                 </span>
                 <span className="text-slate-400">
-                  ~{formatNaira(item.monthlyEstimate)}/month at current pace
+                  {formatNaira(item.marginPerSim)}/SIM projected profit
                 </span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Estimated Total Monthly Margin Box (Dark Card) */}
+        {/* Current Margin Per SIM Box (Dark Card) */}
         <div className="rounded-2xl bg-[#1E293B] p-4 text-white space-y-1 shadow-sm">
           <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Estimated Total Monthly Margin</p>
-          <p className="text-2xl font-black text-white tracking-tight">₦32,000,000+</p>
-          <p className="text-[11px] text-slate-400">At current network activation pace</p>
+          <p className="text-2xl font-black text-white tracking-tight">{query.data ? formatNaira(query.data.margin_per_sim) + "/SIM" : "—"}</p>
+          <p className="text-[11px] text-slate-400">Wholesale price: {query.data ? formatNaira(query.data.wholesale_price) : "—"}</p>
           <p className="text-[10px] text-slate-300 flex items-center gap-1 pt-1">
-            <ArrowUp className="size-3 text-emerald-400" /> Up from ₦29,694,000 if you raise POS SIM from ₦4,500 to ₦5,000
+            <ArrowUp className="size-3 text-emerald-400" /> POS projected margin: {formatNaira(prices[0].marginPerSim)}/SIM
           </p>
         </div>
 
@@ -152,20 +164,18 @@ export function SetRetailPricesModal({ open, onOpenChange }: SetRetailPricesModa
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={() => { setPrices(null); onOpenChange(false); }}
             className="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
           >
             Cancel
           </button>
           <button
             type="button"
-            onClick={() => {
-              toast.success("Retail prices saved successfully");
-              onOpenChange(false);
-            }}
+            disabled={mutation.isPending || !query.data}
+            onClick={handleSave}
             className="rounded-xl px-6 py-2.5 text-xs font-bold text-white bg-[#1E293B] hover:bg-slate-700 transition"
           >
-            Save Prices
+            {mutation.isPending ? "Saving..." : "Save Prices"}
           </button>
         </div>
       </div>

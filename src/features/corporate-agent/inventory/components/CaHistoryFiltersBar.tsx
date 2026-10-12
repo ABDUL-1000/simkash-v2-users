@@ -1,4 +1,4 @@
-import { Search, ChevronDown, X } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface CaHistoryFiltersBarProps {
   searchQuery: string;
@@ -7,8 +7,7 @@ interface CaHistoryFiltersBarProps {
   onSelectEvent: (e: string) => void;
   selectedType: string;
   onSelectType: (t: string) => void;
-  selectedAp: string;
-  onSelectAp: (ap: string) => void;
+  showingText: string;
   totalEvents?: number;
   onExportReport?: () => void;
 }
@@ -20,23 +19,11 @@ export function CaHistoryFiltersBar({
   onSelectEvent,
   selectedType,
   onSelectType,
-  selectedAp,
-  onSelectAp,
-  totalEvents = 87,
+  showingText,
   onExportReport,
 }: CaHistoryFiltersBarProps) {
   const events = ["All Events", "Received", "Distributed", "Returned", "Adjusted"];
   const types = ["All Types", "POS SIM", "CCTV SIM", "GPS SIM", "Router SIM"];
-  const aps = [
-    "All APs",
-    "Francis Udom",
-    "Rabiu Sani",
-    "Abubakar Sule",
-    "Chioma Eze",
-    "Hassan Ibrahim",
-    "Seun Ola",
-    "Kola Ibrahim",
-  ];
 
   return (
     <div className="space-y-3">
@@ -93,7 +80,8 @@ export function CaHistoryFiltersBar({
             ))}
           </select>
 
-          {/* APs Dropdown */}
+          {/* AP filter and sorting disabled: neither parameter is supported by the inventory history endpoint.
+
           <select
             value={selectedAp}
             onChange={(e) => onSelectAp(e.target.value)}
@@ -106,7 +94,7 @@ export function CaHistoryFiltersBar({
             ))}
           </select>
 
-          {/* Sort */}
+
           <button
             type="button"
             className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 flex items-center gap-1 hover:bg-slate-50"
@@ -114,14 +102,17 @@ export function CaHistoryFiltersBar({
             <span>Newest First</span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
+          */}
         </div>
 
         {/* ACTIVE FILTER CHIPS & COUNT */}
         <div className="flex items-center gap-2 text-xs">
+          {/* Static This Month chip disabled: no date-period filter is accepted by this API.
           <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
             <span>This Month</span>
             <X className="w-3 h-3 cursor-pointer hover:text-blue-900" />
           </div>
+          */}
 
           <button
             type="button"
@@ -129,7 +120,6 @@ export function CaHistoryFiltersBar({
               onSearchChange("");
               onSelectEvent("All Events");
               onSelectType("All Types");
-              onSelectAp("All APs");
             }}
             className="text-[11px] font-bold text-slate-400 hover:text-slate-600"
           >
@@ -137,7 +127,7 @@ export function CaHistoryFiltersBar({
           </button>
 
           <span className="text-[11px] text-slate-400 font-medium pl-2 hidden sm:inline">
-            Showing 1–15 of {totalEvents} events
+            {showingText}
           </span>
         </div>
       </div>

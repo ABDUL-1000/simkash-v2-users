@@ -1,9 +1,11 @@
 import { User, AlertTriangle, ArrowRight, Clock, FileText } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import type { CaApStockDistributionRow } from "../types/ca-inventory.types";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import type { CaApPreviewData, CaDistributePreviewResponseData } from "../types/inventory";
 
 interface CaDistributeTabPreviewProps {
-  selectedAp: CaApStockDistributionRow;
+  selectedAp: CaApPreviewData;
+  preview?: CaDistributePreviewResponseData;
   posQty: number;
   cctvQty: number;
   gpsQty: number;
@@ -12,7 +14,7 @@ interface CaDistributeTabPreviewProps {
 }
 
 export function CaDistributeTabPreview({
-  selectedAp,
+  selectedAp, preview,
   posQty,
   cctvQty,
   gpsQty,
@@ -20,11 +22,11 @@ export function CaDistributeTabPreview({
   onRequestStock,
 }: CaDistributeTabPreviewProps) {
   const total = posQty + cctvQty + gpsQty + routerQty;
-  const myTotalStock = 847;
-  const myStockAfter = myTotalStock - total;
+  const myTotalStock = preview?.csa_stock.before ?? "—";
+  const myStockAfter = preview?.csa_stock.after ?? "—";
 
-  const apCurrentStock = selectedAp.pos + selectedAp.cctv + selectedAp.gps + selectedAp.router;
-  const apStockAfter = apCurrentStock + total;
+  const apCurrentStock = selectedAp.current_stock;
+  const apStockAfter = preview?.partner_stock.after ?? "—";
 
   return (
     <div className="space-y-4">
@@ -43,7 +45,7 @@ export function CaDistributeTabPreview({
             TO: {selectedAp.name} (AP)
           </div>
           <div className="text-[11px] text-slate-500">
-            {selectedAp.state} · 42 customers
+            {selectedAp.location} · {selectedAp.customers} customers
           </div>
         </div>
 
@@ -104,21 +106,21 @@ export function CaDistributeTabPreview({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-500">Customers</span>
-            <span className="font-bold text-slate-900">42</span>
+            <span className="font-bold text-slate-900">{selectedAp.customers}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-500">Activations</span>
-            <span className="font-bold text-slate-900">80/mo</span>
+            <span className="font-bold text-slate-900">{selectedAp.activations_text}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-500">Bonus Status</span>
             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700">
-              At Risk
+              {selectedAp.bonus_status}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-500">Last Received</span>
-            <span className="text-slate-700 font-medium">3 weeks ago</span>
+            <span className="text-slate-700 font-medium">{selectedAp.last_received}</span>
           </div>
         </div>
       </div>
@@ -130,8 +132,7 @@ export function CaDistributeTabPreview({
           <h4 className="text-xs font-bold">Stock Safety</h4>
         </div>
         <p className="text-[11px] text-amber-100 leading-relaxed">
-          After this distribution you&apos;ll have {myStockAfter} SIMs. You&apos;re
-          still healthy but monitor your stock levels.
+          {preview?.csa_stock.safety_message || "Enter quantities to calculate stock safety."}
         </p>
         <button
           type="button"
@@ -155,15 +156,15 @@ export function CaDistributeTabPreview({
           </h4>
         </div>
 
-        <div className="space-y-1 text-xs">
+        {selectedAp.last_sent_details ? <div className="space-y-1 text-xs">
           <div className="font-bold text-slate-800">
-            3 weeks ago • 20 SIMs
+            {selectedAp.last_sent_details.time_ago} • {selectedAp.last_sent_details.total_sims} SIMs
           </div>
-          <div className="text-[11px] text-slate-500">POS 15 · CCTV 5</div>
+          <div className="text-[11px] text-slate-500">{selectedAp.last_sent_details.breakdown_text}</div>
           <div className="text-[10px] text-slate-400 font-mono">
-            Ref: DIST-CA-2026-00328
+            Ref: {selectedAp.last_sent_details.reference}
           </div>
-        </div>
+        </div> : <AppEmptyState title="No previous distribution" />}
       </div>
     </div>
   );

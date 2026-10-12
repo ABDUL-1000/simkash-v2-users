@@ -1,3 +1,4 @@
+import type { EnterpriseCoordinatorItem } from './api';
 export type ScStatus = "active" | "suspended" | "new";
 
 export interface StateCoordinatorNetwork {
@@ -22,9 +23,10 @@ export interface StateCoordinatorNetwork {
   suspensionReason?: string;
   targetActivations?: number;
   activeApCount?: number;
+  api?: EnterpriseCoordinatorItem;
 }
 
-export type ApStatus = "active" | "low_stock" | "out_of_stock";
+export type ApStatus = "active" | "low_stock" | "out_of_stock" | "suspended";
 
 export interface AgencyPartnerNetwork {
   id: string;
@@ -37,6 +39,7 @@ export interface AgencyPartnerNetwork {
   commission: number;
   status: ApStatus;
   phone?: string;
+  commissionFormatted?: string;
 }
 
 export interface NetworkSummaryKPIs {

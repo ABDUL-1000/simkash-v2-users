@@ -1,9 +1,11 @@
+import type { WalletActionResult } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Clock, PhoneCall, Check } from "lucide-react";
-import { mockBankAccount, mockAccountManager } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface PayoutPendingApprovalModalProps {
+  result?: WalletActionResult | null;
   open: boolean;
   amount: number;
   onClose: () => void;
@@ -11,11 +13,14 @@ interface PayoutPendingApprovalModalProps {
 }
 
 export const PayoutPendingApprovalModal: React.FC<PayoutPendingApprovalModalProps> = ({
+  result,
   open,
   amount,
   onClose,
   onContactManager,
 }) => {
+
+  const { bankAccount, accountManager } = useEnterpriseWalletData();
   return (
     <AppModal
       open={open}
@@ -40,32 +45,32 @@ export const PayoutPendingApprovalModal: React.FC<PayoutPendingApprovalModalProp
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2">
           <div className="flex justify-between">
             <span className="text-slate-500">Reference:</span>
-            <span className="font-mono font-bold text-slate-800">POUT-EP-2026-008473</span>
+            <span className="font-mono font-bold text-slate-800">{result?.reference ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Amount:</span>
-            <span className="font-bold text-slate-900">₦{amount.toLocaleString()}.00</span>
+            <span className="font-bold text-slate-900">{result?.amount_formatted ?? result?.amount_paid_formatted ?? `₦${amount.toLocaleString()}`}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Destination:</span>
             <span className="font-semibold text-slate-800">
-              {mockBankAccount.bankName} ({mockBankAccount.accountNumberMask})
+              {result?.bank_name ?? bankAccount.bankName} ({result?.account_number_masked ?? bankAccount.accountNumberMask})
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Reviewer:</span>
-            <span className="font-semibold text-slate-800">{mockAccountManager.name}</span>
+            <span className="font-semibold text-slate-800">{accountManager.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Estimated Review:</span>
-            <span className="font-bold text-amber-700">Within 24 hours</span>
+            <span className="text-slate-500">Status:</span>
+            <span className="font-bold text-amber-700">{result?.status ?? "Pending"}</span>
           </div>
         </div>
 
         <div className="flex gap-2 pt-2">
           <button
             type="button"
-            onClick={onContactManager}
+            onClick={onContactManager ?? (() => { if (accountManager.phone) window.location.href = `tel:${accountManager.phone}`; })}
             className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
           >
             <PhoneCall className="w-3.5 h-3.5" />

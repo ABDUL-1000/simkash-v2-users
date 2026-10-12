@@ -1,4 +1,5 @@
-export function formatNaira(amount: number): string {
+export function formatNaira(amount: number | null | undefined): string {
+  if (typeof amount !== "number" || !Number.isFinite(amount)) return "—";
   return "₦" + amount.toLocaleString("en-NG");
 }
 

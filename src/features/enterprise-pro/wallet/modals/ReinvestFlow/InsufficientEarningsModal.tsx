@@ -1,7 +1,7 @@
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { AlertTriangle, ArrowRight } from "lucide-react";
-import { mockWalletBalance } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface InsufficientEarningsModalProps {
   open: boolean;
@@ -12,7 +12,8 @@ export const InsufficientEarningsModal: React.FC<InsufficientEarningsModalProps>
   open,
   onClose,
 }) => {
-  return (
+
+  const { walletBalance } = useEnterpriseWalletData();  return (
     <AppModal
       open={open}
       onOpenChange={(v) => !v && onClose()}
@@ -36,7 +37,7 @@ export const InsufficientEarningsModal: React.FC<InsufficientEarningsModalProps>
           <div className="flex justify-between">
             <span className="text-slate-500">Current Available:</span>
             <span className="font-bold text-slate-900">
-              ₦{mockWalletBalance.totalBalance.toLocaleString()}.00
+              ₦{(walletBalance?.totalBalance ?? 0).toLocaleString()}.00
             </span>
           </div>
           <div className="flex justify-between">

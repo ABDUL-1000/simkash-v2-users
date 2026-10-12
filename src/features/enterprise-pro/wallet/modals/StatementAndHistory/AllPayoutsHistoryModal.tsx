@@ -4,7 +4,10 @@ import { DataTable } from "@/components/common/DataTable";
 import type { ColumnsType } from "antd/es/table";
 import { CheckCircle2, Clock, XCircle, Eye } from "lucide-react";
 import type { PayoutRecord } from "../../types";
-import { mockRecentPayouts } from "../../data/mockWalletData";
+import { useGetEnterpriseWalletTransactions } from "../../api/useGetEnterpriseWalletTransactions";
+import { useGetEnterpriseRecentPayouts } from "../../api/useGetEnterpriseRecentPayouts";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { EpQueryState } from "../../../components/EpQueryState";
 
 interface AllPayoutsHistoryModalProps {
   open: boolean;
@@ -19,23 +22,18 @@ export const AllPayoutsHistoryModal: React.FC<AllPayoutsHistoryModalProps> = ({
 }) => {
   const [filter, setFilter] = useState<"all" | "Paid" | "Pending" | "Failed">("all");
 
-  const fullPayouts: PayoutRecord[] = [
-    ...mockRecentPayouts,
-    { id: "p-6", date: "15 Mar 2026", amount: 450_000, bank: "Access Bank", accountMask: "****0476", status: "Paid", timeAgo: "3 months ago" },
-    { id: "p-7", date: "28 Feb 2026", amount: 350_000, bank: "Access Bank", accountMask: "****0476", status: "Paid", timeAgo: "3.5 months ago" },
-    { id: "p-8", date: "12 Feb 2026", amount: 200_000, bank: "Access Bank", accountMask: "****0476", status: "Paid", timeAgo: "4 months ago" },
-    { id: "p-9", date: "20 Jan 2026", amount: 500_000, bank: "Access Bank", accountMask: "****0476", status: "Paid", timeAgo: "5 months ago" },
-  ];
-
-  const filtered = filter === "all" ? fullPayouts : fullPayouts.filter((p) => p.status === filter);
-
+  const pagination = useTablePagination({ initialPageSize: 14 });
+  const query = useGetEnterpriseWalletTransactions({ category: "payouts", timeframe: "all_time", page: pagination.page, limit: pagination.pageSize }, open);
+  const recent = useGetEnterpriseRecentPayouts(open);
+  const fullPayouts: PayoutRecord[] = (query.data?.groups ?? []).flatMap(group => group.transactions).map(item => ({ id: item.reference, date: item.date_formatted, amount: Math.abs(item.amount), amountFormatted: item.amount_formatted, bank: "—", accountMask: "—", status: item.status, timeAgo: "" }));
+  const filtered = filter === "all" ? fullPayouts : fullPayouts.filter(item => filter === "Paid" ? ["paid", "completed"].includes(item.status.toLowerCase()) : item.status.toLowerCase().includes(filter.toLowerCase()));
   const columns: ColumnsType<PayoutRecord> = [
     {
       title: "Reference & Date",
       key: "date",
       render: (_, r) => (
         <div>
-          <div className="font-mono text-xs font-bold text-slate-800">POUT-EP-2026-00{r.id.replace("p-", "")}</div>
+          <div className="font-mono text-xs font-bold text-slate-800">{r.id}</div>
           <div className="text-[11px] text-slate-400">{r.date} · {r.timeAgo}</div>
         </div>
       ),
@@ -46,7 +44,7 @@ export const AllPayoutsHistoryModal: React.FC<AllPayoutsHistoryModalProps> = ({
       align: "right",
       render: (_, r) => (
         <span className="font-black text-xs text-slate-900">
-          ₦{r.amount.toLocaleString()}.00
+          {r.amountFormatted}
         </span>
       ),
     },
@@ -114,19 +112,19 @@ export const AllPayoutsHistoryModal: React.FC<AllPayoutsHistoryModalProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
             <span className="text-[10px] text-slate-500 font-semibold block">TOTAL PAID OUT</span>
-            <span className="text-sm font-black text-slate-900">₦2,510,000.00</span>
+            <span className="text-sm font-black text-slate-900">{recent.data?.total_paid_out_formatted ?? "—"}</span>
           </div>
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
             <span className="text-[10px] text-emerald-700 font-semibold block">COMPLETED</span>
-            <span className="text-sm font-black text-emerald-800">8 Payouts</span>
+            <span className="text-sm font-black text-emerald-800">{fullPayouts.filter(item => ["paid", "completed"].includes(item.status.toLowerCase())).length} on this page</span>
           </div>
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
             <span className="text-[10px] text-amber-700 font-semibold block">PENDING</span>
-            <span className="text-sm font-black text-amber-800">0 Payouts</span>
+            <span className="text-sm font-black text-amber-800">{fullPayouts.filter(item => item.status.toLowerCase().includes("pending")).length} on this page</span>
           </div>
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-100">
             <span className="text-[10px] text-rose-700 font-semibold block">FAILED</span>
-            <span className="text-sm font-black text-rose-800">1 (Refunded)</span>
+            <span className="text-sm font-black text-rose-800">{fullPayouts.filter(item => item.status.toLowerCase() === "failed").length} on this page</span>
           </div>
         </div>
 
@@ -136,7 +134,7 @@ export const AllPayoutsHistoryModal: React.FC<AllPayoutsHistoryModalProps> = ({
             <button
               key={tab}
               type="button"
-              onClick={() => setFilter(tab)}
+              onClick={() => { setFilter(tab); pagination.resetPage(); }}
               className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
                 filter === tab
                   ? "bg-slate-900 text-white shadow-sm"
@@ -149,13 +147,17 @@ export const AllPayoutsHistoryModal: React.FC<AllPayoutsHistoryModalProps> = ({
         </div>
 
         {/* Reusable Ant Design DataTable */}
-        <DataTable<PayoutRecord>
+        <EpQueryState error={query.error} retry={query.refetch} />
+        {!query.isError && <DataTable<PayoutRecord>
+          loading={query.isPending}
+          emptyTitle="No Payouts Found"
+          emptyDescription="No payouts match this selection."
           columns={columns}
           dataSource={filtered}
           rowKey="id"
-          pagination={{ pageSize: 5, showSizeChanger: false }}
+          pagination={{ ...pagination.paginationConfig, total: query.data?.total_records ?? 0 }}
           scroll={{ x: 550 }}
-        />
+        />}
       </div>
     </AppModal>
   );

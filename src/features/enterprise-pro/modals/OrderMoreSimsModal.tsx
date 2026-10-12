@@ -1,3 +1,8 @@
+import { useGetEnterpriseOverview } from "../api/useGetEnterpriseOverview";
+import { useGetEnterprisePricing } from "../api/useGetEnterprisePricing";
+import { enterpriseSimPrices } from "../types/pricing";
+import { toast } from "sonner";
+import { EpQueryState } from "../components/EpQueryState";
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { colors } from "@/constants/colors";
@@ -12,26 +17,29 @@ interface OrderMoreSimsModalProps {
   onPreviewOrder: (order: SimOrderDraft) => void;
 }
 
-const SIM_TYPES: { type: SimType; wholesale: number; retail: number; margin: number }[] = [
-  { type: "POS SIM", wholesale: 2500, retail: 4500, margin: 2000 },
-  { type: "CCTV SIM", wholesale: 6000, retail: 9500, margin: 3500 },
-  { type: "GPS SIM", wholesale: 8000, retail: 12000, margin: 4000 },
-  { type: "Router SIM", wholesale: 5000, retail: 8000, margin: 3000 },
-];
-
 export function OrderMoreSimsModal({ open, onOpenChange, onPreviewOrder }: OrderMoreSimsModalProps) {
+  const overview = useGetEnterpriseOverview();
+  const pricing = useGetEnterprisePricing(open);
+  const SIM_TYPES = enterpriseSimPrices(pricing.data);
+  const wallet = overview.data?.top_cards.wallet_balance.amount ?? 0;
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [selectedType, setSelectedType] = useState<SimType>("POS SIM");
   const [paymentSource, setPaymentSource] = useState<"wallet" | "fresh">("wallet");
   const [quantity, setQuantity] = useState(400);
 
   const currentSim = SIM_TYPES.find((s) => s.type === selectedType)!;
   const wholesaleCost = quantity * currentSim.wholesale;
-  const walletAfter = Math.max(0, 2847000 - (paymentSource === "wallet" ? wholesaleCost : 0));
+  const walletAfter = Math.max(0, wallet - (paymentSource === "wallet" ? wholesaleCost : 0));
   const extraMargin = quantity * currentSim.margin;
 
   const handlePreview = () => {
+    if (paymentSource === "fresh") { toast.info("Contact your account manager to arrange fresh capital orders."); return; }
+    if (!deliveryAddress.trim()) { toast.error("Enter a delivery address."); return; }
+    if (!pricing.data || pricing.isError || !Number.isInteger(quantity) || quantity <= 0 || wholesaleCost <= 0 || wholesaleCost > wallet) { toast.error("Check pricing, quantity, and available wallet balance."); return; }
     onPreviewOrder({
       simType: selectedType,
+      actionType: "order",
+      deliveryAddress: deliveryAddress.trim(),
       quantity,
       unitCost: currentSim.wholesale,
       retailPrice: currentSim.retail,
@@ -51,6 +59,7 @@ export function OrderMoreSimsModal({ open, onOpenChange, onPreviewOrder }: Order
       footer={null}
     >
       <div className="space-y-3.5 pt-1 text-xs">
+        <EpQueryState pending={pricing.isPending} error={pricing.error} retry={pricing.refetch} />
         <div className="flex items-start gap-2 rounded-xl bg-blue-50/70 p-2.5 text-blue-900 border border-blue-100">
           <Info className="size-4 shrink-0 text-blue-600 mt-0.5" />
           <p className="text-[11px]">Order more SIMs at any time. Pay from wallet earnings or fresh capital. Minimum: 100 SIMs.</p>
@@ -58,9 +67,9 @@ export function OrderMoreSimsModal({ open, onOpenChange, onPreviewOrder }: Order
 
         <div className="flex items-center justify-between rounded-xl bg-slate-100 p-2.5 text-slate-700">
           <span className="flex items-center gap-1.5 font-bold text-slate-900">
-            <Package className="size-4 text-blue-600" /> Current stock: 8,247 SIMs total
+            <Package className="size-4 text-blue-600" /> Current stock: {overview.data?.top_cards.sim_stock.total_available_formatted ?? "—"} SIMs total
           </span>
-          <span className="text-[11px] text-slate-500 font-medium">POS 5K · CCTV 1.2K · GPS 450 · Rtr 597</span>
+          <span className="text-[11px] text-slate-500 font-medium">{Object.entries(overview.data?.top_cards.sim_stock.breakdown ?? {}).map(([type, count]) => `${type.toUpperCase()} ${count.toLocaleString()}`).join(" · ")}</span>
         </div>
 
         <div>
@@ -104,7 +113,7 @@ export function OrderMoreSimsModal({ open, onOpenChange, onPreviewOrder }: Order
               <Wallet className="size-5 text-emerald-600 shrink-0" />
               <div>
                 <p className="font-bold text-slate-900">Wallet Earnings</p>
-                <p className="text-[10px] text-emerald-700 font-semibold">₦2,847,000 available</p>
+                <p className="text-[10px] text-emerald-700 font-semibold">{formatNaira(wallet)} available</p>
               </div>
             </button>
             <button
@@ -158,7 +167,7 @@ export function OrderMoreSimsModal({ open, onOpenChange, onPreviewOrder }: Order
             ))}
             <button
               type="button"
-              onClick={() => setQuantity(1000)}
+              onClick={() => setQuantity(currentSim.wholesale > 0 ? Math.floor(wallet / currentSim.wholesale / 100) * 100 : 0)}
               className="rounded-full px-3 py-0.5 text-xs font-bold border border-emerald-500 text-emerald-700 bg-emerald-50"
             >
               Max affordable
@@ -167,6 +176,9 @@ export function OrderMoreSimsModal({ open, onOpenChange, onPreviewOrder }: Order
           <p className="text-center text-[11px] font-semibold text-emerald-600 mt-1">✓ Minimum met (100 SIMs)</p>
         </div>
 
+        <label className="block text-xs font-semibold" style={{ color: colors.textPrimary }}>Delivery address
+          <textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} rows={2} className="mt-1 w-full rounded-xl border p-3 text-xs" style={{ borderColor: colors.border }} />
+        </label>
         <SimCostBreakdown
           quantity={quantity}
           wholesaleCost={wholesaleCost}

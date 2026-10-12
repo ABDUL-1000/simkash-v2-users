@@ -6,10 +6,12 @@ import { ScHealthSummaryCard } from "./ScHealthSummaryCard";
 import { NetworkEarningsSidebar } from "./NetworkEarningsSidebar";
 import { NetworkAccountManagerCard } from "./NetworkAccountManagerCard";
 import { NetworkQuickActionsCard } from "./NetworkQuickActionsCard";
-import type { StateCoordinatorNetwork, NetworkSummaryKPIs } from "../../types";
+import type { StateCoordinatorNetwork } from "../../types";
+import type { EnterpriseScSummaryCards, EnterpriseNetworkTotals } from '../../types/api';
 
 interface ScOverviewTabViewProps {
-  kpis: NetworkSummaryKPIs;
+  kpis: EnterpriseScSummaryCards;
+  totals: EnterpriseNetworkTotals;
   coordinators: StateCoordinatorNetwork[];
   onSelectSc: (sc: StateCoordinatorNetwork) => void;
   onOnboardSc: () => void;
@@ -20,6 +22,7 @@ interface ScOverviewTabViewProps {
 
 export const ScOverviewTabView: React.FC<ScOverviewTabViewProps> = ({
   kpis,
+  totals,
   coordinators,
   onSelectSc,
   onOnboardSc,
@@ -36,9 +39,9 @@ export const ScOverviewTabView: React.FC<ScOverviewTabViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left main content (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
-          <ScOverviewTable data={coordinators} onSelectSc={onSelectSc} />
-          <ScActivationsBarChart coordinators={coordinators} />
-          <ScHealthSummaryCard kpis={kpis} />
+          <ScOverviewTable data={coordinators} totals={totals} onSelectSc={onSelectSc} />
+          <ScActivationsBarChart />
+          <ScHealthSummaryCard />
         </div>
 
         {/* Right sidebar (1 col) */}

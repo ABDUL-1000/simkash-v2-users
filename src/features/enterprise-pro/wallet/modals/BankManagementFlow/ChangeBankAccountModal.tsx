@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Building2, ShieldAlert, CheckCircle2, ArrowRight } from "lucide-react";
-import { mockBankAccount } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface ChangeBankAccountModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (bank: string, acctNo: string, acctName: string) => void;
+  onSubmit: (bank: string, acctNo: string, acctName: string, bankCode: string) => void;
 }
 
 const NIGERIAN_BANKS = [
@@ -25,25 +25,24 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [bank, setBank] = useState("Zenith Bank");
-  const [accountNumber, setAccountNumber] = useState("2048914582");
-  const [accountName, setAccountName] = useState("Zenith Corp Ltd");
+
+  const { bankAccount } = useEnterpriseWalletData();  const [bank, setBank] = useState("Access Bank");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [bankCode, setBankCode] = useState("");
   const [pin, setPin] = useState("");
 
   const handleAccountChange = (val: string) => {
     const cleaned = val.replace(/\D/g, "").slice(0, 10);
     setAccountNumber(cleaned);
-    if (cleaned.length === 10) {
-      setAccountName("Zenith Corp Ltd");
-    } else {
-      setAccountName("");
-    }
+
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (accountNumber.length === 10 && accountName && pin.length >= 4) {
-      onSubmit(bank, accountNumber, accountName);
+      onSubmit(bank, accountNumber, accountName, bankCode);
+      setPin("");
     }
   };
 
@@ -64,7 +63,7 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({
             <div>
               <span className="text-[10px] text-slate-400 block font-semibold">CURRENT ACTIVE ACCOUNT</span>
               <span className="text-xs font-bold text-slate-800">
-                {mockBankAccount.bankName} · {mockBankAccount.accountNumberMask} ({mockBankAccount.accountName})
+                {bankAccount.bankName} · {bankAccount.accountNumberMask} ({bankAccount.accountName})
               </span>
             </div>
           </div>
@@ -87,6 +86,8 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({
           </select>
         </div>
 
+        <label className="block text-xs font-bold text-slate-700">Bank Code<input value={bankCode} onChange={e => setBankCode(e.target.value)} required className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300" /></label>
+        <label className="block text-xs font-bold text-slate-700">Account Name<input value={accountName} onChange={e => setAccountName(e.target.value)} required className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300" /></label>
         {/* Account Number */}
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -109,11 +110,11 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({
             <div className="flex items-center gap-2 text-emerald-800">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <div>
-                <div className="text-[10px] text-emerald-600 font-semibold">VERIFIED ACCOUNT NAME</div>
+                <div className="text-[10px] text-emerald-600 font-semibold">ACCOUNT NAME</div>
                 <div className="font-bold">{accountName}</div>
               </div>
             </div>
-            <span className="text-[10px] font-bold text-emerald-700">NIBSS Validated</span>
+            <span className="text-[10px] font-bold text-emerald-700">Entered name</span>
           </div>
         ) : null}
 
@@ -122,7 +123,7 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({
           <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div>
             <span className="font-bold">Compliance Verification Notice:</span> To safeguard corporate payouts,
-            new settlement accounts undergo a 24–48 hour audit by Simkash Compliance before activation.
+            account status will be returned after saving your settlement details.
           </div>
         </div>
 

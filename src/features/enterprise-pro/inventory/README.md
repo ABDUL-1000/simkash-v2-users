@@ -1,0 +1,9 @@
+Enterprise Pro SIM inventory uses the authenticated `/enterprise/sim-inventory/*` endpoints. Existing pages and card arrangements remain in the inventory feature; DTOs, hooks and helpers are collocated here.
+
+Orders use server catalog prices, presets and minimum quantities. A debounced preview supplies the payable total, wallet sufficiency, shortfall and delivery estimate. Only a preview matching the current form can be submitted. Orders require a delivery address; Fresh Capital sends `fresh_capital`. The retained order PIN is a local UI gate because the order endpoint does not accept a PIN. Distribution endpoints receive a four-digit PIN, including leading zeros, and quantities are checked per type and across all recipients. Success pages use the actual response in router state and display AppEmptyState when opened without a receipt.
+
+Inventory mutations refresh inventory, distribution context, ledger, alerts, SC holdings, valuation, wallet and dashboard caches. Queries forward cancellation signals. History uses server filters, debounced search, sort and pagination. Export downloads the authenticated full history CSV and cleans up its object URL; unsupported format, scope or date options explain the available export without pretending to apply those options.
+
+The documented SC overview provides total stock only, so missing per-type and AP details show a dash. Distribution context supplies the default SC's detailed balances. The ledger exposes trend highlights but no chart series; its existing chart area uses AppEmptyState instead of fabricated points. Invoice download and SC-specific export controls remain unavailable until supported by the API. Shared AppEmptyState handles empty collections; query errors show retry controls.
+
+Validation: `npx tsc --noEmit` plus the app TypeScript project check. Authenticated live backend calls must be checked with an Enterprise Pro account.

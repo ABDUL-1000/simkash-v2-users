@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { Alert } from "antd";
+import type { CaDistributePreviewResponseData, CaDistributeContextData, CaDistributionResult } from "../types/inventory";
+import { useExecuteCaDistribution } from "../api/useCaInventory";
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { APP_COLORS } from "@/constants/colors";
 import type { CaApStockDistributionRow } from "../types/ca-inventory.types";
 
 interface CaConfirmDistributionModalProps {
+  preview: CaDistributePreviewResponseData;
+  stock: CaDistributeContextData["csa_stock"];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedAp: CaApStockDistributionRow;
@@ -14,63 +18,39 @@ interface CaConfirmDistributionModalProps {
   routerQty: number;
   note?: string;
   onEditQuantities?: () => void;
-  onSuccess?: (details: {
-    recipientName: string;
-    totalUnits: number;
-    distributionRef: string;
-  }) => void;
+  onSuccess?: (details: CaDistributionResult) => void;
 }
 
 export function CaConfirmDistributionModal({
-  open,
+  open, preview, stock,
   onOpenChange,
   selectedAp,
   posQty,
   cctvQty,
   gpsQty,
   routerQty,
-  note = "Priority for renewal campaign",
+  note = "",
   onEditQuantities,
   onSuccess,
 }: CaConfirmDistributionModalProps) {
-  const [pin, setPin] = useState(["●", "●", "●", "●"]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const totalDistributing = posQty + cctvQty + gpsQty + routerQty;
-  const myTotalStock = 847;
-  const myStockAfter = myTotalStock - totalDistributing;
-
-  const currentApStock = selectedAp.pos + selectedAp.cctv + selectedAp.gps + selectedAp.router;
-  const apStockAfter = currentApStock + totalDistributing;
-
-  const handlePinInput = (index: number, val: string) => {
-    const newPin = [...pin];
-    newPin[index] = val ? "●" : "";
-    setPin(newPin);
-
-    if (val && index < 3) {
-      const next = document.getElementById(`ca-inv-pin-${index + 1}`);
-      next?.focus();
-    }
-  };
-
+  const mutation = useExecuteCaDistribution();
+  const isSubmitting = mutation.isPending;
+  const totalDistributing = preview.quantities.total;
+  const myTotalStock = preview.csa_stock.before;
+  const myStockAfter = preview.csa_stock.after;
+  const currentApStock = preview.partner_stock.before;
+  const apStockAfter = preview.partner_stock.after;
   const handleConfirm = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onOpenChange(false);
-      onSuccess?.({
-        recipientName: selectedAp.name,
-        totalUnits: totalDistributing,
-        distributionRef: `DIST-CA-${Math.floor(100000 + Math.random() * 900000)}`,
-      });
-    }, 450);
+    if (isSubmitting) return;
+    mutation.mutate({ partner_id: preview.partner.id, quantities: { pos: posQty, cctv: cctvQty, gps: gpsQty, router: routerQty }, note }, {
+      onSuccess: result => { onOpenChange(false); onSuccess?.(result.data); },
+    });
   };
 
   return (
     <AppModal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={value => { if (!isSubmitting) onOpenChange(value); }}
       title="Confirm Distribution"
       description="Review before sending to AP"
       descriptionColor={APP_COLORS.texts.slate}
@@ -82,14 +62,14 @@ export function CaConfirmDistributionModal({
         <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
-              {selectedAp.avatarInitials || "FU"}
+              {selectedAp.avatarInitials}
             </div>
             <div>
               <div className="font-bold text-slate-900 text-xs">
                 {selectedAp.name}
               </div>
               <div className="text-[11px] text-slate-600">
-                {selectedAp.state} · 42 customers · {currentApStock} SIMs now
+                {preview.partner.location} · {preview.partner.customers} customers · {currentApStock} SIMs now
               </div>
             </div>
           </div>
@@ -146,16 +126,16 @@ export function CaConfirmDistributionModal({
               Your Inventory After
             </span>
             <div className="text-[11px] text-slate-600 font-medium">
-              POS: 500 → {500 - posQty}
+              POS: {stock.pos} → {stock.pos - posQty}
             </div>
             <div className="text-[11px] text-slate-600 font-medium">
-              CCTV: 200 → {200 - cctvQty}
+              CCTV: {stock.cctv} → {stock.cctv - cctvQty}
             </div>
             <div className="text-[10px] text-slate-400">
-              GPS: 100 (unchanged)
+              GPS: {stock.gps} → {stock.gps - gpsQty}
             </div>
             <div className="text-[10px] text-slate-400">
-              Router: 47 (unchanged)
+              Router: {stock.router} → {stock.router - routerQty}
             </div>
             <div className="text-xs font-black text-slate-900 pt-1 border-t border-slate-100">
               Total: {myTotalStock} → {myStockAfter} SIMs
@@ -167,12 +147,7 @@ export function CaConfirmDistributionModal({
             <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
               {selectedAp.name.split(" ")[0].toUpperCase()} AFTER
             </span>
-            <div className="text-[11px] text-emerald-700 font-bold">
-              POS: {selectedAp.pos} → {selectedAp.pos + posQty}
-            </div>
-            <div className="text-[11px] text-emerald-700 font-bold">
-              CCTV: {selectedAp.cctv} → {selectedAp.cctv + cctvQty}
-            </div>
+            {/* Per-type AP balances omitted: the API returns only the total before/after. */}
             <div className="text-xs font-black text-emerald-600 pt-3 border-t border-emerald-100">
               Total: {currentApStock} → {apStockAfter} SIMs
             </div>
@@ -183,7 +158,7 @@ export function CaConfirmDistributionModal({
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Inventory healthy</span>
+            <span>{preview.csa_stock.safety_message}</span>
           </div>
 
           {note && (
@@ -194,7 +169,8 @@ export function CaConfirmDistributionModal({
           )}
         </div>
 
-        {/* ENTER PIN */}
+        {/* PIN entry disabled: the distribution endpoint does not accept or validate a PIN.
+
         <div className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 text-center block">
             Enter Your PIN
@@ -214,10 +190,13 @@ export function CaConfirmDistributionModal({
           </div>
         </div>
 
+        */}
+        {mutation.error && <Alert type="error" title="Distribution failed" description={mutation.error.message} />}
         {/* FOOTER ACTIONS */}
         <div className="pt-2 flex items-center justify-between border-t border-slate-100">
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onEditQuantities || (() => onOpenChange(false))}
             className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1"
           >

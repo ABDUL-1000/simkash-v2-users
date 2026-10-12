@@ -14,8 +14,8 @@ export const EpNetworkTabsNav: React.FC<EpNetworkTabsNavProps> = ({
   activeTab,
   onTabChange,
   onChangeTab,
-  scCount = 12,
-  apCount = 247,
+  scCount,
+  apCount,
 }) => {
   const handleSelect = (key: NetworkTabKey) => {
     onTabChange?.(key);

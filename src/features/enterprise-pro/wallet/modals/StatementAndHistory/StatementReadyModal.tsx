@@ -40,8 +40,8 @@ export const StatementReadyModal: React.FC<StatementReadyModalProps> = ({
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-900">EP-Statement-Jan-Jun2026.pdf</div>
-              <div className="text-[10px] text-slate-500">248 KB · 142 Ledger Entries</div>
+              <div className="text-xs font-bold text-slate-900">enterprise-wallet-statement.csv</div>
+              <div className="text-[10px] text-slate-500">Enterprise wallet ledger CSV</div>
             </div>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -63,7 +63,7 @@ export const StatementReadyModal: React.FC<StatementReadyModalProps> = ({
             className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5" />
-            Download PDF
+            Download CSV
           </button>
         </div>
       </div>

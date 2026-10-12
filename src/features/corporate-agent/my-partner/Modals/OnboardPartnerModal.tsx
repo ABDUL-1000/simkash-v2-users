@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Info, Check } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { useCaOnboardPartner } from "../api/useCaPartners";
+import { openNotification } from "@/utils/notifications";
 
 type OnboardPartnerModalProps = {
   open: boolean;
@@ -20,14 +22,51 @@ export function OnboardPartnerModal({
   const [email, setEmail] = useState("");
   const [state, setState] = useState("");
   const [lga, setLga] = useState("");
+  const [address, setAddress] = useState("");
+  const [gender] = useState("male");
   const [dob, setDob] = useState("");
   const [bvn, setBvn] = useState("");
   const [nin, setNin] = useState("");
   const [idType, setIdType] = useState("National ID");
   const [idNumber, setIdNumber] = useState("");
   const [targetFrequency, setTargetFrequency] = useState<"monthly" | "quarterly" | "lifetime">("lifetime");
-  const [pin, setPin] = useState(["1", "2", "3", "4"]);
-  console.log(setPin)
+  const [pin] = useState(["1", "2", "3", "4"]);
+
+  const onboardMutation = useCaOnboardPartner();
+
+  const handleCreateAccount = () => {
+    if (!fullName.trim()) {
+      openNotification({ state: "error", title: "Validation error", description: "Full name is required." });
+      return;
+    }
+    if (!phone.trim()) {
+      openNotification({ state: "error", title: "Validation error", description: "Phone number is required." });
+      return;
+    }
+    if (!state.trim()) {
+      openNotification({ state: "error", title: "Validation error", description: "State is required." });
+      return;
+    }
+
+    onboardMutation.mutate(
+      {
+        fullname: fullName.trim(),
+        phone: phone.trim(),
+        email: email.trim() || `${fullName.toLowerCase().replace(/\s+/g, ".")}@simkash.com`,
+        state: state.trim(),
+        lga: lga.trim() || "Main",
+        address: address.trim() || `${state} Commercial District`,
+        gender: gender || "male",
+        password: pin.join("") ? `Simkash@${pin.join("")}` : "Simkash@123",
+      },
+      {
+        onSuccess: () => {
+          onSuccess?.();
+          onOpenChange(false);
+        },
+      }
+    );
+  };
 
   return (
     <AppModal
@@ -37,19 +76,18 @@ export function OnboardPartnerModal({
       description="Create account and set activation target"
       size="lg"
       actions={[
-        { key: "cancel", label: "Cancel", variant: "secondary", closeOnClick: true },
+        { key: "cancel", label: "Cancel", variant: "secondary", closeOnClick: true, disabled: onboardMutation.isPending },
         {
           key: "create",
-          label: "Create Account",
+          label: onboardMutation.isPending ? "Creating..." : "Create Account",
           variant: "primary",
-          onClick: () => {
-            onSuccess?.();
-          },
-          closeOnClick: true,
+          onClick: handleCreateAccount,
+          disabled: onboardMutation.isPending,
         },
       ]}
     >
       <div className="space-y-5 text-xs sm:text-sm">
+
         {/* Section 1: PERSONAL DETAILS */}
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#64748B]">
@@ -116,6 +154,16 @@ export function OnboardPartnerModal({
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
                 placeholder="DD / MM / YYYY"
+                className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 font-medium text-[#0F172A] focus:border-[#2563EB] focus:outline-none"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block font-bold text-[#0F172A]">Street Address</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. 14 Toyin Street, Ikeja"
                 className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 font-medium text-[#0F172A] focus:border-[#2563EB] focus:outline-none"
               />
             </div>

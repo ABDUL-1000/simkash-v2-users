@@ -1,12 +1,15 @@
+import type { EnterpriseOverviewData } from "../types/dashboard";
+import { formatNaira } from "../utils/formatters";
 import { colors } from "@/constants/colors";
 import { Package, Landmark, ArrowRight } from "lucide-react";
 
 interface EpReinvestCardProps {
+  overview: EnterpriseOverviewData;
   onOrderMore: () => void;
   onPayDown: () => void;
 }
 
-export function EpReinvestCard({ onOrderMore, onPayDown }: EpReinvestCardProps) {
+export function EpReinvestCard({ onOrderMore, onPayDown, overview }: EpReinvestCardProps) {
   return (
     <div
       className="rounded-2xl border bg-white p-4 shadow-2xs space-y-3"
@@ -15,7 +18,7 @@ export function EpReinvestCard({ onOrderMore, onPayDown }: EpReinvestCardProps) 
       <p className="font-bold text-slate-900 text-sm">Reinvest Your Earnings</p>
 
       <div className="rounded-2xl bg-emerald-50/70 border border-emerald-200 p-3">
-        <p className="text-xl font-black text-emerald-600">₦2,847,000</p>
+        <p className="text-xl font-black text-emerald-600">{overview.top_cards.wallet_balance.amount_formatted}</p>
         <p className="text-[11px] text-emerald-700/80 font-medium">Available to reinvest</p>
       </div>
 
@@ -42,7 +45,7 @@ export function EpReinvestCard({ onOrderMore, onPayDown }: EpReinvestCardProps) 
             <Landmark className="size-4 text-amber-600" />
             <div>
               <p className="font-bold text-slate-900">Pay Down Balance</p>
-              <p className="text-[10px] text-slate-400">Reduce ₦7.5M debt</p>
+              <p className="text-[10px] text-slate-400">Reduce {formatNaira(overview.balance_card.remaining_balance)} debt</p>
             </div>
           </div>
           <button

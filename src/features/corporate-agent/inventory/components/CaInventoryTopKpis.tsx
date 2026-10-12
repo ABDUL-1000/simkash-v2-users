@@ -1,58 +1,52 @@
 import { Package, Send, Download, Clock, AlertCircle } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { CA_INVENTORY_KPIS_DATA } from "../data/ca-inventory.data";
+import type { CaInventoryOverviewData } from "../types/inventory";
 
-export function CaInventoryTopKpis() {
-  const {
-    totalAvailable,
-    distributedThisMonth,
-    receivedThisMonth,
-    pendingRequests,
-    apsLowStockCount,
-  } = CA_INVENTORY_KPIS_DATA;
+export function CaInventoryTopKpis({ data }: { data: CaInventoryOverviewData["summary_cards"] }) {
+
 
   const cards = [
     {
       id: "available",
-      label: "Total Available",
-      value: totalAvailable.toLocaleString(),
-      subtext: "In your inventory now",
+      label: data.total_available.label,
+      value: data.total_available.count.toLocaleString(),
+      subtext: data.total_available.subtext,
       icon: <Package className="w-4 h-4 text-blue-600" />,
       iconBg: "bg-blue-50",
       valueColor: "text-slate-900",
     },
     {
       id: "distributed",
-      label: "Distributed",
-      value: distributedThisMonth.toLocaleString(),
-      subtext: "Sent to APs this month",
+      label: data.distributed.label,
+      value: data.distributed.count.toLocaleString(),
+      subtext: data.distributed.subtext,
       icon: <Send className="w-4 h-4 text-emerald-600" />,
       iconBg: "bg-emerald-50",
       valueColor: "text-emerald-600",
     },
     {
       id: "received",
-      label: "Received",
-      value: receivedThisMonth.toLocaleString(),
-      subtext: "From Super Admin this month",
+      label: data.received.label,
+      value: data.received.count.toLocaleString(),
+      subtext: data.received.subtext,
       icon: <Download className="w-4 h-4 text-purple-600" />,
       iconBg: "bg-purple-50",
       valueColor: "text-purple-600",
     },
     {
       id: "pending",
-      label: "Pending Request",
-      value: pendingRequests.toLocaleString(),
-      subtext: "Awaiting Admin approval",
+      label: data.pending_requests.label,
+      value: data.pending_requests.count.toLocaleString(),
+      subtext: data.pending_requests.subtext,
       icon: <Clock className="w-4 h-4 text-amber-600" />,
       iconBg: "bg-amber-50",
       valueColor: "text-amber-600",
     },
     {
       id: "low",
-      label: "APs Low on Stock",
-      value: apsLowStockCount.toLocaleString(),
-      subtext: "Need distribution urgently",
+      label: data.aps_low_on_stock.label,
+      value: data.aps_low_on_stock.count.toLocaleString(),
+      subtext: data.aps_low_on_stock.subtext,
       icon: <AlertCircle className="w-4 h-4 text-rose-600" />,
       iconBg: "bg-rose-50",
       valueColor: "text-rose-600",

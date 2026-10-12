@@ -1,68 +1,60 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { ApMetricCards } from "./ApMetricCards";
 import { ApFilterStrip } from "./ApFilterStrip";
 import { ApOverviewTable } from "./ApOverviewTable";
-import type { AgencyPartnerNetwork, StateCoordinatorNetwork } from "../../types";
+import type { AgencyPartnerNetwork } from "../../types";
+import type { AgencyPartnerParams } from '../../types/api';
+import { useGetEnterpriseAgencyPartners } from '../../api/queries';
+import { partnerFromApi } from '../../types/adapters';
+import { useTablePagination } from '@/hooks/useTablePagination';
+import { EpQueryState } from '../../../components/EpQueryState';
 
 interface ApOverviewTabViewProps {
-  agencyPartners: AgencyPartnerNetwork[];
-  coordinators: StateCoordinatorNetwork[];
+  selectedScId: string;
+  onScChange: (id: string) => void;
   onExportReport: () => void;
   onSelectAp?: (ap: AgencyPartnerNetwork) => void;
 }
 
 export const ApOverviewTabView: React.FC<ApOverviewTabViewProps> = ({
-  agencyPartners,
-  coordinators,
+  selectedScId,
+  onScChange,
   onExportReport,
   onSelectAp,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedScId, setSelectedScId] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-
-  const filteredPartners = useMemo(() => {
-    return agencyPartners.filter((ap) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = ap.name.toLowerCase().includes(q);
-        const matchesState = ap.state.toLowerCase().includes(q);
-        const matchesSc = ap.scName.toLowerCase().includes(q);
-        if (!matchesName && !matchesState && !matchesSc) return false;
-      }
-      if (selectedScId !== "all" && ap.scId !== selectedScId) {
-        return false;
-      }
-      if (selectedStatus !== "all" && ap.status !== selectedStatus) {
-        return false;
-      }
-      return true;
-    });
-  }, [agencyPartners, searchQuery, selectedScId, selectedStatus]);
+  const [selectedStatus, setSelectedStatus] = useState<NonNullable<AgencyPartnerParams['status']>>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { page, pageSize, paginationConfig, resetPage } = useTablePagination({ initialPageSize: 6 });
+  useEffect(() => { const timer = setTimeout(() => setDebouncedSearch(searchQuery), 350); return () => clearTimeout(timer); }, [searchQuery]);
+  const query = useGetEnterpriseAgencyPartners({ sc_id: selectedScId, status: selectedStatus, search: debouncedSearch, page, limit: pageSize });
+  const filteredPartners = (query.data?.rows ?? []).map(partnerFromApi);
 
   return (
     <div className="space-y-6">
       {/* 5 KPI Metric Cards */}
-      <ApMetricCards />
+      <ApMetricCards summary={query.data?.summary_cards}/>
 
       {/* Filter and Search Bar */}
       <ApFilterStrip
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={value => { setSearchQuery(value); resetPage(); }}
         selectedScId={selectedScId}
-        onScChange={setSelectedScId}
+        onScChange={value => { onScChange(value); resetPage(); }}
         selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
-        coordinators={coordinators}
-        totalCount={agencyPartners.length}
+        onStatusChange={value => { setSelectedStatus(value as NonNullable<AgencyPartnerParams['status']>); resetPage(); }}
+        coordinators={query.data?.sc_filter_options ?? []}
+        totalCount={query.data?.total_aps ?? 0}
       />
 
       {/* Agency Partners Directory Table */}
-      <ApOverviewTable
+      {query.isError ? <EpQueryState error={query.error} retry={query.refetch}/> : <ApOverviewTable
         data={filteredPartners}
         onSelectAp={onSelectAp}
         onExportApList={onExportReport}
-      />
+        loading={query.isPending}
+        pagination={{ ...paginationConfig, total: query.data?.total_aps ?? 0 }}
+      />}
     </div>
   );
 };

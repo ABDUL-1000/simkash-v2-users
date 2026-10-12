@@ -2,6 +2,9 @@ import React from "react";
 import { TrendingUp, ArrowUpRight } from "lucide-react";
 import { colors } from "@/constants/colors";
 import type { StateCoordinatorNetwork } from "../../types";
+import { useGetEnterpriseEarningsSummary, useGetEnterpriseTopScs } from '../../api/queries';
+import { AppEmptyState } from '@/components/common/AppEmptyState';
+import { EpQueryState } from '../../../components/EpQueryState';
 
 interface NetworkEarningsSidebarProps {
   coordinators: StateCoordinatorNetwork[];
@@ -12,10 +15,9 @@ export const NetworkEarningsSidebar: React.FC<NetworkEarningsSidebarProps> = ({
   coordinators,
   onSelectSc,
 }) => {
-  // Top 5 by commission earned
-  const topEarners = [...coordinators]
-    .sort((a, b) => b.commissionEarned - a.commissionEarned)
-    .slice(0, 5);
+  const earnings = useGetEnterpriseEarningsSummary();
+  const topScs = useGetEnterpriseTopScs();
+  const topEarners = topScs.data ?? [];
 
   return (
     <div
@@ -35,51 +37,56 @@ export const NetworkEarningsSidebar: React.FC<NetworkEarningsSidebarProps> = ({
       {/* Main Stats Card */}
       <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-[#1F3A5F] text-white space-y-3">
         <span className="text-xs text-slate-300 font-medium">Total Network Commission</span>
-        <div className="text-2xl font-bold">₦2,840,000</div>
+        <EpQueryState pending={earnings.isPending} error={earnings.error} retry={earnings.refetch}/>
+        <div className="text-2xl font-bold">{earnings.data?.total_commission_formatted ?? '—'}</div>
         <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
           <ArrowUpRight className="w-3.5 h-3.5" />
-          <span>+12.4% vs last month</span>
+          <span>{earnings.data?.growth_label}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs">
           <div>
             <div className="text-slate-400 text-[11px]">Pending Payout</div>
-            <div className="font-semibold text-amber-300">₦634,200</div>
+            <div className="font-semibold text-amber-300">{earnings.data?.pending_payout_formatted ?? '—'}</div>
+            <div className="text-slate-400 text-[11px]">{earnings.data?.pending_payout_subtext}</div>
           </div>
           <div>
             <div className="text-slate-400 text-[11px]">Last Payout</div>
-            <div className="font-semibold text-white">₦2,205,800</div>
+            <div className="font-semibold text-white">{earnings.data?.last_payout_formatted ?? '—'}</div>
+            <div className="text-slate-400 text-[11px]">{earnings.data?.last_payout_subtext}</div>
           </div>
         </div>
       </div>
 
       {/* Top 5 Earners */}
       <div className="space-y-3">
-        <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Top 5 SC Earners</h5>
+        <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Top 5 State Coordinators</h5>
         <div className="space-y-2.5">
-          {topEarners.map((sc, idx) => (
+          {!topScs.isSuccess ? <EpQueryState pending={topScs.isPending} error={topScs.error} retry={topScs.refetch}/> : topEarners.length === 0 ? <AppEmptyState title="No ranked State Coordinators"/> : null}
+          {topEarners.map((sc) => (
             <button
-              key={sc.id}
+              key={sc.rank}
               type="button"
-              onClick={() => onSelectSc(sc)}
+              onClick={() => { const coordinator = coordinators.find(item => item.name === sc.name); if (coordinator) onSelectSc(coordinator); }}
+              disabled={!coordinators.some(item => item.name === sc.name)}
               className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition text-left group"
             >
               <div className="flex items-center gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-slate-100 text-[11px] font-bold text-gray-600 flex items-center justify-center group-hover:bg-blue-100 group-hover:text-blue-700">
-                  {idx + 1}
+                  {sc.rank}
                 </span>
                 <div>
                   <div className="text-xs font-semibold text-gray-900 group-hover:text-blue-600">
                     {sc.name}
                   </div>
-                  <div className="text-[10px] text-gray-400">{sc.state}</div>
+                  <div className="text-[10px] text-gray-400">{coordinators.find(item => item.name === sc.name)?.state ?? '—'}</div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xs font-bold text-emerald-600">
-                  ₦{sc.commissionEarned.toLocaleString()}
+                  {sc.activations_formatted}
                 </div>
-                <div className="text-[10px] text-gray-400">{(sc.commissionRate * 100).toFixed(0)}% rate</div>
+                <div className="text-[10px] text-gray-400">Activations</div>
               </div>
             </button>
           ))}

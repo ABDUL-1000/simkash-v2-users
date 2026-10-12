@@ -1,21 +1,20 @@
 import { AlertTriangle, Send, ChevronRight } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { CA_AGENCY_PARTNERS_DATA } from "../data/corporate-agent.data";
-import type { CaAgencyPartnerItem } from "../types/corporate-agent.types";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import type { CaManagedPartnerItem } from "../types/api";
 
 interface CaApsNeedingStockCardProps {
+  partners: CaManagedPartnerItem[];
   onDistributeToAll?: () => void;
-  onDistributeToAp?: (ap: CaAgencyPartnerItem) => void;
+  onDistributeToAp?: (ap: CaManagedPartnerItem) => void;
 }
 
 export function CaApsNeedingStockCard({
+  partners,
   onDistributeToAll,
   onDistributeToAp,
 }: CaApsNeedingStockCardProps) {
-  // Filter APs with stock <= 3
-  const lowStockAps = CA_AGENCY_PARTNERS_DATA.filter(
-    (ap) => ap.stockStatus === "Low" || ap.stockStatus === "Out" || ap.stock <= 3
-  ).slice(0, 3);
+  const lowStockAps = partners.filter(ap => ap.stock_alert || ["low", "out"].includes(ap.stock_status.toLowerCase()));
 
   return (
     <div
@@ -32,17 +31,18 @@ export function CaApsNeedingStockCard({
             <h3 className="text-sm font-bold text-slate-900">
               APs Needing Stock ({lowStockAps.length})
             </h3>
-            <p className="text-[11px] text-slate-500">At risk of halting activations</p>
+            <p className="text-[11px] text-slate-500">Alerts on the current partner page</p>
           </div>
         </div>
 
         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-          Action Needed
+          {lowStockAps.length ? "Action Needed" : "No Alerts"}
         </span>
       </div>
 
       {/* APs LIST */}
       <div className="divide-y" style={{ borderColor: APP_COLORS.greys.stroke }}>
+        {!lowStockAps.length && <AppEmptyState title="No stock alerts on this page" description="Browse the partner table to check other APs." />}
         {lowStockAps.map((ap) => {
           const isOut = ap.stock === 0;
 
@@ -53,12 +53,12 @@ export function CaApsNeedingStockCard({
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center font-black text-[10px] text-slate-700 shrink-0">
-                  {ap.avatarInitials}
+                  {ap.initials}
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-slate-900 truncate">{ap.name}</div>
                   <div className="text-[10px] text-slate-500 truncate">
-                    {ap.state} • {ap.actsThisMonth} acts this mo.
+                    {ap.phone} • {ap.acts_per_month_formatted}
                   </div>
                 </div>
               </div>

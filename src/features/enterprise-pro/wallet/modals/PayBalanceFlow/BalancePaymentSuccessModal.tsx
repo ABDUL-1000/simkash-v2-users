@@ -1,20 +1,25 @@
+import type { WalletActionResult } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { CheckCircle2, ArrowRight } from "lucide-react";
-import { mockWalletBalance } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface BalancePaymentSuccessModalProps {
+  result?: WalletActionResult | null;
   open: boolean;
   amount: number;
   onClose: () => void;
 }
 
 export const BalancePaymentSuccessModal: React.FC<BalancePaymentSuccessModalProps> = ({
+  result,
   open,
   amount,
   onClose,
 }) => {
-  const newDebt = Math.max(0, mockWalletBalance.balanceRemaining - amount);
+
+  const { walletBalance } = useEnterpriseWalletData();
+  const newDebt = result?.remaining_balance ?? walletBalance.balanceRemaining;
 
   return (
     <AppModal
@@ -32,18 +37,18 @@ export const BalancePaymentSuccessModal: React.FC<BalancePaymentSuccessModalProp
         <div>
           <h4 className="text-base font-bold text-slate-900">Payment Applied Successfully</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            ₦{amount.toLocaleString()}.00 has been debited from earnings and applied directly toward clearing your initial balance.
+            {result?.amount_formatted ?? result?.amount_paid_formatted ?? `₦${amount.toLocaleString()}`} has been debited from earnings and applied directly toward clearing your initial balance.
           </p>
         </div>
 
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2">
           <div className="flex justify-between">
             <span className="text-slate-500">Reference:</span>
-            <span className="font-mono font-bold text-slate-800">REF-PAY-2024-0217</span>
+            <span className="font-mono font-bold text-slate-800">{result?.reference ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Amount Paid:</span>
-            <span className="font-bold text-emerald-700">₦{amount.toLocaleString()}.00</span>
+            <span className="font-bold text-emerald-700">{result?.amount_formatted ?? result?.amount_paid_formatted ?? `₦${amount.toLocaleString()}`}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">New Outstanding Debt:</span>
@@ -51,7 +56,7 @@ export const BalancePaymentSuccessModal: React.FC<BalancePaymentSuccessModalProp
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-1.5">
             <span className="text-slate-500">Processing Fee:</span>
-            <span className="font-bold text-emerald-700">₦0.00 (Waived)</span>
+            <span className="font-bold text-emerald-700">—</span>
           </div>
         </div>
 

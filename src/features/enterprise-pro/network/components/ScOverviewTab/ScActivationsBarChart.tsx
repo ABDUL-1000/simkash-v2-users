@@ -1,23 +1,20 @@
 import React, { useState } from "react";
 import { colors } from "@/constants/colors";
-import type { StateCoordinatorNetwork } from "../../types";
+import { useGetEnterpriseActivationsChart } from '../../api/queries';
+import { AppEmptyState } from '@/components/common/AppEmptyState';
+import { EpQueryState } from '../../../components/EpQueryState';
 
-interface ScActivationsBarChartProps {
-  coordinators: StateCoordinatorNetwork[];
-}
-
-export const ScActivationsBarChart: React.FC<ScActivationsBarChartProps> = ({ coordinators }) => {
+export const ScActivationsBarChart: React.FC = () => {
   const [showAll, setShowAll] = useState(false);
 
-  // Sort coordinators by activations descending
-  const sorted = [...coordinators].sort((a, b) => b.activationsThisMonth - a.activationsThisMonth);
+  const query = useGetEnterpriseActivationsChart();
+  const sorted = query.data?.items ?? [];
   const displayed = showAll ? sorted : sorted.slice(0, 7);
-  const maxActivations = Math.max(...coordinators.map((c) => c.activationsThisMonth), 2000);
-
-  const getBarColor = (count: number) => {
-    if (count >= 980) return "#1F3A5F"; // Deep Navy
-    if (count >= 600) return "#F59E0B"; // Amber / Orange
-    return "#EF4444"; // Red
+  const getBarColor = (color: string) => {
+    if (color === 'orange' || color === 'yellow') return colors.warning;
+    if (color === 'red') return colors.danger;
+    if (color === 'green') return colors.success;
+    return colors.primary;
   };
 
   return (
@@ -27,34 +24,35 @@ export const ScActivationsBarChart: React.FC<ScActivationsBarChartProps> = ({ co
     >
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-bold text-gray-900 text-sm">Monthly Activations by SC</h4>
-          <p className="text-xs text-gray-500">Ranked from highest to lowest performer</p>
+          <h4 className="font-bold text-gray-900 text-sm">{query.data?.title ?? 'Monthly Activations by SC'}</h4>
+          <p className="text-xs text-gray-500">{query.data?.subtitle ?? 'Activations per State Coordinator'}</p>
         </div>
         <div className="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#1F3A5F]" /> &gt;980
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#1F3A5F]" /> Blue
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#F59E0B]" /> 600–980
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#F59E0B]" /> Orange
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#EF4444]" /> &lt;600
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#EF4444]" /> Red
           </span>
         </div>
       </div>
 
       <div className="space-y-3 pt-1">
+        {!query.isSuccess ? <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch}/> : displayed.length === 0 ? <AppEmptyState title="No activation data"/> : null}
         {displayed.map((sc) => {
-          const pct = Math.min(Math.round((sc.activationsThisMonth / maxActivations) * 100), 100);
+          const pct = Math.max(0, Math.min(sc.percentage, 100));
           return (
             <div key={sc.id} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-gray-800">
                   {sc.name}{" "}
-                  <span className="text-gray-400 font-normal">({sc.state})</span>
+                  <span className="text-gray-400 font-normal" />
                 </span>
                 <span className="font-bold text-gray-900">
-                  {sc.activationsThisMonth.toLocaleString()}{" "}
+                  {sc.activations.toLocaleString()}{" "}
                   <span className="text-[11px] font-normal text-gray-400">acts</span>
                 </span>
               </div>
@@ -63,7 +61,7 @@ export const ScActivationsBarChart: React.FC<ScActivationsBarChartProps> = ({ co
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${pct}%`,
-                    backgroundColor: getBarColor(sc.activationsThisMonth),
+                    backgroundColor: getBarColor(sc.color_code),
                   }}
                 />
               </div>

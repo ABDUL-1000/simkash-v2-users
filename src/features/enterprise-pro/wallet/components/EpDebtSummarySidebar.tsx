@@ -1,17 +1,44 @@
 import React from "react";
 import { AlertCircle, ArrowRight, ShieldAlert } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { mockWalletBalance } from "../data/mockWalletData";
+import type { EnterpriseBalanceWarningBanner } from "../types/api";
 
 interface EpDebtSummarySidebarProps {
+  banner?: EnterpriseBalanceWarningBanner | null;
   onPayBalance: () => void;
 }
 
 export const EpDebtSummarySidebar: React.FC<EpDebtSummarySidebarProps> = ({
+  banner,
   onPayBalance,
 }) => {
-  const { balanceRemaining, initialInvestment, balancePaidDown } = mockWalletBalance;
-  const percentCleared = Math.round((balancePaidDown / initialInvestment) * 100);
+  if (!banner) return null;
+
+  const rawRemaining =
+    (banner as any).balance_remaining ??
+    (banner as any).remaining_balance ??
+    0;
+  const balanceRemaining =
+    typeof rawRemaining === "number" ? rawRemaining : Number(rawRemaining) || 0;
+
+  const rawPaid =
+    (banner as any).paid_amount ??
+    (banner as any).balance_paid_down ??
+    (banner as any).paid ??
+    0;
+  const balancePaidDown =
+    typeof rawPaid === "number" ? rawPaid : Number(rawPaid) || 0;
+
+  const rawPercentPaid =
+    (banner as any).percent_paid ??
+    (banner as any).percentage_paid ??
+    0;
+  const percentCleared = Math.min(100, Math.max(0, Number(rawPercentPaid) || 0));
+
+  const balanceRemainingFormatted =
+    (banner as any).balance_remaining_formatted ??
+    (banner as any).remaining_balance_formatted ??
+    `₦${balanceRemaining.toLocaleString()}`;
 
   return (
     <div
@@ -24,7 +51,7 @@ export const EpDebtSummarySidebar: React.FC<EpDebtSummarySidebarProps> = ({
         </div>
         <div>
           <h3 className="font-bold text-sm text-slate-900">Debt Balance Payoff</h3>
-          <p className="text-[11px] text-amber-800">50% initial capital repaid</p>
+          <p className="text-[11px] text-amber-800">{Math.round(percentCleared)}% initial capital repaid</p>
         </div>
       </div>
 
@@ -32,7 +59,7 @@ export const EpDebtSummarySidebar: React.FC<EpDebtSummarySidebarProps> = ({
         <div className="flex items-baseline justify-between">
           <span className="text-xs text-slate-600">Remaining Balance</span>
           <span className="text-sm font-black text-amber-900">
-            ₦{balanceRemaining.toLocaleString()}.00
+            {balanceRemainingFormatted}
           </span>
         </div>
         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">

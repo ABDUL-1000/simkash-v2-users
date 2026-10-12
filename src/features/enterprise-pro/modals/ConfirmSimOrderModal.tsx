@@ -1,3 +1,6 @@
+import { useGetEnterpriseOverview } from "../api/useGetEnterpriseOverview";
+import { useEnterpriseOrderSims } from "../api/useEnterpriseOrderSims";
+import { useEnterpriseReinvest } from "../api/useEnterpriseReinvest";
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -23,22 +26,27 @@ export function ConfirmSimOrderModal({
   onOrderPlaced,
 }: ConfirmSimOrderModalProps) {
   const [pin, setPin] = useState("");
-  const [isPlacing, setIsPlacing] = useState(false);
+  const overview = useGetEnterpriseOverview();
+  const orderMutation = useEnterpriseOrderSims();
+  const reinvestMutation = useEnterpriseReinvest();
+  const isPlacing = orderMutation.isPending || reinvestMutation.isPending;
 
-  const initialWallet = 2847000;
+  const initialWallet = overview.data?.top_cards.wallet_balance.amount ?? 0;
+  const stock = overview.data?.top_cards.sim_stock.breakdown[order.simType.replace(" SIM", "").toLowerCase() as "pos" | "cctv" | "gps" | "router"] ?? 0;
   const walletAfter = Math.max(0, initialWallet - order.totalCost);
   const extraMargin = order.quantity * (order.retailPrice - order.unitCost);
 
   const handlePlaceOrder = () => {
-    if (pin.length < 4) return;
-    setIsPlacing(true);
-    setTimeout(() => {
-      setIsPlacing(false);
-      toast.success(`Order placed! ${order.quantity} ${order.simType}s credited to your active stock.`);
-      onOrderPlaced?.(order);
-      onOpenChange(false);
-      setPin("");
-    }, 600);
+    if (isPlacing) return;
+    if (pin.length !== 4) { toast.error("Enter your four-digit transaction PIN to continue."); return; }
+    if (!Number.isInteger(order.quantity) || order.quantity <= 0 || order.totalCost <= 0 || order.totalCost > initialWallet) { toast.error("Check quantity and available wallet balance."); return; }
+    const onSuccess = (...args: unknown[]) => { void args; onOrderPlaced?.(order); onOpenChange(false); setPin(""); };
+    const sim_type = order.simType.replace(" SIM", "").toUpperCase();
+    if (order.actionType === "reinvest") reinvestMutation.mutate({ amount: order.totalCost, action_type: "order_more", sim_type, quantity: order.quantity }, { onSuccess });
+    else {
+      if (!order.deliveryAddress?.trim()) { toast.error("Enter a delivery address before placing the order."); return; }
+      orderMutation.mutate({ sim_type, quantity: order.quantity, delivery_address: order.deliveryAddress }, { onSuccess });
+    }
   };
 
   return (
@@ -74,7 +82,7 @@ export function ConfirmSimOrderModal({
             </div>
             <div className="flex justify-between items-center py-0.5">
               <span className="text-slate-500">Delivery</span>
-              <span className="font-semibold text-slate-900">2–4 hours stock update</span>
+              <span className="font-semibold text-slate-900">{order.deliveryAddress || "SIM stock reinvestment"}</span>
             </div>
           </div>
         </div>
@@ -98,7 +106,7 @@ export function ConfirmSimOrderModal({
         {/* Stock Impact Box */}
         <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
           <span className="text-slate-500 font-medium">{order.simType} Stock Impact</span>
-          <span className="font-bold text-emerald-600">5,000 → {5000 + order.quantity} SIMs</span>
+          <span className="font-bold text-emerald-600">{stock.toLocaleString()} → {(stock + order.quantity).toLocaleString()} SIMs</span>
         </div>
 
         {/* Extra Margin Pill */}
@@ -111,7 +119,7 @@ export function ConfirmSimOrderModal({
         <div className="flex items-start gap-2 rounded-xl bg-blue-50/70 p-2.5 text-slate-600 border border-blue-100">
           <Info className="size-4 shrink-0 text-blue-600 mt-0.5" />
           <p className="text-[11px] leading-tight">
-            This order does not reduce your ₦7,500,000 remaining balance. Payment is from wallet earnings only.
+            This order does not reduce your {formatNaira(overview.data?.balance_card.remaining_balance ?? 0)} remaining balance. Payment is from wallet earnings only.
           </p>
         </div>
 
@@ -147,7 +155,7 @@ export function ConfirmSimOrderModal({
           </div>
           <button
             type="button"
-            onClick={() => toast.info("PIN reset instructions sent to registered phone number.")}
+            onClick={() => toast.info("Contact your account manager for PIN assistance.")}
             className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 inline-block"
           >
             Forgot PIN?

@@ -79,6 +79,8 @@ export interface EpRecentActivityItem {
 }
 
 export interface SimOrderDraft {
+  deliveryAddress?: string;
+  actionType?: "order" | "reinvest";
   simType: SimType;
   quantity: number;
   unitCost: number;

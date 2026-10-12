@@ -29,11 +29,13 @@ export const WalletModalsHub: React.FC<WalletModalsHubProps> = ({ modals }) => {
       />
       <ProcessingPayoutModal open={modals.processingPayoutOpen} />
       <PayoutPendingApprovalModal
+        result={modals.payoutResult}
         open={modals.payoutPendingOpen}
         amount={modals.payoutAmount}
         onClose={() => modals.setPayoutPendingOpen(false)}
       />
       <PayoutApprovedModal
+        result={modals.payoutResult}
         open={modals.payoutApprovedOpen}
         amount={modals.payoutAmount}
         onClose={() => modals.setPayoutApprovedOpen(false)}
@@ -66,6 +68,7 @@ export const WalletModalsHub: React.FC<WalletModalsHubProps> = ({ modals }) => {
       />
       <ProcessingReinvestmentModal open={modals.processingReinvestOpen} />
       <ReinvestmentSuccessModal
+        result={modals.reinvestResult}
         open={modals.reinvestSuccessOpen}
         type={modals.reinvestType}
         amount={modals.reinvestAmount}
@@ -84,6 +87,7 @@ export const WalletModalsHub: React.FC<WalletModalsHubProps> = ({ modals }) => {
       />
       <ProcessingBalancePaymentModal open={modals.processingPayBalanceOpen} />
       <BalancePaymentSuccessModal
+        result={modals.paymentResult}
         open={modals.payBalanceSuccessOpen}
         amount={modals.payBalanceAmount}
         onClose={() => modals.setPayBalanceSuccessOpen(false)}

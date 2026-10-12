@@ -1,6 +1,9 @@
 import { colors } from "@/constants/colors";
-import { initialNetworkActivities } from "../data/mockData";
-import { formatNaira } from "../utils/formatters";
+import { useState } from "react";
+import { useGetEnterpriseNetworkActivity } from "../api/useGetEnterpriseNetworkActivity";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { EpQueryState } from "./EpQueryState";
+
 import { ArrowRight } from "lucide-react";
 
 interface EpNetworkMiniOverviewProps {
@@ -8,6 +11,8 @@ interface EpNetworkMiniOverviewProps {
 }
 
 export function EpNetworkMiniOverview({ onViewAll }: EpNetworkMiniOverviewProps) {
+  const [network, setNetwork] = useState("all");
+  const query = useGetEnterpriseNetworkActivity({ network, page: 1, limit: 10 });
   const getBadgeClass = (network: string) => {
     switch (network) {
       case "MTN":
@@ -37,8 +42,11 @@ export function EpNetworkMiniOverview({ onViewAll }: EpNetworkMiniOverviewProps)
         </button>
       </div>
 
+      <div className="flex flex-wrap gap-2">{["all", "MTN", "GLO", "AIRTEL", "9MOBILE"].map(value => <button type="button" key={value} onClick={() => setNetwork(value)} className="rounded-full px-3 py-1 text-xs font-semibold" style={{ color: network === value ? colors.primary : colors.textSecondary, backgroundColor: network === value ? colors.backgrounds.surface : undefined }}>{value === "all" ? "All" : value}</button>)}</div>
+      <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch} />
+      {query.isSuccess && !query.data?.items?.length && <AppEmptyState title="No Network Activity" description="No activations found for this network today." />}
       <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-        {initialNetworkActivities.map((item) => (
+        {(query.data?.items ?? []).map((item) => (
           <div
             key={item.id}
             className="flex items-center justify-between rounded-xl border p-2.5 transition hover:bg-slate-50/80"
@@ -49,15 +57,15 @@ export function EpNetworkMiniOverview({ onViewAll }: EpNetworkMiniOverviewProps)
                 {item.network}
               </span>
               <div>
-                <p className="font-bold text-slate-900 text-xs">{item.phoneNumber}</p>
+                <p className="font-bold text-slate-900 text-xs">{item.phone}</p>
                 <p className="text-[10px] text-slate-400">
-                  SC: {item.scName} · AP: {item.apName}
+                  {item.state} · SC: {item.coordinator_name} · AP: {item.agent_name}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <span className="font-bold text-emerald-600 text-xs">+{formatNaira(item.commission)}</span>
-              <span className="text-[10px] text-slate-400 block">{item.timeAgo}</span>
+              <span className="font-bold text-emerald-600 text-xs">{item.commission_formatted}</span>
+              <span className="text-[10px] text-slate-400 block">{item.time_formatted}</span>
             </div>
           </div>
         ))}

@@ -16,6 +16,7 @@ import { MyNetworkPage } from "./network";
 import { EnterpriseProPricingPage } from "./pricing";
 
 export const enterpriseProRoutes: TRouteData[] = [
+  { path: "/enterprise-pro/wallet", element: <Navigate to={appPaths.enterpriseWallet} replace />, title: "Enterprise Wallet", isSearchable: false },
   {
     path: appPaths.enterpriseProDashboard,
     element: <EnterpriseProDashboardPage />,
@@ -29,7 +30,7 @@ export const enterpriseProRoutes: TRouteData[] = [
     isSearchable: true,
   },
   {
-    path: appPaths.enterpriseProWallet,
+    path: appPaths.enterpriseWallet,
     element: <MyEnterpriseWalletPage />,
     title: "Enterprise Pro Wallet",
     isSearchable: true,

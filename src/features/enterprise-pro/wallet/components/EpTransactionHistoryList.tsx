@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { Search, Percent, Users, Landmark, Package, TrendingUp, Award, XCircle, FileText } from "lucide-react";
+import { Search, FileText } from "lucide-react";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { colors } from "@/constants/colors";
-import { mockTransactionsList } from "../data/mockTransactionsData";
+import { useGetEnterpriseWalletTransactions } from "../api/useGetEnterpriseWalletTransactions";
+import { walletCategoryMap, walletTransaction } from "../types/adapters";
+import type { WalletTimeframe } from "../types/api";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { EpQueryState } from "../../components/EpQueryState";
+import { EpTransactionRow } from "./EpTransactionRow";
 import type { TransactionItem, TransactionCategory } from "../types";
 
 interface EpTransactionHistoryListProps {
@@ -29,42 +34,20 @@ export const EpTransactionHistoryList: React.FC<EpTransactionHistoryListProps> =
 
   const datePills = ["Today", "This Week", "This Month", "All Time", "Custom"];
 
-  const filteredTxns = mockTransactionsList.filter((t) => {
-    if (activeCategory !== "all" && t.type !== activeCategory) {
-      if (activeCategory === "payout" && t.type !== "failed-payout") return false;
-      if (activeCategory !== "payout") return false;
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        t.title.toLowerCase().includes(q) ||
-        t.subtitle.toLowerCase().includes(q) ||
-        t.ref.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
+  const pagination = useTablePagination({ initialPageSize: 14 });
+  const timeframe = ({ Today: "today", "This Week": "this_week", "This Month": "this_month", "All Time": "all_time", Custom: "custom" } as Record<string, WalletTimeframe>)[dateFilter];
+  const query = useGetEnterpriseWalletTransactions({ category: walletCategoryMap[activeCategory], timeframe, search, page: pagination.page, limit: pagination.pageSize });
+  const groups = (query.data?.groups ?? []).filter(group => group.transactions?.length);
+  const count = groups.reduce((sum, group) => sum + group.transactions.length, 0);
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "margin":
-        return <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><Percent className="w-4 h-4" /></div>;
-      case "commission":
-        return <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><Users className="w-4 h-4" /></div>;
-      case "payout":
-        return <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0"><Landmark className="w-4 h-4" /></div>;
-      case "sim-order":
-        return <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center shrink-0"><Package className="w-4 h-4" /></div>;
-      case "balance-pay":
-        return <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0"><TrendingUp className="w-4 h-4" /></div>;
-      case "bonus":
-        return <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center shrink-0"><Award className="w-4 h-4" /></div>;
-      case "failed-payout":
-        return <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0"><XCircle className="w-4 h-4" /></div>;
-      default:
-        return <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0"><FileText className="w-4 h-4" /></div>;
-    }
-  };
+  const pageSize = Math.max(1, Number(pagination.pageSize) || 14);
+  const total = Math.max(0, Number(query.data?.total_records ?? (query.data as any)?.total ?? count) || 0);
+  const pages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const currentPage = Math.max(1, Math.min(pages, Number(pagination.page) || 1));
+
+  const visiblePages = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, pages])]
+    .filter((page): page is number => typeof page === "number" && Number.isFinite(page) && !Number.isNaN(page) && page >= 1 && page <= pages)
+    .sort((a, b) => a - b);
 
   return (
     <div className="rounded-2xl p-4 sm:p-5 border bg-white shadow-sm space-y-4" style={{ borderColor: colors.border }}>
@@ -86,12 +69,12 @@ export const EpTransactionHistoryList: React.FC<EpTransactionHistoryListProps> =
           <button
             key={c.key}
             type="button"
-            onClick={() => setActiveCategory(c.key)}
+            onClick={() => { setActiveCategory(c.key); pagination.resetPage(); }}
             className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition ${
               activeCategory === c.key ? "bg-slate-900 text-white font-bold" : "text-slate-600 hover:bg-slate-100"
             }`}
           >
-            {c.label}
+            {c.label} ({query.data?.category_counts?.[walletCategoryMap[c.key]] ?? 0})
           </button>
         ))}
       </div>
@@ -103,7 +86,7 @@ export const EpTransactionHistoryList: React.FC<EpTransactionHistoryListProps> =
             <button
               key={p}
               type="button"
-              onClick={() => setDateFilter(p)}
+              onClick={() => { setDateFilter(p); pagination.resetPage(); }}
               className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${
                 dateFilter === p ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"
               }`}
@@ -119,68 +102,80 @@ export const EpTransactionHistoryList: React.FC<EpTransactionHistoryListProps> =
             type="text"
             placeholder="Search by ref, type, amount..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); pagination.resetPage(); }}
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
           />
         </div>
       </div>
 
       {/* Transactions List */}
-      {filteredTxns.length === 0 ? (
+      <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch} />
+      {query.isPending || query.isError ? null : count === 0 ? (
         <AppEmptyState
-          title="No Transactions Yet"
-          description="Your transaction history will appear here once activations or payouts occur."
+          title="No Transactions Found"
+          description="No wallet transactions match your selected filter."
         />
       ) : (
         <>
           <div className="divide-y divide-slate-100 pt-2">
-            {filteredTxns.map((t) => {
-              const isFailed = t.type === "failed-payout";
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => onSelectTransaction(t)}
-                  className={`py-3 px-2.5 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition hover:bg-slate-50 ${
-                    isFailed ? "bg-red-50/40 hover:bg-red-50/60" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {getIcon(t.type)}
-                    <div>
-                      <span className="font-bold text-xs text-slate-900 block">{t.title}</span>
-                      <span className="text-[11px] text-slate-500 block">{t.subtitle}</span>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{t.timeAgo}</span>
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className={`text-xs font-black block ${
-                      isFailed
-                        ? "text-red-600"
-                        : t.isOutflow
-                        ? "text-red-500"
-                        : t.amount === 0
-                        ? "text-slate-400"
-                        : "text-emerald-600"
-                    }`}>
-                      {isFailed ? `+₦${t.amount.toLocaleString()}` : t.isOutflow ? `-₦${t.amount.toLocaleString()}` : t.amount === 0 ? "+₦0" : `+₦${t.amount.toLocaleString()}`}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{t.ref}</span>
-                  </div>
-                </div>
-              );
-            })}
+            {groups.map((group, groupIdx) => (
+              <section key={`group-${group.header || "date"}-${groupIdx}`}>
+                <p className="pt-3 pb-1 text-[10px] font-bold" style={{ color: colors.textSecondary }}>
+                  {group.header}
+                </p>
+                {group.transactions.map((item, idx) => {
+                  const itemKey =
+                    item?.id != null && !Number.isNaN(Number(item.id))
+                      ? `txn-${item.id}`
+                      : item?.reference || (item as any)?.ref || `txn-${groupIdx}-${idx}`;
+                  return (
+                    <EpTransactionRow
+                      key={itemKey}
+                      t={walletTransaction(item)}
+                      onSelectTransaction={onSelectTransaction}
+                    />
+                  );
+                })}
+              </section>
+            ))}
           </div>
 
           {/* Pagination Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-            <span>Showing 1–{filteredTxns.length} of 94 transactions</span>
+            <span>
+              Showing {count ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, total)} of {total} transactions
+            </span>
             <div className="flex items-center gap-1">
-              <button type="button" className="px-2 py-1 rounded bg-slate-900 text-white font-bold">1</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">2</button>
-              <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">3</button>
-              <span>...</span>
-              <button type="button" className="px-2 py-1 rounded hover:bg-slate-100">8</button>
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => pagination.setPage(currentPage - 1)}
+                className="px-2 py-1 rounded hover:bg-slate-100 disabled:opacity-40"
+              >
+                Previous
+              </button>
+              {visiblePages.map((page) => (
+                <button
+                  type="button"
+                  key={`page-${page}`}
+                  onClick={() => pagination.setPage(page)}
+                  className={
+                    page === currentPage
+                      ? "px-2 py-1 rounded bg-slate-900 text-white font-bold"
+                      : "px-2 py-1 rounded hover:bg-slate-100"
+                  }
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={currentPage >= pages}
+                onClick={() => pagination.setPage(currentPage + 1)}
+                className="px-2 py-1 rounded hover:bg-slate-100 disabled:opacity-40"
+              >
+                Next
+              </button>
             </div>
           </div>
         </>

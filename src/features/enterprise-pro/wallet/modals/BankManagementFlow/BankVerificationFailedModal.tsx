@@ -1,7 +1,7 @@
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { XCircle, RefreshCw, PhoneCall } from "lucide-react";
-import { mockAccountManager } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface BankVerificationFailedModalProps {
   open: boolean;
@@ -16,7 +16,8 @@ export const BankVerificationFailedModal: React.FC<BankVerificationFailedModalPr
   onRetry,
   onContactManager,
 }) => {
-  return (
+
+  const { accountManager } = useEnterpriseWalletData();  return (
     <AppModal
       open={open}
       onOpenChange={(v) => !v && onClose()}
@@ -53,7 +54,7 @@ export const BankVerificationFailedModal: React.FC<BankVerificationFailedModalPr
             className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
           >
             <PhoneCall className="w-3.5 h-3.5" />
-            Contact {mockAccountManager.name}
+            Contact {accountManager.name}
           </button>
           <button
             type="button"

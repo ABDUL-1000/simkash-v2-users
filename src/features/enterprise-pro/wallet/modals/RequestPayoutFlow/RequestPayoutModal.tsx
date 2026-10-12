@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Building2, ShieldCheck, ArrowRight, UserCheck } from "lucide-react";
-import { mockWalletBalance, mockBankAccount, mockAccountManager } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface RequestPayoutModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (amount: number) => void;
+  onSubmit: (amount: number, notes?: string) => void;
 }
 
 export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
@@ -15,20 +15,23 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [amount, setAmount] = useState<number>(500_000);
+
+  const { walletBalance, bankAccount, accountManager } = useEnterpriseWalletData();  const [amount, setAmount] = useState<number>(500_000);
+  const [notes, setNotes] = useState("");
   const [pin, setPin] = useState<string>("");
 
   const quickPills = [
     { label: "₦250k", val: 250_000 },
     { label: "₦500k", val: 500_000 },
     { label: "₦1.0M", val: 1_000_000 },
-    { label: "Full Balance", val: mockWalletBalance.totalBalance },
+    { label: "Full Balance", val: walletBalance.totalBalance },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount > 0 && pin.length >= 4) {
-      onSubmit(amount);
+      onSubmit(amount, notes);
+      setPin("");
     }
   };
 
@@ -47,11 +50,11 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           <div>
             <span className="text-[11px] text-slate-500 block">Available Payout Balance</span>
             <span className="text-base font-black text-slate-900">
-              ₦{mockWalletBalance.totalBalance.toLocaleString()}.00
+              ₦{(walletBalance?.totalBalance ?? 0).toLocaleString()}.00
             </span>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Instant Liquidity
+            {bankAccount.status || "Payout account required"}
           </span>
         </div>
 
@@ -63,13 +66,13 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
             </div>
             <div>
               <div className="text-xs font-bold text-slate-900">
-                {mockBankAccount.bankName} · {mockBankAccount.accountNumberMask}
+                {bankAccount.bankName} · {bankAccount.accountNumberMask}
               </div>
-              <div className="text-[11px] text-slate-500">{mockBankAccount.accountName}</div>
+              <div className="text-[11px] text-slate-500">{bankAccount.accountName}</div>
             </div>
           </div>
           <span className="text-[10px] font-semibold text-emerald-600 flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" /> Verified
+            <ShieldCheck className="w-3.5 h-3.5" /> {bankAccount.status || "No account"}
           </span>
         </div>
 
@@ -81,7 +84,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           <input
             type="number"
             min={10000}
-            max={mockWalletBalance.totalBalance}
+            max={walletBalance.totalBalance}
             value={amount || ""}
             onChange={(e) => setAmount(Number(e.target.value))}
             className="w-full px-3 py-2 text-base font-bold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -111,12 +114,11 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
         <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
           <UserCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
           <div>
-            <span className="font-bold">Enterprise Security Policy:</span> Payout requests over
-            ₦500,000 are subject to rapid review by your dedicated manager ({mockAccountManager.name}).
-            Standard processing takes within 24 hours.
+            <span className="font-bold">Enterprise Security Policy:</span> Payout status is confirmed by the backend. Contact your dedicated manager ({accountManager.name}) for assistance.
           </div>
         </div>
 
+        <label className="block text-xs font-bold text-slate-700">Optional notes<textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300" /></label>
         {/* PIN Input */}
         <div className="space-y-2 text-center pt-1">
           <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
@@ -162,10 +164,10 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           </button>
           <button
             type="submit"
-            disabled={!amount || amount <= 0 || pin.length < 4}
+            disabled={!amount || amount <= 0 || amount > walletBalance.totalBalance || !bankAccount.verified || pin.length < 4}
             className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-sm flex items-center gap-1.5 transition"
           >
-            Request ₦{amount.toLocaleString()} Payout
+            Request ₦{(amount || 0).toLocaleString()} Payout
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

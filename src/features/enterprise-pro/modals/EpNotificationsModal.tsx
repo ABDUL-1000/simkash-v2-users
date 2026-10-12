@@ -1,10 +1,8 @@
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import type { EpNotificationCategory } from "../types";
-import {
-  TrendingUp, Package, Landmark, Percent, Users, Star, Award, UserPlus,
-  CircleDollarSign, ShieldCheck, ArrowRight,
-} from "lucide-react";
+import { TrendingUp, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface EpNotificationsModalProps {
@@ -12,18 +10,7 @@ interface EpNotificationsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const NOTIFICATIONS_LIST = [
-  { id: "1", cat: "investment", title: "Earnings Update", desc: "₦2,847,000 earned this month — up 19% vs last month", time: "Today", unread: true, icon: TrendingUp, iconColor: "text-emerald-500 bg-emerald-50" },
-  { id: "2", cat: "system", title: "Stock Order Confirmed", desc: "400 POS SIMs ordered · ₦1,000,000 · Ref ORD-EP-2026-00847", time: "Yesterday", unread: true, icon: Package, iconColor: "text-slate-700 bg-slate-100" },
-  { id: "3", cat: "payments", title: "Balance Payment Received", desc: "₦500,000 applied toward your ₦7,500,000 balance", time: "3 days ago", unread: false, icon: Landmark, iconColor: "text-amber-500 bg-amber-50" },
-  { id: "4", cat: "system", title: "Price Change Active", desc: "POS SIM retail price updated to ₦4,500 across your network", time: "1 week ago", unread: false, icon: Percent, iconColor: "text-purple-600 bg-purple-50" },
-  { id: "5", cat: "network", title: "Network Milestone", desc: "Your network hit 14,847 activations this month — all time high!", time: "1 week ago", unread: false, icon: Users, iconColor: "text-emerald-600 bg-emerald-50" },
-  { id: "6", cat: "system", title: "Account Manager Update", desc: "Kemi Ade: Your Q2 performance review is ready. Call to discuss.", time: "2 weeks ago", unread: false, icon: Star, iconColor: "text-blue-600 bg-blue-50" },
-  { id: "7", cat: "investment", title: "Bonus Progress Update", desc: "74% toward your bonus target — 15 days remaining", time: "2 weeks ago", unread: false, icon: Award, iconColor: "text-amber-500 bg-amber-50" },
-  { id: "8", cat: "network", title: "New SC Onboarded", desc: "Ngozi Adeyemi (Delta) joined your network — 6th SC this month", time: "3 weeks ago", unread: false, icon: UserPlus, iconColor: "text-slate-600 bg-slate-100" },
-  { id: "9", cat: "payments", title: "Wholesale Price Notice", desc: "Simkash: No price changes for Jun 2026. Your margins unchanged.", time: "1 month ago", unread: false, icon: CircleDollarSign, iconColor: "text-emerald-600 bg-emerald-50" },
-  { id: "10", cat: "system", title: "Account Verified", desc: "Your Enterprise Pro account has been fully verified", time: "2 months ago", unread: false, icon: ShieldCheck, iconColor: "text-slate-800 bg-slate-100" },
-];
+const NOTIFICATIONS_LIST: { id: string; cat: string; title: string; desc: string; time: string; unread: boolean; icon: typeof TrendingUp; iconColor: string }[] = [];
 
 export function EpNotificationsModal({ open, onOpenChange }: EpNotificationsModalProps) {
   const [activeTab, setActiveTab] = useState<EpNotificationCategory>("all");
@@ -71,6 +58,7 @@ export function EpNotificationsModal({ open, onOpenChange }: EpNotificationsModa
 
         {/* Notifications List */}
         <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+          {!filtered.length && <AppEmptyState title="No Notifications" description="There are no enterprise notifications to display." />}
           {filtered.slice(0, limit).map((n) => {
             const Icon = n.icon;
             return (

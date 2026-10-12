@@ -32,6 +32,7 @@ export const WalletSecondaryModalsHub: React.FC<WalletSecondaryModalsHubProps> =
       />
       <VerifyingBankModal open={modals.verifyingBankOpen} />
       <BankVerificationPendingModal
+        result={modals.bankResult}
         open={modals.bankPendingOpen}
         bank={modals.newBank}
         acctNo={modals.newAcctNo}
@@ -93,7 +94,7 @@ export const WalletSecondaryModalsHub: React.FC<WalletSecondaryModalsHubProps> =
       <StatementReadyModal
         open={modals.statementReadyOpen}
         onClose={() => modals.setStatementReadyOpen(false)}
-        onDownload={() => modals.setStatementReadyOpen(false)}
+        onDownload={modals.handleGenerateStatement}
       />
       <AllPayoutsHistoryModal
         open={modals.allPayoutsOpen}

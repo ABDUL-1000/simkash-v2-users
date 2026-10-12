@@ -24,8 +24,9 @@ export interface TransactionItem {
   timeAgo: string;
   date: string;
   amount: number;
+  amountFormatted?: string;
   isOutflow: boolean;
-  status: "Completed" | "Pending" | "Failed" | "Refunded";
+  status: string;
   meta?: {
     simCount?: number;
     wholesaleRate?: number;
@@ -39,12 +40,13 @@ export interface TransactionItem {
 }
 
 export interface PayoutRecord {
+  amountFormatted?: string;
   id: string;
   date: string;
   amount: number;
   bank: string;
   accountMask: string;
-  status: "Paid" | "Pending" | "Failed";
+  status: string;
   timeAgo: string;
 }
 

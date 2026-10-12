@@ -11,14 +11,18 @@ import {
   NetworkModalsManager,
   type NetworkModalsState,
 } from "../components/NetworkModalsManager";
-import { mockCoordinatorsNetwork, mockNetworkKPIs } from "../data/mockNetworkData";
-import { mockAgencyPartners } from "../data/mockApData";
+import { useGetEnterpriseScOverview } from '../api/queries';
+import { coordinatorFromApi } from '../types/adapters';
+import { EpQueryState } from '../../components/EpQueryState';
+import { openNotification } from '@/utils/notifications';
 import type { StateCoordinatorNetwork } from "../types";
 
 export const MyNetworkPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<NetworkTabKey>("sc-overview");
-  const [coordinators, setCoordinators] = useState<StateCoordinatorNetwork[]>(mockCoordinatorsNetwork);
+  const overview = useGetEnterpriseScOverview();
+  const coordinators = (overview.data?.coordinators ?? []).map(coordinatorFromApi);
+  const [selectedApScId, setSelectedApScId] = useState('all');
 
   const [modalState, setModalState] = useState<NetworkModalsState>({
     activeSc: null,
@@ -39,6 +43,7 @@ export const MyNetworkPage: React.FC = () => {
     isOpenExport: false,
     isOpenExportProgress: false,
     onboardData: null,
+    onboardResult: null,
     pendingNewRate: 0.1,
     reminderChannel: "both",
     exportConfig: null,
@@ -60,16 +65,10 @@ export const MyNetworkPage: React.FC = () => {
     navigate(`${appPaths.enterpriseProSimDistribute}?scId=${sc.id}`);
   };
 
-  const handleRateUpdated = (sc: StateCoordinatorNetwork, rate: number) => {
-    setCoordinators((prev) =>
-      prev.map((c) => (c.id === sc.id ? { ...c, commissionRate: rate } : c))
-    );
-  };
-
-  const handleStatusChanged = (scId: string, newStatus: "active" | "suspended") => {
-    setCoordinators((prev) =>
-      prev.map((c) => (c.id === scId ? { ...c, status: newStatus } : c))
-    );
+  const handleViewAps = (sc: StateCoordinatorNetwork) => {
+    setSelectedApScId(sc.id);
+    setActiveTab('agency-partners');
+    updateModalState({ isOpenActiveSc: false, isOpenSuspendedSc: false });
   };
 
   return (
@@ -100,35 +99,30 @@ export const MyNetworkPage: React.FC = () => {
       <EpNetworkTabsNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        scCount={coordinators.length}
-        apCount={mockAgencyPartners.length}
+        scCount={overview.data?.totals.sc_count ?? 0}
+        apCount={overview.data?.totals.aps_count ?? 0}
       />
 
       {/* Tab 1: SC Overview */}
-      {activeTab === "sc-overview" && (
+      {activeTab === "sc-overview" && (overview.isSuccess ? (
         <ScOverviewTabView
-          kpis={mockNetworkKPIs}
+          kpis={overview.data.summary_cards}
+          totals={overview.data.totals}
           coordinators={coordinators}
           onSelectSc={handleSelectSc}
           onOnboardSc={() => updateModalState({ isOpenOnboard: true })}
           onExportReport={() => updateModalState({ isOpenExport: true })}
-          onSendReminder={() =>
-            updateModalState({ activeSc: coordinators[0], isOpenSendReminder: true })
-          }
+          onSendReminder={() => openNotification({ state: 'info', title: 'Activation Reminder', description: 'Reminder delivery is not available from the supplied network API yet.' })}
           onDistributeSims={() => navigate(appPaths.enterpriseProSimDistribute)}
         />
-      )}
+      ) : <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch}/>)}
 
       {/* Tab 2: Agency Partners */}
       {activeTab === "agency-partners" && (
         <ApOverviewTabView
-          agencyPartners={mockAgencyPartners}
-          coordinators={coordinators}
+          selectedScId={selectedApScId}
+          onScChange={setSelectedApScId}
           onExportReport={() => updateModalState({ isOpenExport: true })}
-          onSelectAp={(ap) => {
-            const parentSc = coordinators.find((c) => c.id === ap.scId) || coordinators[0];
-            handleSelectSc(parentSc);
-          }}
         />
       )}
 
@@ -140,8 +134,7 @@ export const MyNetworkPage: React.FC = () => {
         state={modalState}
         onUpdateState={updateModalState}
         onDistributeSim={handleDistributeSim}
-        onRateUpdated={handleRateUpdated}
-        onStatusChanged={handleStatusChanged}
+        onViewAps={handleViewAps}
       />
     </div>
   );

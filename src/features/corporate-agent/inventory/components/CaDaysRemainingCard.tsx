@@ -1,8 +1,9 @@
 import { Clock } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { CA_DAYS_REMAINING_DATA } from "../data/ca-inventory.data";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import type { CaInventoryOverviewData } from "../types/inventory";
 
-export function CaDaysRemainingCard() {
+export function CaDaysRemainingCard({ data }: { data: CaInventoryOverviewData["days_remaining"] }) {
   return (
     <div
       className="rounded-2xl border p-4 bg-white shadow-xs space-y-3"
@@ -14,27 +15,28 @@ export function CaDaysRemainingCard() {
           <h3 className="text-sm font-bold text-slate-900">Days Remaining</h3>
         </div>
         <span className="text-[11px] text-slate-400 font-medium">
-          At current rate
+          {data.subtitle}
         </span>
       </div>
 
       <div className="divide-y" style={{ borderColor: APP_COLORS.greys.stroke }}>
-        {CA_DAYS_REMAINING_DATA.map((item) => (
+        {!data.estimates.length && <AppEmptyState title="No stock estimates" />}
+        {data.estimates.map((item) => (
           <div
-            key={item.label}
+            key={item.category}
             className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between text-xs"
           >
-            <span className="font-medium text-slate-700">{item.label}</span>
+            <span className="font-medium text-slate-700">{item.category}</span>
             <span
               className={`px-2 py-0.5 rounded font-black text-xs ${
-                item.badgeTone === "warning"
+                item.status === "warning"
                   ? "bg-amber-100 text-amber-800"
-                  : item.badgeTone === "danger"
+                  : item.status === "critical"
                   ? "bg-rose-100 text-rose-800"
                   : "text-slate-900"
               }`}
             >
-              {item.days}d
+              {item.days_text}
             </span>
           </div>
         ))}

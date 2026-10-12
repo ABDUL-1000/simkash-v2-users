@@ -1,14 +1,17 @@
 import { AlertTriangle, Store } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { CA_URGENT_APS_DATA } from "../data/ca-inventory.data";
-import type { CaUrgentApStockItem } from "../types/ca-inventory.types";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+
+import type { CaInventoryOverviewData } from "../types/inventory";
+type CaUrgentApStockItem = CaInventoryOverviewData["aps_needing_stock"][number];
 
 interface CaApsNeedingStockSideCardProps {
+  items: CaUrgentApStockItem[];
   onSelectAp?: (item: CaUrgentApStockItem) => void;
 }
 
 export function CaApsNeedingStockSideCard({
-  onSelectAp,
+  items, onSelectAp,
 }: CaApsNeedingStockSideCardProps) {
   return (
     <div
@@ -21,12 +24,13 @@ export function CaApsNeedingStockSideCard({
           <h3 className="text-sm font-bold text-slate-900">APs Needing Stock</h3>
         </div>
         <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-          {CA_URGENT_APS_DATA.length}
+          {items.length}
         </span>
       </div>
 
       <div className="space-y-2">
-        {CA_URGENT_APS_DATA.map((item, idx) => {
+        {!items.length && <AppEmptyState title="No APs needing stock" />}
+        {items.map((item, idx) => {
           const isDanger = item.status === "Out of Stock" || item.status === "Critical";
 
           return (
@@ -67,7 +71,7 @@ export function CaApsNeedingStockSideCard({
                       idx === 0 ? "text-amber-100" : "text-slate-500"
                     }`}
                   >
-                    {item.remaining} {item.simType} left
+                    {item.detail}
                   </div>
                 </div>
 

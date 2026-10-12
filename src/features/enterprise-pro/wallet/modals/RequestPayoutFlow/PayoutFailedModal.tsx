@@ -1,7 +1,7 @@
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { XCircle, RefreshCw, PhoneCall } from "lucide-react";
-import { mockAccountManager } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface PayoutFailedModalProps {
   open: boolean;
@@ -18,7 +18,8 @@ export const PayoutFailedModal: React.FC<PayoutFailedModalProps> = ({
   onRetry,
   onContactManager,
 }) => {
-  return (
+
+  const { accountManager } = useEnterpriseWalletData();  return (
     <AppModal
       open={open}
       onOpenChange={(v) => !v && onClose()}
@@ -49,7 +50,7 @@ export const PayoutFailedModal: React.FC<PayoutFailedModalProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Assigned Manager:</span>
-            <span className="font-medium text-slate-800">{mockAccountManager.name}</span>
+            <span className="font-medium text-slate-800">{accountManager.name}</span>
           </div>
         </div>
 

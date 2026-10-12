@@ -3,20 +3,19 @@ import { DataTable } from "@/components/common/DataTable";
 import { colors } from "@/constants/colors";
 import type { StateCoordinatorNetwork } from "../../types";
 import { getScOverviewColumns } from "./ScOverviewColumns";
+import { useTablePagination } from '@/hooks/useTablePagination';
+import type { EnterpriseNetworkTotals } from '../../types/api';
 
 interface ScOverviewTableProps {
   data: StateCoordinatorNetwork[];
+  totals: EnterpriseNetworkTotals;
   onSelectSc: (sc: StateCoordinatorNetwork) => void;
 }
 
-export const ScOverviewTable: React.FC<ScOverviewTableProps> = ({ data, onSelectSc }) => {
+export const ScOverviewTable: React.FC<ScOverviewTableProps> = ({ data, totals, onSelectSc }) => {
   const columns = useMemo(() => getScOverviewColumns(onSelectSc), [onSelectSc]);
 
-  const totalAps = data.reduce((acc, curr) => acc + curr.apsCount, 0);
-  const totalActs = data.reduce((acc, curr) => acc + curr.activationsThisMonth, 0);
-  const totalMargin = data.reduce((acc, curr) => acc + curr.totalMargin, 0);
-  const totalComm = data.reduce((acc, curr) => acc + curr.commissionEarned, 0);
-  const grandTotal = data.reduce((acc, curr) => acc + curr.totalEarnings, 0);
+  const { paginationConfig } = useTablePagination({ initialPageSize: 12, total: data.length });
 
   return (
     <div
@@ -34,7 +33,7 @@ export const ScOverviewTable: React.FC<ScOverviewTableProps> = ({ data, onSelect
         columns={columns}
         dataSource={data}
         rowKey="id"
-        pagination={{ pageSize: 12 }}
+        pagination={paginationConfig}
         scroll={{ x: 1080 }}
         emptyTitle="No State Coordinators Found"
         emptyDescription="No coordinators match your search criteria. Check your query or filters."
@@ -47,12 +46,12 @@ export const ScOverviewTable: React.FC<ScOverviewTableProps> = ({ data, onSelect
         style={{ borderColor: colors.border }}
       >
         <span>
-          {data.length} SCs · {totalAps} APs · {totalActs.toLocaleString()} acts
+          {totals.label} · {totals.total_activations.toLocaleString()} acts
         </span>
         <div className="flex items-center gap-4">
-          <span>Margin: <strong className="text-gray-900">₦{(totalMargin / 1e6).toFixed(2)}M</strong></span>
-          <span>Commission: <strong className="text-emerald-600">₦{(totalComm / 1e6).toFixed(2)}M</strong></span>
-          <span>Total: <strong className="text-blue-700">₦{(grandTotal / 1e6).toFixed(2)}M</strong></span>
+          <span>Margin: <strong className="text-gray-900">{totals.total_margin_formatted}</strong></span>
+          <span>Commission: <strong className="text-emerald-600">{totals.total_commission_formatted}</strong></span>
+          <span>Total: <strong className="text-blue-700">{totals.grand_total_earnings_formatted}</strong></span>
         </div>
       </div>
     </div>

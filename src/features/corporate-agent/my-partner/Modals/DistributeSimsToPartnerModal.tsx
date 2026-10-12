@@ -3,30 +3,67 @@
 import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { useCaDistributeToPartner } from "../api/useCaPartners";
+import { openNotification } from "@/utils/notifications";
 
 type DistributeSimsToPartnerModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  partnerId?: number | string;
   partnerName?: string;
   phone?: string;
+  currentHolding?: number;
+  availableToDistribute?: number;
   onDistributeSuccess?: () => void;
 };
 
 export function DistributeSimsToPartnerModal({
   open,
   onOpenChange,
+  partnerId = 1,
   partnerName = "Rabiu Sani",
   phone = "08120600542",
+  currentHolding = 234,
+  availableToDistribute = 12847,
   onDistributeSuccess,
 }: DistributeSimsToPartnerModalProps) {
   const [simType, setSimType] = useState("POS SIM");
   const [network, setNetwork] = useState("MTN");
-  const [quantity, setQuantity] = useState(100);
+  const [quantity, setQuantity] = useState(10);
   const [note, setNote] = useState("");
 
-  const currentHolding = 234;
-  const availableToDistribute = 12847;
-  const afterDistribution = availableToDistribute - quantity;
+  const numericId = Number(partnerId) || 1;
+  const distributeMutation = useCaDistributeToPartner(numericId);
+
+  const afterDistribution = Math.max(0, availableToDistribute - quantity);
+
+  const handleDistribute = () => {
+    if (quantity <= 0) {
+      openNotification({ state: "error", title: "Validation error", description: "Quantity must be greater than 0." });
+      return;
+    }
+
+    const pos_quantity = simType.toLowerCase().includes("pos") ? quantity : 0;
+    const cctv_quantity = simType.toLowerCase().includes("cctv") ? quantity : 0;
+    const gps_quantity = simType.toLowerCase().includes("gps") ? quantity : 0;
+    const router_quantity = simType.toLowerCase().includes("router") ? quantity : 0;
+
+    distributeMutation.mutate(
+      {
+        pos_quantity,
+        cctv_quantity,
+        gps_quantity,
+        router_quantity,
+        notes: note.trim() || `Replenishment for ${partnerName}`,
+      },
+      {
+        onSuccess: () => {
+          onDistributeSuccess?.();
+          onOpenChange(false);
+        },
+      }
+    );
+  };
 
   return (
     <AppModal
@@ -36,15 +73,13 @@ export function DistributeSimsToPartnerModal({
       description={`${partnerName} · ${phone}`}
       size="md"
       actions={[
-        { key: "cancel", label: "Cancel", variant: "secondary", closeOnClick: true },
+        { key: "cancel", label: "Cancel", variant: "secondary", closeOnClick: true, disabled: distributeMutation.isPending },
         {
           key: "distribute",
-          label: "Distribute SIMs →",
+          label: distributeMutation.isPending ? "Distributing..." : "Distribute SIMs →",
           variant: "primary",
-          onClick: () => {
-            onDistributeSuccess?.();
-          },
-          closeOnClick: true,
+          onClick: handleDistribute,
+          disabled: distributeMutation.isPending,
         },
       ]}
     >
@@ -142,3 +177,6 @@ export function DistributeSimsToPartnerModal({
     </AppModal>
   );
 }
+
+export const DistributeToPartnerModal = DistributeSimsToPartnerModal;
+

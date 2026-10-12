@@ -1,7 +1,8 @@
 import { Smartphone, Users, Package, Send, Wallet, PlusSquare } from "lucide-react";
-import { APP_COLORS } from "@/constants/colors";
+import { APP_COLORS, CA_DASHBOARD_COLORS } from "@/constants/colors";
 
 interface CaQuickActionsRowProps {
+  canPayout: boolean;
   onActivateSim?: () => void;
   onViewAps?: () => void;
   onViewStock?: () => void;
@@ -11,6 +12,7 @@ interface CaQuickActionsRowProps {
 }
 
 export function CaQuickActionsRow({
+  canPayout,
   onActivateSim,
   onViewAps,
   onViewStock,
@@ -23,48 +25,48 @@ export function CaQuickActionsRow({
       id: "activate",
       label: "Activate SIM",
       icon: Smartphone,
-      bg: "#EFF4F8",
-      color: "#2563EB",
+      bg: APP_COLORS.blues.surfaceLight,
+      color: APP_COLORS.blues.interactiveCta,
       onClick: onActivateSim,
     },
     {
       id: "aps",
       label: "My APs",
       icon: Users,
-      bg: "#EBFFF8",
-      color: "#10B981",
+      bg: APP_COLORS.greens.light,
+      color: APP_COLORS.greens.green,
       onClick: onViewAps,
     },
     {
       id: "stock",
       label: "My Stock",
       icon: Package,
-      bg: "#F8FAFC",
-      color: "#334155",
+      bg: APP_COLORS.backgrounds.surface,
+      color: CA_DASHBOARD_COLORS.stockText,
       onClick: onViewStock,
     },
     {
       id: "distribute",
       label: "Distribute",
       icon: Send,
-      bg: "#F3E8FF",
-      color: "#8B5CF6",
+      bg: CA_DASHBOARD_COLORS.distributeBg,
+      color: CA_DASHBOARD_COLORS.distributeText,
       onClick: onDistributeStock,
     },
     {
       id: "payout",
       label: "Payout",
       icon: Wallet,
-      bg: "#FFFBEB",
-      color: "#D97706",
+      bg: CA_DASHBOARD_COLORS.payoutBg,
+      color: CA_DASHBOARD_COLORS.payoutText,
       onClick: onRequestPayout,
     },
     {
       id: "request",
       label: "Request Stock",
       icon: PlusSquare,
-      bg: "#EBFFF8",
-      color: "#10B981",
+      bg: APP_COLORS.greens.light,
+      color: APP_COLORS.greens.green,
       onClick: onRequestStock,
     },
   ];
@@ -78,6 +80,7 @@ export function CaQuickActionsRow({
             key={act.id}
             type="button"
             onClick={act.onClick}
+            disabled={!act.onClick || (act.id === "payout" && !canPayout)}
             className="p-3 rounded-2xl border flex flex-col items-center justify-center gap-1.5 shadow-2xs transition-all hover:scale-[1.02] active:scale-[0.98] bg-white group"
             style={{ borderColor: APP_COLORS.greys.stroke }}
           >

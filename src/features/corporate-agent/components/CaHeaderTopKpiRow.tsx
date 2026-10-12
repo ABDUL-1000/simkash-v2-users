@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { APP_COLORS } from "@/constants/colors";
-import type { CaTopKpis } from "../types/corporate-agent.types";
+import { APP_COLORS, CA_DASHBOARD_COLORS } from "@/constants/colors";
+import type { CaDashboardOverviewData } from "../types/api";
 
 interface CaHeaderTopKpiRowProps {
-  kpis: CaTopKpis;
+  kpis: CaDashboardOverviewData["top_cards"];
   onRequestPayout: () => void;
 }
 
@@ -27,14 +27,14 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
         </span>
         <div className="my-1">
           <div className="text-2xl font-black" style={{ color: APP_COLORS.texts.primary }}>
-            {kpis.myActsToday}
+            {kpis.my_acts_today.activations}
           </div>
           <span className="text-[11px] font-bold text-emerald-600 block">
-            +₦{kpis.myActsTodayCommission.toLocaleString()} commission
+            {kpis.my_acts_today.commission_formatted}
           </span>
         </div>
-        <span className="text-[10px] text-slate-400 font-medium">
-          7 from your own direct
+        <span className="text-[10px] text-slate-400 font-medium" style={{ color: kpis.my_acts_today.comparison.direction === "down" ? APP_COLORS.reds.red : undefined }}>
+          {kpis.my_acts_today.comparison.text}
         </span>
       </div>
 
@@ -51,14 +51,14 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
         </span>
         <div className="my-1">
           <div className="text-2xl font-black" style={{ color: APP_COLORS.texts.primary }}>
-            {kpis.networkToday}
+            {kpis.network_today.activations}
           </div>
           <span className="text-[11px] font-bold text-emerald-600 block">
-            +₦28,200 network override
+            {kpis.network_today.commission_formatted}
           </span>
         </div>
         <span className="text-[10px] text-slate-400 font-medium">
-          47 activations across APs
+          {kpis.network_today.comparison.text}
         </span>
       </div>
 
@@ -75,14 +75,14 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
         </span>
         <div className="my-1">
           <div className="text-2xl font-black" style={{ color: APP_COLORS.texts.primary }}>
-            {kpis.thisMonthActs.toLocaleString()}
+            {kpis.this_month.total_activations.toLocaleString()}
           </div>
           <span className="text-[11px] font-bold text-slate-700 block">
-            Own: {kpis.thisMonthDirect} • APs: {kpis.thisMonthNetwork.toLocaleString()}
+            {kpis.this_month.subtitle}
           </span>
         </div>
         <span className="text-[10px] text-slate-400 font-medium">
-          {kpis.targetAchievedPercent}% toward target
+          {/* Target percentage is displayed in the live bonus tracker. */}
         </span>
       </div>
 
@@ -108,14 +108,14 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
         </div>
         <div className="my-1">
           <div className="text-2xl font-black" style={{ color: APP_COLORS.texts.primary }}>
-            {stockVisible ? kpis.myStock.toLocaleString() : "••••"}
+            {stockVisible ? kpis.my_stock.total_available.toLocaleString() : "••••"}
           </div>
           <span className="text-[11px] font-semibold text-slate-600 block">
-            {kpis.availableStock} available
+            {kpis.my_stock.subtext_available}
           </span>
         </div>
         <span className="text-[10px] text-slate-400 font-medium">
-          {kpis.activeApsInStock} APs active in stock
+          {kpis.my_stock.subtext_aps}
         </span>
       </div>
 
@@ -141,17 +141,18 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
         </div>
         <div className="my-0.5">
           <div className="text-2xl font-black text-slate-900">
-            {commissionVisible ? `₦${kpis.myCommission.toLocaleString()}` : "₦••••••"}
+            {commissionVisible ? kpis.my_commission.amount_formatted : "₦••••••"}
           </div>
           <span className="text-[10px] text-slate-400 font-medium block">
-            This month
+            {kpis.my_commission.period_text}
           </span>
         </div>
         <button
           type="button"
           onClick={onRequestPayout}
+          disabled={!kpis.my_commission.can_request_payout || kpis.my_commission.amount <= 0}
           className="w-full mt-1.5 py-1.5 px-2 rounded-xl text-xs font-bold text-white shadow-xs transition-all hover:opacity-95 active:scale-98 text-center"
-          style={{ backgroundColor: "#D97706" }}
+          style={{ backgroundColor: CA_DASHBOARD_COLORS.payoutText }}
         >
           Request Payout
         </button>

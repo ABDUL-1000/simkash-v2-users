@@ -35,7 +35,7 @@ export const ScReinstatedSuccessModal: React.FC<ScReinstatedSuccessModalProps> =
             <span>Active in {coordinator?.state} State</span>
           </div>
           <p className="text-emerald-700">
-            The coordinator has been notified via SMS and email.
+            Coordinator status has been updated successfully.
           </p>
         </div>
 

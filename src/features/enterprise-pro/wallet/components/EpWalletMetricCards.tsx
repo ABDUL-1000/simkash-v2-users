@@ -1,10 +1,10 @@
 import React from "react";
 import { TrendingUp, CheckCircle2, Package, Landmark } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { mockWalletBalance } from "../data/mockWalletData";
+import type { EnterpriseMiddleKpiCards } from "../types/api";
 
-export const EpWalletMetricCards: React.FC = () => {
-  const { earnedThisMonth, totalPaidOut, simOrdersPaid, balancePaidDown } = mockWalletBalance;
+export const EpWalletMetricCards: React.FC<{ cards: EnterpriseMiddleKpiCards }> = ({ cards }) => {
+
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -23,9 +23,9 @@ export const EpWalletMetricCards: React.FC = () => {
         </div>
         <div className="mt-3">
           <div className="text-xl sm:text-2xl font-black text-emerald-600">
-            ₦{earnedThisMonth.toLocaleString()}
+            {cards.earned_this_month.formatted}
           </div>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">Margin + commission</span>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">{cards.earned_this_month.subtext}</span>
         </div>
       </div>
 
@@ -44,9 +44,9 @@ export const EpWalletMetricCards: React.FC = () => {
         </div>
         <div className="mt-3">
           <div className="text-xl sm:text-2xl font-black text-slate-900">
-            ₦{totalPaidOut.toLocaleString()}
+            {cards.total_paid_out.formatted}
           </div>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">All time</span>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">{cards.total_paid_out.subtext}</span>
         </div>
       </div>
 
@@ -65,9 +65,9 @@ export const EpWalletMetricCards: React.FC = () => {
         </div>
         <div className="mt-3">
           <div className="text-xl sm:text-2xl font-black text-slate-900">
-            ₦{simOrdersPaid.toLocaleString()}
+            {cards.sim_orders_paid.formatted}
           </div>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">Additional orders</span>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">{cards.sim_orders_paid.subtext}</span>
         </div>
       </div>
 
@@ -86,9 +86,9 @@ export const EpWalletMetricCards: React.FC = () => {
         </div>
         <div className="mt-3">
           <div className="text-xl sm:text-2xl font-black text-amber-600">
-            ₦{balancePaidDown.toLocaleString()}
+            {cards.balance_paid_down.formatted}
           </div>
-          <span className="text-[11px] text-slate-400 mt-0.5 block">Of ₦7,500,000 initial balance</span>
+          <span className="text-[11px] text-slate-400 mt-0.5 block">{cards.balance_paid_down.subtext}</span>
         </div>
       </div>
     </div>

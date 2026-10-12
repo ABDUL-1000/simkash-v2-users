@@ -1,44 +1,43 @@
 import { Download, Send, Package, Clock } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { CA_HISTORY_KPIS_DATA } from "../data/ca-inventory.data";
+import type { CaInventoryHistoryResponseData } from "../types/inventory";
 
-export function CaHistoryKpis() {
-  const { totalReceived, totalDistributed, currentlyInStock, pendingRequest } =
-    CA_HISTORY_KPIS_DATA;
+export function CaHistoryKpis({ data }: { data: CaInventoryHistoryResponseData["summary_cards"] }) {
+
 
   const cards = [
     {
       id: "received",
-      label: "Total Received",
-      value: totalReceived.toLocaleString(),
-      subtext: "SIMs received all time",
+      label: data.total_received.label,
+      value: data.total_received.count.toLocaleString(),
+      subtext: data.total_received.subtext,
       icon: <Download className="w-4 h-4 text-emerald-600" />,
       iconBg: "bg-emerald-50",
       valueColor: "text-slate-900",
     },
     {
       id: "distributed",
-      label: "Total Distributed",
-      value: totalDistributed.toLocaleString(),
-      subtext: "Sent to APs all time",
+      label: data.total_distributed.label,
+      value: data.total_distributed.count.toLocaleString(),
+      subtext: data.total_distributed.subtext,
       icon: <Send className="w-4 h-4 text-blue-600" />,
       iconBg: "bg-blue-50",
       valueColor: "text-slate-900",
     },
     {
       id: "instock",
-      label: "Currently in Stock",
-      value: currentlyInStock.toLocaleString(),
-      subtext: "Available right now",
+      label: data.currently_in_stock.label,
+      value: data.currently_in_stock.count.toLocaleString(),
+      subtext: data.currently_in_stock.subtext,
       icon: <Package className="w-4 h-4 text-slate-800" />,
       iconBg: "bg-slate-100",
       valueColor: "text-slate-900",
     },
     {
       id: "pending",
-      label: "Pending Request",
-      value: pendingRequest.toLocaleString(),
-      subtext: "In pending request",
+      label: data.pending_requests.label,
+      value: data.pending_requests.count.toLocaleString(),
+      subtext: data.pending_requests.subtext,
       icon: <Clock className="w-4 h-4 text-amber-600" />,
       iconBg: "bg-amber-50",
       valueColor: "text-slate-900",

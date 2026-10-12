@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Building2, TrendingUp, Users, DollarSign, Award, Repeat, Package, FileText } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { mockWalletBalance } from "../data/mockWalletData";
+import type { EnterpriseHeroBalanceCard } from "../types/api";
 
 interface EpWalletBalanceHeroProps {
+  hero: EnterpriseHeroBalanceCard;
   onRequestPayout: () => void;
   onReinvest: () => void;
   onPayBalance: () => void;
@@ -12,6 +13,7 @@ interface EpWalletBalanceHeroProps {
 }
 
 export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
+  hero,
   onRequestPayout,
   onReinvest,
   onPayBalance,
@@ -19,7 +21,7 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
   onStatement,
 }) => {
   const [showBalance, setShowBalance] = useState(true);
-  const { totalBalance, marginThisMonth, networkCommissionThisMonth, balanceRemaining, bonusTargetPct } = mockWalletBalance;
+
 
   return (
     <div
@@ -32,9 +34,9 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
           <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-xs">
             EP
           </div>
-          <span className="font-bold text-xs text-slate-700">Enterprise Wallet Balance</span>
+          <span className="font-bold text-xs text-slate-700">{hero.title}</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-            ISOLATED — Separate from Simkash main platform
+            {hero.tag}
           </span>
         </div>
         <button
@@ -50,7 +52,7 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
       {/* Main Balance Display */}
       <div>
         <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          {showBalance ? `₦${totalBalance.toLocaleString()}.00` : "••••••••••••"}
+          {showBalance ? hero.balance_formatted : "••••••••••••"}
         </div>
       </div>
 
@@ -59,16 +61,16 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
         <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
           <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
           <div>
-            <span className="text-[10px] text-slate-400 block font-medium">Margin this month</span>
-            <span className="font-bold text-slate-900">₦{marginThisMonth.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.margin_this_month.label}</span>
+            <span className="font-bold text-slate-900">{hero.chips.margin_this_month.formatted}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
           <Users className="w-4 h-4 text-blue-600 shrink-0" />
           <div>
-            <span className="text-[10px] text-slate-400 block font-medium">Network commission</span>
-            <span className="font-bold text-slate-900">₦{networkCommissionThisMonth.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.network_commission.label}</span>
+            <span className="font-bold text-slate-900">{hero.chips.network_commission.formatted}</span>
           </div>
         </div>
 
@@ -76,8 +78,8 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
           <div className="flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-amber-600 shrink-0" />
             <div>
-              <span className="text-[10px] text-slate-400 block font-medium">Balance remaining</span>
-              <span className="font-bold text-amber-600">₦{balanceRemaining.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.balance_remaining.label}</span>
+              <span className="font-bold text-amber-600">{hero.chips.balance_remaining.formatted}</span>
             </div>
           </div>
           <button
@@ -92,8 +94,8 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
         <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
           <Award className="w-4 h-4 text-purple-600 shrink-0" />
           <div>
-            <span className="text-[10px] text-slate-400 block font-medium">Bonus pending</span>
-            <span className="font-bold text-slate-700">₦0 ({bonusTargetPct}% of target)</span>
+            <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.bonus_pending.label}</span>
+            <span className="font-bold text-slate-700">{hero.chips.bonus_pending.formatted}</span>
           </div>
         </div>
       </div>

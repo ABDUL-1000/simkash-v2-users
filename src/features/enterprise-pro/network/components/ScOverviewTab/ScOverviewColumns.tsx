@@ -44,8 +44,8 @@ export const getScOverviewColumns = (
     align: "right",
     render: (_, record) => (
       <div className="text-right">
-        <div className="text-xs text-gray-900">₦{record.retailPerSim.toLocaleString()}</div>
-        <div className="text-[11px] text-emerald-600 font-medium">+₦{record.marginPerSim.toLocaleString()}</div>
+        <div className="text-xs text-gray-900">{record.api?.retail_price_formatted ?? '—'}</div>
+        <div className="text-[11px] text-emerald-600 font-medium">{record.api?.margin_per_sim_formatted ?? '—'}</div>
       </div>
     ),
   },
@@ -54,8 +54,8 @@ export const getScOverviewColumns = (
     dataIndex: "totalMargin",
     key: "totalMargin",
     align: "right",
-    render: (val: number) => (
-      <span className="text-xs font-medium text-gray-900">₦{val.toLocaleString()}</span>
+    render: (_val: number, record) => (
+      <span className="text-xs font-medium text-gray-900">{record.api?.total_margin_formatted ?? '—'}</span>
     ),
   },
   {
@@ -63,9 +63,9 @@ export const getScOverviewColumns = (
     dataIndex: "commissionRate",
     key: "commissionRate",
     align: "center",
-    render: (val: number) => (
+    render: (_val: number, record) => (
       <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700">
-        {(val * 100).toFixed(0)}%
+        {record.api?.commission_formatted?.match(/\(([\d.]+%)\)/)?.[1] ?? '—'}
       </span>
     ),
   },
@@ -74,8 +74,8 @@ export const getScOverviewColumns = (
     dataIndex: "commissionEarned",
     key: "commissionEarned",
     align: "right",
-    render: (val: number) => (
-      <span className="text-xs font-semibold text-emerald-600">₦{val.toLocaleString()}</span>
+    render: (_val: number, record) => (
+      <span className="text-xs font-semibold text-emerald-600">{record.api?.commission_formatted ?? '—'}</span>
     ),
   },
   {
@@ -83,8 +83,8 @@ export const getScOverviewColumns = (
     dataIndex: "totalEarnings",
     key: "totalEarnings",
     align: "right",
-    render: (val: number) => (
-      <span className="text-xs font-bold text-gray-900">₦{val.toLocaleString()}</span>
+    render: (_val: number, record) => (
+      <span className="text-xs font-bold text-gray-900">{record.api?.total_earnings_formatted ?? '—'}</span>
     ),
   },
   {
@@ -92,9 +92,9 @@ export const getScOverviewColumns = (
     dataIndex: "simStock",
     key: "simStock",
     align: "right",
-    render: (val: number) => (
-      <span className={`text-xs font-medium ${val < 100 ? "text-amber-600 font-semibold" : "text-gray-700"}`}>
-        {val.toLocaleString()} SIMs
+    render: (_val: number, record) => (
+      <span className={`text-xs font-medium ${record.api?.status === 'Low Stock' ? "text-amber-600 font-semibold" : "text-gray-700"}`}>
+        {record.api?.stock_formatted ?? '—'}
       </span>
     ),
   },
@@ -103,11 +103,11 @@ export const getScOverviewColumns = (
     dataIndex: "status",
     key: "status",
     align: "center",
-    render: (status: string) => {
+    render: (status: string, record) => {
       if (status === "active") {
         return (
           <span className="px-2.5 py-1 text-[11px] font-medium rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Active
+            {record.api?.status ?? 'Active'}
           </span>
         );
       }

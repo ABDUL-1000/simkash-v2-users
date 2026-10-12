@@ -1,7 +1,9 @@
+import type { CaDashboardOverviewData } from "../types/api";
 import { Smartphone, Users, UserCheck, Award, Package } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
 
 interface CaSecondaryKpiCardsProps {
+  data: CaDashboardOverviewData["secondary_cards"];
   onViewOwnActs?: () => void;
   onViewNetworkActs?: () => void;
   onViewAps?: () => void;
@@ -10,6 +12,7 @@ interface CaSecondaryKpiCardsProps {
 }
 
 export function CaSecondaryKpiCards({
+  data,
   onViewOwnActs,
   onViewNetworkActs,
   onViewAps,
@@ -28,9 +31,9 @@ export function CaSecondaryKpiCards({
           <Smartphone className="w-5 h-5" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-black text-slate-900">312</div>
-          <div className="text-xs font-bold text-slate-700 mt-0.5">My Own Acts</div>
-          <div className="text-[11px] text-slate-400 font-medium">₦187,200 my commission</div>
+          <div className="text-2xl font-black text-slate-900">{data.my_own_acts.value.toLocaleString()}</div>
+          <div className="text-xs font-bold text-slate-700 mt-0.5">{data.my_own_acts.label}</div>
+          <div className="text-[11px] text-slate-400 font-medium">{data.my_own_acts.subtext}</div>
         </div>
       </div>
 
@@ -44,9 +47,9 @@ export function CaSecondaryKpiCards({
           <Users className="w-5 h-5" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-black text-emerald-600">2,535</div>
-          <div className="text-xs font-bold text-slate-700 mt-0.5">AP Network Acts</div>
-          <div className="text-[11px] text-slate-400 font-medium">₦97,500 network commission</div>
+          <div className="text-2xl font-black text-emerald-600">{data.ap_network_acts.value.toLocaleString()}</div>
+          <div className="text-xs font-bold text-slate-700 mt-0.5">{data.ap_network_acts.label}</div>
+          <div className="text-[11px] text-slate-400 font-medium">{data.ap_network_acts.subtext}</div>
         </div>
       </div>
 
@@ -60,9 +63,9 @@ export function CaSecondaryKpiCards({
           <UserCheck className="w-5 h-5" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-black text-purple-600">12</div>
-          <div className="text-xs font-bold text-slate-700 mt-0.5">Agency Partners</div>
-          <div className="text-[11px] text-slate-400 font-medium">10 active • 2 need stock</div>
+          <div className="text-2xl font-black text-purple-600">{data.agency_partners.value.toLocaleString()}</div>
+          <div className="text-xs font-bold text-slate-700 mt-0.5">{data.agency_partners.label}</div>
+          <div className="text-[11px] text-slate-400 font-medium">{data.agency_partners.subtext}</div>
         </div>
       </div>
 
@@ -76,9 +79,9 @@ export function CaSecondaryKpiCards({
           <Award className="w-5 h-5" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-black text-amber-600">74%</div>
-          <div className="text-xs font-bold text-slate-700 mt-0.5">Bonus Progress</div>
-          <div className="text-[11px] text-slate-400 font-medium">₦12,000 pending target</div>
+          <div className="text-2xl font-black text-amber-600">{data.bonus_progress.value}</div>
+          <div className="text-xs font-bold text-slate-700 mt-0.5">{data.bonus_progress.label}</div>
+          <div className="text-[11px] text-slate-400 font-medium">{data.bonus_progress.subtext}</div>
         </div>
       </div>
 
@@ -92,9 +95,9 @@ export function CaSecondaryKpiCards({
           <Package className="w-5 h-5" />
         </div>
         <div className="mt-3">
-          <div className="text-2xl font-black text-slate-900">847</div>
-          <div className="text-xs font-bold text-slate-700 mt-0.5">SIMs in Stock</div>
-          <div className="text-[11px] text-slate-400 font-medium">4 sim types available</div>
+          <div className="text-2xl font-black text-slate-900">{data.sims_in_stock.value.toLocaleString()}</div>
+          <div className="text-xs font-bold text-slate-700 mt-0.5">{data.sims_in_stock.label}</div>
+          <div className="text-[11px] text-slate-400 font-medium">{data.sims_in_stock.subtext}</div>
         </div>
       </div>
     </div>

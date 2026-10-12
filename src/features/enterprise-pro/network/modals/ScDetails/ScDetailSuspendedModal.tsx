@@ -8,6 +8,7 @@ interface ScDetailSuspendedModalProps {
   onOpenChange: (open: boolean) => void;
   coordinator: StateCoordinatorNetwork | null;
   onReinstate: (sc: StateCoordinatorNetwork) => void;
+  onViewAps: (sc: StateCoordinatorNetwork) => void;
 }
 
 export const ScDetailSuspendedModal: React.FC<ScDetailSuspendedModalProps> = ({
@@ -15,6 +16,7 @@ export const ScDetailSuspendedModal: React.FC<ScDetailSuspendedModalProps> = ({
   onOpenChange,
   coordinator,
   onReinstate,
+  onViewAps,
 }) => {
   if (!coordinator) return null;
 
@@ -34,7 +36,7 @@ export const ScDetailSuspendedModal: React.FC<ScDetailSuspendedModalProps> = ({
               </span>
             </div>
             <p className="text-xs text-red-700 mt-0.5">
-              {coordinator.state} State · Suspended since {coordinator.suspendedDate || "14 Jun 2026"}
+              {coordinator.state} State · Suspended since {coordinator.suspendedDate || '—'}
             </p>
           </div>
         </div>
@@ -58,7 +60,7 @@ export const ScDetailSuspendedModal: React.FC<ScDetailSuspendedModalProps> = ({
               Suspension Reason
             </span>
             <p className="text-xs font-medium text-slate-800 mt-1">
-              {coordinator.suspensionReason || "Inactivity > 30 days without activations"}
+              {coordinator.suspensionReason || '—'}
             </p>
           </div>
 
@@ -69,7 +71,7 @@ export const ScDetailSuspendedModal: React.FC<ScDetailSuspendedModalProps> = ({
             </div>
             <div className="p-2.5 rounded-lg bg-red-50/70">
               <span className="text-[10px] text-red-600 font-medium block">Margin at Risk</span>
-              <span className="text-sm font-bold text-red-700 mt-0.5 block">₦{coordinator.totalMargin.toLocaleString()}</span>
+              <span className="text-sm font-bold text-red-700 mt-0.5 block">{coordinator.api?.total_margin_formatted ?? '—'}</span>
             </div>
           </div>
         </div>
@@ -80,6 +82,7 @@ export const ScDetailSuspendedModal: React.FC<ScDetailSuspendedModalProps> = ({
         </div>
 
         {/* Actions */}
+        <button type="button" onClick={() => onViewAps(coordinator)} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition">View APs</button>
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"

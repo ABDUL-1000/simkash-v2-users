@@ -1,10 +1,12 @@
+import type { WalletActionResult } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { CheckCircle2, ArrowRight } from "lucide-react";
-import { mockWalletBalance } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 import type { ReinvestType } from "./ReinvestSelectTypeModal";
 
 interface ReinvestmentSuccessModalProps {
+  result?: WalletActionResult | null;
   open: boolean;
   type: ReinvestType;
   amount: number;
@@ -12,12 +14,15 @@ interface ReinvestmentSuccessModalProps {
 }
 
 export const ReinvestmentSuccessModal: React.FC<ReinvestmentSuccessModalProps> = ({
+  result,
   open,
   type,
   amount,
   onClose,
 }) => {
-  const newBalance = mockWalletBalance.totalBalance - amount;
+
+  const { walletBalance } = useEnterpriseWalletData();
+  const newBalance = walletBalance.totalBalance;
 
   return (
     <AppModal
@@ -42,11 +47,11 @@ export const ReinvestmentSuccessModal: React.FC<ReinvestmentSuccessModalProps> =
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2">
           <div className="flex justify-between">
             <span className="text-slate-500">Reference:</span>
-            <span className="font-mono font-bold text-slate-800">REF-INV-2024-0094</span>
+            <span className="font-mono font-bold text-slate-800">{result?.reference ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Amount Reinvested:</span>
-            <span className="font-bold text-emerald-700">₦{amount.toLocaleString()}.00</span>
+            <span className="font-bold text-emerald-700">{result?.amount_formatted ?? result?.amount_paid_formatted ?? `₦${amount.toLocaleString()}`}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Channel:</span>

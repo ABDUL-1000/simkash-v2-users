@@ -16,9 +16,9 @@ export const TxnDetailCommissionModal: React.FC<TxnDetailCommissionModalProps> =
   onClose,
   onDownloadReceipt,
 }) => {
-  const amount = txn?.amount ?? 12500;
-  const ref = txn?.ref ?? "TXN-COM-2024-00312";
-  const date = txn?.date ?? "17 Jun 2026, 09:15";
+  const amount = txn?.amount ?? 0;
+  const ref = txn?.ref ?? "—";
+  const date = txn?.date ?? "—";
 
   return (
     <AppModal
@@ -36,11 +36,11 @@ export const TxnDetailCommissionModal: React.FC<TxnDetailCommissionModalProps> =
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Network Commission</span>
             <div className="text-2xl font-black text-blue-600 mt-0.5">
-              +₦{amount.toLocaleString()}.00
+              {txn?.amountFormatted ?? `₦${amount.toLocaleString()}`}
             </div>
           </div>
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3" /> Completed & Credited
+            <CheckCircle2 className="w-3 h-3" /> {txn?.status ?? "—"}
           </span>
         </div>
 
@@ -55,11 +55,11 @@ export const TxnDetailCommissionModal: React.FC<TxnDetailCommissionModalProps> =
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Network Tier:</span>
-            <span className="font-semibold text-slate-800">Tier 1 Sub-Dealers (15 transactions)</span>
+            <span className="font-semibold text-slate-800">{txn?.subtitle ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Commission Rate:</span>
-            <span className="font-bold text-blue-700">1.8% Recurring Overwrite</span>
+            <span className="font-bold text-blue-700">{txn?.meta?.networkRate ?? "—"}</span>
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-1.5">
             <span className="text-slate-500">Settlement Wallet:</span>
@@ -70,6 +70,7 @@ export const TxnDetailCommissionModal: React.FC<TxnDetailCommissionModalProps> =
         <div className="flex gap-2 pt-1">
           <button
             type="button"
+            disabled={!onDownloadReceipt}
             onClick={onDownloadReceipt}
             className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
           >

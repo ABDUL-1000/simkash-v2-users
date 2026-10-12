@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { DataTable } from "@/components/common/DataTable";
 import { colors } from "@/constants/colors";
-import { initialScCommissionData } from "../data/mockData";
-import type { EpScCommissionRow } from "../types";
+import { useGetEnterpriseCommissionTable } from "../api/useGetEnterpriseCommissionTable";
+import { useExportEnterpriseCommissionTable } from "../api/useExportEnterpriseCommissionTable";
+import { useGetEnterprisePricing } from "../api/useGetEnterprisePricing";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { EpQueryState } from "./EpQueryState";
+import type { CommissionTableRow, EnterprisePeriod } from "../types/dashboard";
 import { formatNaira } from "../utils/formatters";
 import type { ColumnsType } from "antd/es/table";
 import { Download, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
+
 
 interface EpCommissionTableProps {
   onViewFullTable?: () => void;
@@ -15,12 +19,20 @@ interface EpCommissionTableProps {
 export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
   const [filterPeriod, setFilterPeriod] = useState<"month" | "quarter" | "all">("month");
 
-  const columns: ColumnsType<EpScCommissionRow> = [
+  const [search, setSearch] = useState("");
+  const pagination = useTablePagination();
+  const period: EnterprisePeriod = filterPeriod === "month" ? "this_month" : filterPeriod === "quarter" ? "last_3_months" : "all_time";
+  const query = useGetEnterpriseCommissionTable({ period, search, page: pagination.page, limit: pagination.pageSize });
+  const pricing = useGetEnterprisePricing();
+  const exporter = useExportEnterpriseCommissionTable();
+  const summary = query.data?.summary;
+
+  const columns: ColumnsType<CommissionTableRow> = [
     {
       title: "SC",
-      dataIndex: "name",
+      dataIndex: "coordinator_name",
       key: "name",
-      render: (name: string, row: EpScCommissionRow) => (
+      render: (name: string, row: CommissionTableRow) => (
         <div>
           <p className="font-bold text-slate-900 text-xs">{name}</p>
           <p className="text-[10px] text-slate-400">{row.state}</p>
@@ -29,59 +41,77 @@ export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
     },
     {
       title: "APS",
-      dataIndex: "apsCount",
+      dataIndex: "aps_count",
       key: "apsCount",
       align: "center",
       render: (val: number) => <span className="font-semibold text-slate-700">{val}</span>,
     },
     {
       title: "ACTS",
-      dataIndex: "actsCount",
+      dataIndex: "acts_count",
       key: "actsCount",
       align: "center",
-      render: (val: number) => <span className="font-bold text-emerald-600">{val.toLocaleString()}</span>,
+      render: (val: number | undefined) => (
+        <span className="font-bold text-emerald-600">
+          {typeof val === "number" && Number.isFinite(val) ? val.toLocaleString() : "—"}
+        </span>
+      ),
     },
     {
       title: "RETAIL",
-      dataIndex: "retailPrice",
+      dataIndex: "retail_price_formatted",
       key: "retailPrice",
-      render: (val: number) => <span className="text-slate-600 font-medium">{formatNaira(val)}</span>,
+      render: (val: string) => <span className="text-slate-600 font-medium">{val}</span>,
     },
     {
       title: "WHOLESALE",
       dataIndex: "wholesalePrice",
       key: "wholesalePrice",
-      render: (val: number) => <span className="text-slate-400 font-medium">{formatNaira(val)}</span>,
+      render: () => <span className="text-slate-400 font-medium">{pricing.data ? formatNaira(pricing.data.wholesale_price) : "—"}</span>,
     },
     {
       title: "MARGIN/SIM",
-      dataIndex: "marginPerSim",
+      dataIndex: "margin_per_sim_formatted",
       key: "marginPerSim",
-      render: (val: number) => <span className="text-slate-700 font-semibold">{formatNaira(val)}</span>,
+      render: (val: string) => <span className="text-slate-700 font-semibold">{val}</span>,
     },
     {
       title: "TOTAL MARGIN",
-      dataIndex: "totalMargin",
+      dataIndex: "total_margin_formatted",
       key: "totalMargin",
-      render: (val: number) => (
-        <span className="font-bold text-emerald-600">₦{(val / 1000).toLocaleString()}K</span>
+      render: (val: string) => (
+        <span className="font-bold text-emerald-600">{val}</span>
       ),
     },
     {
       title: "NET COMM",
-      dataIndex: "netCommission",
+      dataIndex: "commission_formatted",
       key: "netCommission",
-      render: (val: number) => (
-        <span className="font-bold text-emerald-600">₦{(val / 1000).toLocaleString()}K</span>
+      render: (val: string) => (
+        <span className="font-bold text-emerald-600">{val}</span>
       ),
     },
     {
       title: "TOTAL",
-      dataIndex: "total",
+      dataIndex: "total_earnings_formatted",
       key: "total",
-      render: (val: number) => (
-        <span className="font-black text-slate-900">₦{(val / 1000).toLocaleString()}K</span>
+      render: (val: string) => (
+        <span className="font-black text-slate-900">{val}</span>
       ),
+    },
+    { title: "STOCK", dataIndex: "stock_formatted", key: "stock" },
+    {
+      title: "STATUS",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string | undefined) => {
+        if (typeof status !== "string" || !status.trim()) return <span>—</span>;
+        return (
+          <span style={{ color: status.toLowerCase() === "active" ? colors.success : colors.warning }}>
+            {status}
+          </span>
+        );
+      },
     },
   ];
 
@@ -97,7 +127,7 @@ export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
           <div className="flex rounded-full bg-slate-100 p-0.5 text-xs font-semibold">
             <button
               type="button"
-              onClick={() => setFilterPeriod("month")}
+              onClick={() => { setFilterPeriod("month"); pagination.resetPage(); }}
               className={`rounded-full px-3 py-1 transition ${
                 filterPeriod === "month" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600"
               }`}
@@ -106,7 +136,7 @@ export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
             </button>
             <button
               type="button"
-              onClick={() => setFilterPeriod("quarter")}
+              onClick={() => { setFilterPeriod("quarter"); pagination.resetPage(); }}
               className={`rounded-full px-3 py-1 transition ${
                 filterPeriod === "quarter" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600"
               }`}
@@ -115,7 +145,7 @@ export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
             </button>
             <button
               type="button"
-              onClick={() => setFilterPeriod("all")}
+              onClick={() => { setFilterPeriod("all"); pagination.resetPage(); }}
               className={`rounded-full px-3 py-1 transition ${
                 filterPeriod === "all" ? "bg-slate-900 text-white shadow-xs" : "text-slate-600"
               }`}
@@ -135,7 +165,8 @@ export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
           </button>
           <button
             type="button"
-            onClick={() => toast.success("Commission table exported as CSV")}
+            disabled={exporter.isPending}
+            onClick={() => exporter.mutate(period)}
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
           >
             <Download className="size-3.5" /> Export
@@ -144,20 +175,26 @@ export function EpCommissionTable({ onViewFullTable }: EpCommissionTableProps) {
       </div>
 
       {/* Ant Design DataTable */}
-      <DataTable
+      <EpQueryState error={query.error} retry={query.refetch} />
+      {!query.isError && <DataTable
         columns={columns}
-        dataSource={initialScCommissionData}
-        pagination={false}
+        dataSource={query.data?.rows ?? []}
+        loading={query.isPending}
+        onSearch={(value) => { setSearch(value); pagination.resetPage(); }}
+        searchPlaceholder="Search coordinator name or state"
+        emptyTitle="No Commission Data"
+        emptyDescription="No commission records found for this period."
+        pagination={{ ...pagination.paginationConfig, total: query.data?.total_records ?? 0 }}
         scroll={{ x: 750 }}
-      />
+      />}
 
       {/* Summary Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-3 text-xs font-semibold text-slate-700 gap-2" style={{ borderColor: colors.border }}>
-        <span>12 SCs · 247 APs · 14,847 acts</span>
+        <span>{summary?.label ?? "—"}</span>
         <div className="flex items-center gap-4">
-          <span className="text-emerald-600">Total Margin: ₦29,694K</span>
-          <span className="text-emerald-600">Net Comm: ₦2,969K</span>
-          <span className="font-bold text-slate-900 text-sm">Total: ₦32,663K</span>
+          <span className="text-emerald-600">Total Margin: {summary?.total_margin_formatted ?? "—"}</span>
+          <span className="text-emerald-600">Net Comm: {summary?.total_commission_formatted ?? "—"}</span>
+          <span className="font-bold text-slate-900 text-sm">Total: {summary?.total_earnings_formatted ?? "—"}</span>
         </div>
       </div>
 

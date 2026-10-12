@@ -1,7 +1,10 @@
 import React from "react";
 import { ArrowUpRight, CheckCircle2, XCircle, Clock, ChevronRight } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { mockRecentPayouts } from "../data/mockWalletData";
+import { useGetEnterpriseRecentPayouts } from "../api/useGetEnterpriseRecentPayouts";
+import { walletPayout } from "../types/adapters";
+import { EpQueryState } from "../../components/EpQueryState";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import type { PayoutRecord } from "../types";
 
 interface EpRecentPayoutsCardProps {
@@ -13,6 +16,8 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
   onViewAllPayouts,
   onSelectPayout,
 }) => {
+  const query = useGetEnterpriseRecentPayouts();
+  const payouts = (query.data?.items ?? []).map(walletPayout);
   return (
     <div
       className="rounded-2xl p-5 border bg-white shadow-sm space-y-4"
@@ -37,8 +42,10 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
         </button>
       </div>
 
+      <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch} />
+      {query.isSuccess && !payouts.length && <AppEmptyState title="No Recent Payouts" description="Your payout requests will appear here." />}
       <div className="divide-y divide-slate-100">
-        {mockRecentPayouts.slice(0, 4).map((payout) => {
+        {payouts.slice(0, 4).map((payout) => {
           const isPaid = payout.status === "Paid";
           const isPending = payout.status === "Pending";
 
@@ -68,7 +75,7 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-800">
-                    ₦{payout.amount.toLocaleString()}.00
+                    {payout.amountFormatted}
                   </div>
                   <div className="text-[10px] text-slate-500">
                     {payout.date} · {payout.accountMask}
@@ -95,12 +102,13 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
         })}
       </div>
 
+      <p className="text-xs font-semibold" style={{ color: colors.textSecondary }}>{query.data?.total_paid_out_formatted}</p>
       <button
         type="button"
         onClick={onViewAllPayouts}
         className="w-full py-2 rounded-xl text-center text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 transition"
       >
-        View Complete Payout Ledger (23 Payouts)
+        View Complete Payout Ledger
       </button>
     </div>
   );

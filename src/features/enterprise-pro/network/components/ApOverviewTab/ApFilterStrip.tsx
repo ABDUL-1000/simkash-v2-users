@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, Filter } from "lucide-react";
 import { colors } from "@/constants/colors";
-import type { StateCoordinatorNetwork } from "../../types";
+import type { EnterpriseApFilterOption } from '../../types/api';
 
 interface ApFilterStripProps {
   searchQuery: string;
@@ -10,7 +10,7 @@ interface ApFilterStripProps {
   onScChange: (scId: string) => void;
   selectedStatus: string;
   onStatusChange: (status: string) => void;
-  coordinators: StateCoordinatorNetwork[];
+  coordinators: EnterpriseApFilterOption[];
   totalCount: number;
 }
 
@@ -26,9 +26,10 @@ export const ApFilterStrip: React.FC<ApFilterStripProps> = ({
 }) => {
   const statusPills = [
     { key: "all", label: `All APs (${totalCount})` },
-    { key: "active", label: "Active (212)" },
-    { key: "low_stock", label: "Low Stock (28)" },
-    { key: "out_of_stock", label: "Out of Stock (7)" },
+    { key: "Active", label: "Active" },
+    { key: "Low Stock", label: "Low Stock" },
+    { key: "Out of Stock", label: "Out of Stock" },
+    { key: "Suspended", label: "Suspended" },
   ];
 
   return (
@@ -76,10 +77,10 @@ export const ApFilterStrip: React.FC<ApFilterStripProps> = ({
             className="appearance-none pl-7 pr-8 py-1.5 text-xs bg-white border rounded-xl font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
             style={{ borderColor: colors.border }}
           >
-            <option value="all">All Coordinators (12)</option>
+            {!coordinators.some(c => String(c.id) === 'all') && <option value="all">All Coordinators</option>}
             {coordinators.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.state})
+                {c.name}
               </option>
             ))}
           </select>

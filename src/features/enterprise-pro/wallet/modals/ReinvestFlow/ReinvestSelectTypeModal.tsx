@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Package, ShieldAlert, Wifi, ArrowRight } from "lucide-react";
-import { mockWalletBalance } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 export type ReinvestType = "sim-stock" | "debt-payoff" | "network-topup";
 
@@ -16,22 +16,23 @@ export const ReinvestSelectTypeModal: React.FC<ReinvestSelectTypeModalProps> = (
   onClose,
   onProceed,
 }) => {
-  const [selectedType, setSelectedType] = useState<ReinvestType>("sim-stock");
+
+  const { walletBalance } = useEnterpriseWalletData();  const [selectedType, setSelectedType] = useState<ReinvestType>("sim-stock");
   const [amount, setAmount] = useState<number>(1_000_000);
 
   const options = [
     {
       id: "sim-stock" as ReinvestType,
       title: "Wholesale SIM Stock Order",
-      desc: "Buy high-margin SIM batches at preferential ₦4,700/SIM enterprise pricing.",
+      desc: "Reinvest available enterprise earnings into SIM stock.",
       icon: <Package className="w-5 h-5 text-purple-600" />,
-      badge: "Popular · 35% Margin",
+      badge: "Stock",
       badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
     },
     {
       id: "debt-payoff" as ReinvestType,
       title: "Pay Down Outstanding Balance",
-      desc: "Offset your remaining ₦7.5M initial balance directly without bank transfer fees.",
+      desc: "Pay down your outstanding principal using your enterprise wallet.",
       icon: <ShieldAlert className="w-5 h-5 text-amber-600" />,
       badge: "Zero Settlement Fees",
       badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
@@ -41,7 +42,7 @@ export const ReinvestSelectTypeModal: React.FC<ReinvestSelectTypeModalProps> = (
       title: "Enterprise Network Top-Up",
       desc: "Provision immediate wholesale data & airtime quota for your agent network.",
       icon: <Wifi className="w-5 h-5 text-blue-600" />,
-      badge: "Instant Allocation",
+      badge: "Contact Manager",
       badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
     },
   ];
@@ -55,7 +56,7 @@ export const ReinvestSelectTypeModal: React.FC<ReinvestSelectTypeModalProps> = (
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (amount > 0 && amount <= mockWalletBalance.totalBalance) {
+    if (amount > 0 && amount <= walletBalance.totalBalance) {
       onProceed(selectedType, amount);
     }
   };
@@ -75,11 +76,11 @@ export const ReinvestSelectTypeModal: React.FC<ReinvestSelectTypeModalProps> = (
           <div>
             <span className="text-[11px] text-slate-500 block">Available to Reinvest</span>
             <span className="text-base font-black text-slate-900">
-              ₦{mockWalletBalance.totalBalance.toLocaleString()}.00
+              ₦{(walletBalance?.totalBalance ?? 0).toLocaleString()}.00
             </span>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-            100% Retained Yield
+            Enterprise Wallet
           </span>
         </div>
 
@@ -123,7 +124,7 @@ export const ReinvestSelectTypeModal: React.FC<ReinvestSelectTypeModalProps> = (
           <input
             type="number"
             min={50000}
-            max={mockWalletBalance.totalBalance}
+            max={walletBalance.totalBalance}
             value={amount || ""}
             onChange={(e) => setAmount(Number(e.target.value))}
             className="w-full px-3 py-2 text-base font-bold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"

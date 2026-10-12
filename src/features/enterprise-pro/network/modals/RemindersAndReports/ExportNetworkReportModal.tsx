@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Download, FileSpreadsheet, FileText, CheckSquare, Square } from "lucide-react";
+import { openNotification } from '@/utils/notifications';
 
 interface ExportNetworkReportModalProps {
   open: boolean;
@@ -14,8 +15,8 @@ export const ExportNetworkReportModal: React.FC<ExportNetworkReportModalProps> =
   onStartExport,
 }) => {
   const [scope, setScope] = useState("all");
-  const [format, setFormat] = useState<"xlsx" | "csv" | "pdf">("xlsx");
-  const [period, setPeriod] = useState("current_month");
+  const [format, setFormat] = useState<"xlsx" | "csv" | "pdf">("csv");
+  const [period, setPeriod] = useState("all_time");
 
   const [includes, setIncludes] = useState({
     scOverview: true,
@@ -31,6 +32,10 @@ export const ExportNetworkReportModal: React.FC<ExportNetworkReportModalProps> =
   };
 
   const handleGenerate = () => {
+    if (format !== 'csv' || scope !== 'all' || period !== 'all_time' || !includes.scOverview || !includes.apDirectory || !includes.simInventory || !includes.activations || !includes.commissions || includes.statusHistory) {
+      openNotification({ state: 'info', title: 'Network Export', description: 'Full network CSV is available with the default report columns. Choose Full Network, All-Time Cumulative and CSV to download the server report.' });
+      return;
+    }
     onOpenChange(false);
     onStartExport({ scope, format, period });
   };
@@ -58,9 +63,9 @@ export const ExportNetworkReportModal: React.FC<ExportNetworkReportModalProps> =
               onChange={(e) => setScope(e.target.value)}
               className="w-full px-3 py-2 border rounded-xl bg-slate-50 text-xs focus:bg-white focus:outline-blue-600"
             >
-              <option value="all">Full Network (12 SCs, 247 APs)</option>
-              <option value="sc_only">State Coordinators Only (12 SCs)</option>
-              <option value="ap_only">Agency Partners Only (247 APs)</option>
+              <option value="all">Full Network</option>
+              <option value="sc_only">State Coordinators Only</option>
+              <option value="ap_only">Agency Partners Only</option>
             </select>
           </div>
           <div>
@@ -70,9 +75,9 @@ export const ExportNetworkReportModal: React.FC<ExportNetworkReportModalProps> =
               onChange={(e) => setPeriod(e.target.value)}
               className="w-full px-3 py-2 border rounded-xl bg-slate-50 text-xs focus:bg-white focus:outline-blue-600"
             >
-              <option value="current_month">Current Month (May 2026)</option>
-              <option value="last_month">Last Month (April 2026)</option>
-              <option value="q2">Q2 2026 (Apr - Jun)</option>
+              <option value="current_month">Current Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="q2">Quarterly</option>
               <option value="all_time">All-Time Cumulative</option>
             </select>
           </div>
@@ -92,7 +97,7 @@ export const ExportNetworkReportModal: React.FC<ExportNetworkReportModalProps> =
                 <button
                   key={fmt.key}
                   type="button"
-                  onClick={() => setFormat(fmt.key as any)}
+                  onClick={() => setFormat(fmt.key as 'xlsx' | 'csv' | 'pdf')}
                   className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-medium border transition ${
                     format === fmt.key
                       ? "bg-[#1F3A5F] text-white border-[#1F3A5F]"

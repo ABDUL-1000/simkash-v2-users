@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { AlertTriangle, XCircle, AlertOctagon } from "lucide-react";
 import type { StateCoordinatorNetwork } from "../../types";
+import { useUpdateScStatus } from '../../api/mutations';
+import { colors } from '@/constants/colors';
 
 interface SuspendScModalProps {
   open: boolean;
@@ -18,12 +20,18 @@ export const SuspendScModal: React.FC<SuspendScModalProps> = ({
 }) => {
   const [reason, setReason] = useState("Inactivity > 30 days");
   const [note, setNote] = useState("");
+  const update = useUpdateScStatus(coordinator?.id ?? '');
 
   if (!coordinator) return null;
 
   const handleConfirm = () => {
-    onOpenChange(false);
-    onConfirmSuspend(coordinator, note ? `${reason}: ${note}` : reason);
+    if (update.isPending) return;
+    const explanation = note.trim() ? `${reason}: ${note.trim()}` : reason;
+    update.mutate({ status: 'SUSPENDED', reason: explanation }, { onSuccess: result => {
+      onOpenChange(false);
+      onConfirmSuspend({ ...coordinator, name: result.name, status: result.new_status.toUpperCase() === 'SUSPENDED' ? 'suspended' : 'active', suspensionReason: result.reason,
+        api: coordinator.api ? { ...coordinator.api, name: result.name, status: result.new_status } : undefined }, result.reason);
+    } });
   };
 
   return (
@@ -96,6 +104,7 @@ export const SuspendScModal: React.FC<SuspendScModalProps> = ({
         </div>
 
         {/* Actions */}
+        {update.error && <p role="alert" className="text-xs" style={{ color: colors.danger }}>{update.error.message}</p>}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
@@ -107,10 +116,11 @@ export const SuspendScModal: React.FC<SuspendScModalProps> = ({
           <button
             type="button"
             onClick={handleConfirm}
+            disabled={update.isPending}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition"
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>Confirm Suspension</span>
+            <span>{update.isPending ? 'Updating…' : 'Confirm Suspension'}</span>
           </button>
         </div>
       </div>

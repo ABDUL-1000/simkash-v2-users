@@ -21,46 +21,15 @@ export function CaStockEventDetailsModal({
   const isReturn = event.eventType === "Returned";
   const isDistributed = event.eventType === "Distributed";
 
-  const subtitle = isReturn
-    ? "Returned from Agency Partner"
-    : isDistributed
-    ? "Distributed to Agency Partner"
-    : "Received from Super Admin";
-
-  const apName =
-    event.apName ||
-    event.fromTo.replace(/^(To|From|Returned by):\s*/, "") ||
-    "Francis Udom (AP)";
-
-  const apFirstName = apName.split(" ")[0] || "AP";
-
-  const locationAndPhone =
-    event.apLocation && event.apPhone
-      ? `${event.apLocation} · ${event.apPhone}`
-      : isDistributed
-      ? "Lagos · 08120428684"
-      : "Lagos · 08155667788";
-
-  const returnReason =
-    event.returnReason || "AP reducing operations in Surulere area";
-
-  const stockBefore =
-    event.stockBefore ||
-    (isDistributed ? "500 POS SIMs" : event.qty > 0 ? "490 POS SIMs" : "515 POS SIMs");
-
-  const quantityChangedText =
-    event.stockReturnedOrChanged ||
-    (event.qty > 0
-      ? `+${event.qty} ${event.simType}s`
-      : `${event.qty} ${event.simType}s`);
-
-  const stockAfter =
-    event.stockAfter ||
-    (isDistributed ? "485 POS SIMs" : event.runningTotal || "500 POS SIMs");
-
-  const recipientTransition =
-    event.recipientStockTransition || "3 → 18 SIMs";
-
+  const subtitle = event.eventType === "Adjusted" ? "Admin Stock Adjustment" : isReturn ? "Returned from Agency Partner" : isDistributed ? "Distributed to Agency Partner" : "Received from Super Admin";
+  const apName = event.apName || event.fromTo.replace(/^(To|From|Returned by):\s*/, "");
+  const apFirstName = apName.split(" ")[0];
+  const locationAndPhone = [event.apLocation, event.apPhone].filter(Boolean).join(" · ");
+  const returnReason = event.returnReason;
+  const stockBefore = event.stockBefore;
+  const quantityChangedText = (event.qty > 0 ? "+" : "") + event.qty + " " + event.simType;
+  const stockAfter = event.stockAfter || event.runningTotal;
+  const recipientTransition = event.recipientStockTransition;
   const displayDate = event.detailedDate || event.timeLabel;
 
   return (
@@ -110,7 +79,7 @@ export function CaStockEventDetailsModal({
             </div>
             <div>
               <div className="font-bold text-sm text-emerald-950">
-                Stock Received from Admin
+                {event.eventType === "Adjusted" ? "Admin Stock Adjustment" : "Stock Received from Admin"}
               </div>
               <div className="text-xs text-emerald-700 font-medium mt-0.5">
                 {event.timeLabel}
@@ -120,6 +89,8 @@ export function CaStockEventDetailsModal({
         )}
 
         {/* KEY-VALUE ROWS */}
+        <div className="py-2.5 flex items-center justify-between"><span className="text-slate-500 font-medium">Reference</span><span>{event.ref}</span></div>
+        {/* Missing reason, stock-before, recipient transitions, contact details and profile link are not fabricated: no event detail endpoint was supplied. */}
         <div className="divide-y divide-slate-100 pt-1">
           {/* Event Type */}
           <div className="py-2.5 flex items-center justify-between">
@@ -137,7 +108,7 @@ export function CaStockEventDetailsModal({
                 ? "Returned from AP"
                 : isDistributed
                 ? "Distributed to AP"
-                : "Received from Super Admin"}
+                : event.eventType === "Adjusted" ? "Admin Stock Adjustment" : "Received from Super Admin"}
             </span>
           </div>
 
@@ -175,7 +146,7 @@ export function CaStockEventDetailsModal({
           </div>
 
           {/* Return Reason (shown for return events) */}
-          {isReturn && (
+          {isReturn && returnReason && (
             <div className="py-2.5 flex items-center justify-between">
               <span className="text-slate-500 font-medium">Return Reason</span>
               <span className="italic text-slate-700 text-right">
@@ -185,10 +156,10 @@ export function CaStockEventDetailsModal({
           )}
 
           {/* Stock Before */}
-          <div className="py-2.5 flex items-center justify-between">
+          {stockBefore && <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500 font-medium">Stock Before</span>
             <span className="font-medium text-slate-900">{stockBefore}</span>
-          </div>
+          </div>}
 
           {/* Returned / Distributed */}
           <div className="py-2.5 flex items-center justify-between">
@@ -211,7 +182,7 @@ export function CaStockEventDetailsModal({
           </div>
 
           {/* Francis After (or {apFirstName} After) - shown for distributed events */}
-          {isDistributed && (
+          {isDistributed && recipientTransition && (
             <div className="py-2.5 flex items-center justify-between">
               <span className="text-slate-500 font-medium">
                 {apFirstName} After
@@ -231,7 +202,7 @@ export function CaStockEventDetailsModal({
 
         {/* FOOTER ACTIONS - MATCHES MOCKUPS */}
         <div className="pt-3 flex items-center justify-between gap-3 border-t border-slate-100">
-          {isReturn || isDistributed ? (
+          {onViewApProfile && (isReturn || isDistributed) ? (
             <button
               type="button"
               onClick={() => {

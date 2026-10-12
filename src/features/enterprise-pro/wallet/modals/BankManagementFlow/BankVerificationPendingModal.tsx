@@ -1,8 +1,10 @@
+import type { EnterprisePayoutAccount } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Clock, ShieldCheck, ArrowRight } from "lucide-react";
 
 interface BankVerificationPendingModalProps {
+  result?: EnterprisePayoutAccount | null;
   open: boolean;
   bank: string;
   acctNo: string;
@@ -11,13 +13,14 @@ interface BankVerificationPendingModalProps {
 }
 
 export const BankVerificationPendingModal: React.FC<BankVerificationPendingModalProps> = ({
+  result,
   open,
   bank,
   acctNo,
   acctName,
   onClose,
 }) => {
-  const mask = acctNo.length >= 4 ? `****${acctNo.slice(-4)}` : "****4582";
+  const mask = acctNo.length >= 4 ? `****${acctNo.slice(-4)}` : "—";
 
   return (
     <AppModal
@@ -33,38 +36,38 @@ export const BankVerificationPendingModal: React.FC<BankVerificationPendingModal
         </div>
 
         <div>
-          <h4 className="text-base font-bold text-slate-900">Verification Request Submitted</h4>
+          <h4 className="text-base font-bold text-slate-900">Payout Account {result?.status ?? "Saved"}</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Your new settlement bank account details have been logged and queued for compliance verification.
+            Your payout account has been saved. Its current status is {result?.status ?? "unavailable"}.
           </p>
         </div>
 
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2">
           <div className="flex justify-between">
-            <span className="text-slate-500">Request Ref:</span>
-            <span className="font-mono font-bold text-slate-800">REF-BANK-2024-0039</span>
+            <span className="text-slate-500">Account ID:</span>
+            <span className="font-mono font-bold text-slate-800">{result?.id ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Bank Name:</span>
-            <span className="font-semibold text-slate-900">{bank}</span>
+            <span className="font-semibold text-slate-900">{result?.bank_name ?? bank}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Account:</span>
-            <span className="font-mono font-bold text-slate-800">{mask}</span>
+            <span className="font-mono font-bold text-slate-800">{result?.account_number_masked ?? mask}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Beneficiary:</span>
-            <span className="font-medium text-slate-800">{acctName}</span>
+            <span className="font-medium text-slate-800">{result?.account_name ?? acctName}</span>
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-1.5">
-            <span className="text-slate-500">Review SLA:</span>
-            <span className="font-bold text-amber-700">24 – 48 Hours</span>
+            <span className="text-slate-500">Status:</span>
+            <span className="font-bold text-amber-700">{result?.status ?? "—"}</span>
           </div>
         </div>
 
         <div className="p-2.5 bg-blue-50/50 rounded-lg text-[11px] text-blue-800 flex items-center gap-2 text-left">
           <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-          <span>Active payouts will continue safely to your current Access Bank account until approval.</span>
+          <span>Future payout requests use your verified account returned by the backend.</span>
         </div>
 
         <button

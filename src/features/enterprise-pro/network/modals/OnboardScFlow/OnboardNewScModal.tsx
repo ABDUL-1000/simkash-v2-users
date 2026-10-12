@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { UserPlus, Plus, Minus, Send } from "lucide-react";
 import type { OnboardScFormData } from "../../types";
+import type { OnboardScResult } from '../../types/api';
+import { useOnboardStateCoordinator } from '../../api/mutations';
+import { colors } from '@/constants/colors';
 
 interface OnboardNewScModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (data: OnboardScFormData) => void;
+  onSuccess: (data: OnboardScFormData, result: OnboardScResult) => void;
 }
 
 export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
@@ -19,13 +22,16 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
     phone: "",
     email: "",
     state: "Lagos",
-    lga: "Ikeja",
+    lga: "",
     commissionRate: 0.08,
-    posSims: 50,
-    cctvSims: 20,
-    gpsSims: 15,
-    routerSims: 10,
+    posSims: 0,
+    cctvSims: 0,
+    gpsSims: 0,
+    routerSims: 0,
   });
+  const onboard = useOnboardStateCoordinator();
+  const valid = !!form.fullName.trim() && !!form.email.trim() && !!form.phone.trim() && !!form.state.trim() && !!form.lga.trim()
+    && [form.posSims, form.cctvSims, form.gpsSims, form.routerSims].every(value => Number.isSafeInteger(value) && value >= 0);
 
   const totalSims = form.posSims + form.cctvSims + form.gpsSims + form.routerSims;
 
@@ -38,8 +44,11 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onOpenChange(false);
-    onSuccess(form);
+    if (!valid || onboard.isPending) return;
+    onboard.mutate({ fullname: form.fullName.trim(), email: form.email.trim(), phone: form.phone.trim(), state: form.state,
+      lga: form.lga.trim(), initial_sim_allocation: { pos: form.posSims, cctv: form.cctvSims, gps: form.gpsSims, router: form.routerSims } }, {
+      onSuccess: result => { onOpenChange(false); onSuccess(form, result); },
+    });
   };
 
   return (
@@ -104,7 +113,12 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
               <option value="Rivers">Rivers</option>
               <option value="Oyo">Oyo</option>
               <option value="Kaduna">Kaduna</option>
+              {['Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Plateau', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara'].map(state => <option key={state} value={state}>{state}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-slate-700 block mb-1">LGA</label>
+            <input required value={form.lga} onChange={e => setForm({ ...form, lga: e.target.value })} className="w-full px-3 py-2 border rounded-xl bg-slate-50 text-xs focus:bg-white focus:outline-blue-600"/>
           </div>
         </div>
 
@@ -118,6 +132,8 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
               <button
                 key={rate}
                 type="button"
+                disabled
+                title="Commission rate is assigned by the server during onboarding"
                 onClick={() => setForm({ ...form, commissionRate: rate })}
                 className={`py-2 rounded-xl text-xs font-semibold border transition ${
                   form.commissionRate === rate
@@ -129,6 +145,7 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
               </button>
             ))}
           </div>
+          <p className="text-[11px] text-slate-500">Commission rate is assigned by the server.</p>
         </div>
 
         {/* Initial SIM Allocation */}
@@ -150,7 +167,7 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => updateSim(sim.key as any, -5)}
+                    onClick={() => updateSim(sim.key as 'posSims' | 'cctvSims' | 'gpsSims' | 'routerSims', -5)}
                     className="w-5 h-5 rounded flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700"
                   >
                     <Minus className="w-3 h-3" />
@@ -158,7 +175,7 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
                   <span className="text-xs font-bold text-slate-900">{sim.val}</span>
                   <button
                     type="button"
-                    onClick={() => updateSim(sim.key as any, 5)}
+                    onClick={() => updateSim(sim.key as 'posSims' | 'cctvSims' | 'gpsSims' | 'routerSims', 5)}
                     className="w-5 h-5 rounded flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700"
                   >
                     <Plus className="w-3 h-3" />
@@ -170,6 +187,7 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
         </div>
 
         {/* Actions */}
+        {onboard.error && <p role="alert" className="text-xs" style={{ color: colors.danger }}>{onboard.error.message}</p>}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
@@ -180,10 +198,11 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({
           </button>
           <button
             type="submit"
+            disabled={!valid || onboard.isPending}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#1F3A5F] text-white font-bold hover:bg-slate-800"
           >
             <Send className="w-4 h-4" />
-            <span>Send Onboarding Invite</span>
+            <span>{onboard.isPending ? 'Sending Invite…' : 'Send Onboarding Invite'}</span>
           </button>
         </div>
       </form>

@@ -1,0 +1,4 @@
+.ca-inventory-table .simkash-datatable-wrapper > div:first-child { display: none; }
+.ca-inventory-table .simkash-datatable-wrapper > div:last-child { border: 0; border-radius: 0; box-shadow: none; }
+.ca-inventory-table .ant-table-thead > tr > th { font-size: 10px; text-transform: uppercase; padding: 10px 12px; }
+.ca-inventory-table .ant-table-tbody > tr > td { font-size: 12px; padding: 12px; }

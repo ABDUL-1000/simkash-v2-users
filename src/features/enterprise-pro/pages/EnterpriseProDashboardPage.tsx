@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
-import { initialKpis } from "../data/mockData";
-import type { EpKpiData, SimOrderDraft } from "../types";
+import { useGetEnterpriseOverview } from "../api/useGetEnterpriseOverview";
+import { EpQueryState } from "../components/EpQueryState";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import type { SimOrderDraft } from "../types";
 import { EpMetricsHeader } from "../components/EpMetricsHeader";
 import { EpCommissionTable } from "../components/EpCommissionTable";
 import { EpQuickActionToolbar } from "../components/EpQuickActionToolbar";
@@ -26,10 +28,10 @@ import { ReinvestEarningsModal } from "../modals/ReinvestEarningsModal";
 import { Bell, Phone } from "lucide-react";
 
 export function EnterpriseProDashboardPage() {
-  const { user, profile, wallet } = useGetAuthUser();
+  const { user, profile } = useGetAuthUser();
   const displayName = profile?.fullname || user?.username || "Enterprise Partner";
 
-  const [kpi, setKpi] = useState<EpKpiData>(initialKpis);
+  const overview = useGetEnterpriseOverview();
 
   // Modal States
   const [showRoi, setShowRoi] = useState(false);
@@ -44,10 +46,10 @@ export function EnterpriseProDashboardPage() {
 
   const [orderDraft, setOrderDraft] = useState<SimOrderDraft>({
     simType: "POS SIM",
-    quantity: 400,
-    unitCost: 2500,
-    retailPrice: 4500,
-    totalCost: 1000000,
+    quantity: 100,
+    unitCost: 0,
+    retailPrice: 0,
+    totalCost: 0,
     paymentSource: "wallet",
   });
 
@@ -58,32 +60,14 @@ export function EnterpriseProDashboardPage() {
     setShowConfirmOrder(true);
   };
 
-  const handleOrderPlaced = (placed: SimOrderDraft) => {
-    setKpi((prev) => ({
-      ...prev,
-      activeSimStock: prev.activeSimStock + placed.quantity,
-      walletBalance: Math.max(0, prev.walletBalance - placed.totalCost),
-    }));
-  };
-
-  const handlePaymentSuccess = (paid: number) => {
-    setKpi((prev) => ({
-      ...prev,
-      balanceRemaining: Math.max(0, prev.balanceRemaining - paid),
-      walletBalance: Math.max(0, prev.walletBalance - paid),
-    }));
-  };
-
-  const effectiveKpi: EpKpiData = {
-    ...kpi,
-    walletBalance: wallet?.balance ?? kpi.walletBalance,
-  };
+  if (overview.isPending || overview.isError) return <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch} />;
+  if (!overview.data) return <AppEmptyState title="No Enterprise Data" description="Your enterprise dashboard data is not available yet." />;
 
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header */}
       <PageHeader
-        title={`Welcome back, ${displayName}`}
+        title={`Welcome back, ${overview.data.enterprise_profile.name || displayName}`}
         description="Manage your regional investment, SIM inventory, pricing margins, and State Coordinator network"
         actions={[
           {
@@ -97,7 +81,7 @@ export function EnterpriseProDashboardPage() {
               >
                 <Bell className="size-4" />
                 <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                  3
+                  0
                 </span>
               </button>
             ),
@@ -113,7 +97,7 @@ export function EnterpriseProDashboardPage() {
 
       {/* KPI Metrics Strip */}
       <EpMetricsHeader
-        kpi={effectiveKpi}
+        overview={overview.data}
         onOrderMore={() => setShowOrderSims(true)}
         onReinvest={() => setShowReinvest(true)}
         onPayDown={() => setShowPayDown(true)}
@@ -143,9 +127,10 @@ export function EnterpriseProDashboardPage() {
 
         {/* Right Column */}
         <div className="lg:col-span-5 space-y-6">
-          <EpBalancePayoffCard onPayDown={() => setShowPayDown(true)} />
+          <EpBalancePayoffCard balance={overview.data.balance_card} onPayDown={() => setShowPayDown(true)} />
           <EpReinvestCard
-            onOrderMore={() => setShowOrderSims(true)}
+            overview={overview.data}
+            onOrderMore={() => setShowReinvest(true)}
             onPayDown={() => setShowPayDown(true)}
           />
           <EpRoiProjectionCard />
@@ -167,7 +152,6 @@ export function EnterpriseProDashboardPage() {
       <PayDownBalanceModal
         open={showPayDown}
         onOpenChange={setShowPayDown}
-        onPaymentSuccess={handlePaymentSuccess}
       />
       <OrderMoreSimsModal
         open={showOrderSims}
@@ -182,7 +166,6 @@ export function EnterpriseProDashboardPage() {
           setShowConfirmOrder(false);
           setShowOrderSims(true);
         }}
-        onOrderPlaced={handleOrderPlaced}
       />
       <ReinvestEarningsModal
         open={showReinvest}

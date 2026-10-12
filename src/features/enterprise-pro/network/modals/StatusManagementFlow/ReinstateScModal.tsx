@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { RotateCcw, CheckCircle2 } from "lucide-react";
 import type { StateCoordinatorNetwork } from "../../types";
+import { useUpdateScStatus } from '../../api/mutations';
+import { colors } from '@/constants/colors';
 
 interface ReinstateScModalProps {
   open: boolean;
@@ -17,12 +19,17 @@ export const ReinstateScModal: React.FC<ReinstateScModalProps> = ({
   onConfirmReinstate,
 }) => {
   const [note, setNote] = useState("");
+  const update = useUpdateScStatus(coordinator?.id ?? '');
 
   if (!coordinator) return null;
 
   const handleConfirm = () => {
-    onOpenChange(false);
-    onConfirmReinstate(coordinator, note);
+    if (update.isPending || !note.trim()) return;
+    update.mutate({ status: 'ACTIVE', reason: note.trim() }, { onSuccess: result => {
+      onOpenChange(false);
+      onConfirmReinstate({ ...coordinator, name: result.name, status: result.new_status.toUpperCase() === 'ACTIVE' ? 'active' : 'suspended',
+        api: coordinator.api ? { ...coordinator.api, name: result.name, status: result.new_status } : undefined }, result.reason);
+    } });
   };
 
   return (
@@ -65,7 +72,7 @@ export const ReinstateScModal: React.FC<ReinstateScModalProps> = ({
         {/* Note */}
         <div>
           <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-            Reinstatement Note (Optional)
+            Reinstatement Reason
           </label>
           <textarea
             rows={2}
@@ -77,6 +84,7 @@ export const ReinstateScModal: React.FC<ReinstateScModalProps> = ({
         </div>
 
         {/* Actions */}
+        {update.error && <p role="alert" className="text-xs" style={{ color: colors.danger }}>{update.error.message}</p>}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
@@ -88,10 +96,11 @@ export const ReinstateScModal: React.FC<ReinstateScModalProps> = ({
           <button
             type="button"
             onClick={handleConfirm}
+            disabled={update.isPending || !note.trim()}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>Confirm Reinstatement</span>
+            <span>{update.isPending ? 'Updating…' : 'Confirm Reinstatement'}</span>
           </button>
         </div>
       </div>

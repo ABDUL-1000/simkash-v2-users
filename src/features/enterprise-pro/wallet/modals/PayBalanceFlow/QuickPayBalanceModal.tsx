@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { DollarSign, ShieldAlert, ArrowRight } from "lucide-react";
-import { mockWalletBalance } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface QuickPayBalanceModalProps {
   open: boolean;
@@ -15,7 +15,10 @@ export const QuickPayBalanceModal: React.FC<QuickPayBalanceModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const { balanceRemaining, totalBalance } = mockWalletBalance;
+
+  const { walletBalance } = useEnterpriseWalletData();
+  const balanceRemaining = walletBalance?.balanceRemaining ?? 0;
+  const totalBalance = walletBalance?.totalBalance ?? 0;
   const maxPayable = Math.min(balanceRemaining, totalBalance);
   const [amount, setAmount] = useState<number>(Math.min(1_000_000, maxPayable));
   const [pin, setPin] = useState("");
@@ -24,13 +27,14 @@ export const QuickPayBalanceModal: React.FC<QuickPayBalanceModalProps> = ({
     { label: "₦500k", val: 500_000 },
     { label: "₦1.0M", val: 1_000_000 },
     { label: "₦2.0M", val: 2_000_000 },
-    { label: `All Wallet (₦${(totalBalance / 1000).toLocaleString()}k)`, val: maxPayable },
+    { label: `All Wallet (₦${((totalBalance || 0) / 1000).toLocaleString()}k)`, val: maxPayable },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount > 0 && pin.length >= 4) {
       onSubmit(amount);
+      setPin("");
     }
   };
 
@@ -52,12 +56,12 @@ export const QuickPayBalanceModal: React.FC<QuickPayBalanceModalProps> = ({
               Outstanding Contract Balance
             </span>
             <span className="text-sm font-black text-amber-950">
-              ₦{balanceRemaining.toLocaleString()}.00
+              ₦{(balanceRemaining || 0).toLocaleString()}.00
             </span>
           </div>
           <div className="flex justify-between text-slate-600 border-t border-amber-200/60 pt-1.5">
             <span>Available Wallet Balance:</span>
-            <span className="font-bold text-slate-900">₦{totalBalance.toLocaleString()}.00</span>
+            <span className="font-bold text-slate-900">₦{(totalBalance || 0).toLocaleString()}.00</span>
           </div>
         </div>
 
@@ -142,7 +146,7 @@ export const QuickPayBalanceModal: React.FC<QuickPayBalanceModalProps> = ({
             className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-xl shadow-sm flex items-center gap-1.5 transition"
           >
             <DollarSign className="w-3.5 h-3.5" />
-            Apply ₦{amount.toLocaleString()} Payment
+            Apply ₦{(amount || 0).toLocaleString()} Payment
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

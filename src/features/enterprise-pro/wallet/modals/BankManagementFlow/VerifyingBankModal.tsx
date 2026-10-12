@@ -25,7 +25,7 @@ export const VerifyingBankModal: React.FC<VerifyingBankModalProps> = ({
         <div>
           <h4 className="text-base font-bold text-slate-900">Validating Bank Account...</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Connecting to Nigerian Inter-Bank Settlement System (NIBSS) to verify corporate beneficiary credentials...
+            Saving your payout account and retrieving its status from Simkash...
           </p>
         </div>
       </div>

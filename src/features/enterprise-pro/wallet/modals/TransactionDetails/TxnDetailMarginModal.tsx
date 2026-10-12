@@ -16,9 +16,9 @@ export const TxnDetailMarginModal: React.FC<TxnDetailMarginModalProps> = ({
   onClose,
   onDownloadReceipt,
 }) => {
-  const amount = txn?.amount ?? 45000;
-  const ref = txn?.ref ?? "TXN-MRG-2024-00847";
-  const date = txn?.date ?? "18 Jun 2026, 14:32";
+  const amount = txn?.amount ?? 0;
+  const ref = txn?.ref ?? "—";
+  const date = txn?.date ?? "—";
 
   return (
     <AppModal
@@ -37,11 +37,11 @@ export const TxnDetailMarginModal: React.FC<TxnDetailMarginModalProps> = ({
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Enterprise Margin</span>
             <div className="text-2xl font-black text-emerald-600 mt-0.5">
-              +₦{amount.toLocaleString()}.00
+              {txn?.amountFormatted ?? `₦${amount.toLocaleString()}`}
             </div>
           </div>
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3" /> Completed & Credited
+            <CheckCircle2 className="w-3 h-3" /> {txn?.status ?? "—"}
           </span>
         </div>
 
@@ -61,11 +61,11 @@ export const TxnDetailMarginModal: React.FC<TxnDetailMarginModalProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">SIMs Sold:</span>
-            <span className="font-bold text-slate-800">3 SIMs</span>
+            <span className="font-bold text-slate-800">—</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Profit Rate:</span>
-            <span className="font-bold text-emerald-700">₦15,000 / SIM Spread</span>
+            <span className="font-bold text-emerald-700">—</span>
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-1.5">
             <span className="text-slate-500">Settlement Wallet:</span>
@@ -77,6 +77,7 @@ export const TxnDetailMarginModal: React.FC<TxnDetailMarginModalProps> = ({
         <div className="flex gap-2 pt-1">
           <button
             type="button"
+            disabled={!onDownloadReceipt}
             onClick={onDownloadReceipt}
             className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
           >

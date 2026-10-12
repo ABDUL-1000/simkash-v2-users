@@ -74,7 +74,7 @@ export const userNavigation: NavigationSection[] = [
   },
   {
     label: "Enterprise Pro",
-    roles: ["ENTERPRISE_PRO"],
+    roles: ["ENTERPRISE"],
     items: [
       {
         id: "ep-dashboard",
@@ -84,11 +84,11 @@ export const userNavigation: NavigationSection[] = [
         badge: "EP",
       },
       {
-        id: "ep-wallet",
+        id: "enterprise-wallet",
         label: "My Wallet",
-        href: appPaths.enterpriseProWallet,
+        href: appPaths.enterpriseWallet,
         icon: Wallet,
-        badge: "₦2.84M",
+        badge: "EP",
       },
       {
         id: "ep-investment",
@@ -238,7 +238,7 @@ export const userNavigation: NavigationSection[] = [
   },
   {
     label: "corporate-agent",
-    roles: ["CORPORATE_AGENT"],
+    roles: ["CORPORATE_SALES_AGENT"],
     items: [
       {
         id: "corporate-agent-dashboard",

@@ -23,6 +23,7 @@ export interface DataTableProps<T> {
   emptyActionText?: string;
   onEmptyAction?: () => void;
   emptyIcon?: ReactNode;
+  hideToolbar?: boolean;
 }
 
 export function DataTable<T extends object>({
@@ -44,6 +45,7 @@ export function DataTable<T extends object>({
   emptyActionText,
   onEmptyAction,
   emptyIcon,
+  hideToolbar = false,
 }: DataTableProps<T>) {
   const [localSearch, setLocalSearch] = useState("");
   const rows = Array.isArray(dataSource) ? dataSource : [];
@@ -66,7 +68,7 @@ export function DataTable<T extends object>({
     onSearch?.(val);
   };
 
-  const showToolbar = onSearch !== undefined || searchPlaceholder !== undefined || extraFilters || headerRight;
+  const showToolbar = !hideToolbar && (onSearch !== undefined || searchPlaceholder !== undefined || extraFilters || headerRight);
 
   return (
     <div className={`simkash-datatable-wrapper space-y-4 ${className}`}>

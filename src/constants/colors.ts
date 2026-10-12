@@ -356,3 +356,12 @@ export const AUTOMATED_SCHEDULE_COLORS = {
     lightText: APP_COLORS.ambers.secondary,
   },
 } as const;
+// Existing Corporate Agent dashboard accents, centralized without changing its palette.
+export const CA_DASHBOARD_COLORS = {
+  stockText: "#334155",
+  distributeBg: "#F3E8FF",
+  distributeText: "#8B5CF6",
+  payoutBg: "#FFFBEB",
+  payoutText: "#D97706",
+  commissionGradient: "linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)",
+} as const;

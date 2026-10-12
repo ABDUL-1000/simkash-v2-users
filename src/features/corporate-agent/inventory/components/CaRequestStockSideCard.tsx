@@ -1,12 +1,14 @@
 import { Send, Plus, Clock } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
 
+import type { CaInventoryOverviewData } from "../types/inventory";
 interface CaRequestStockSideCardProps {
+  data: CaInventoryOverviewData["request_stock_card"];
   onRequestStock?: () => void;
 }
 
 export function CaRequestStockSideCard({
-  onRequestStock,
+  data, onRequestStock,
 }: CaRequestStockSideCardProps) {
   return (
     <div
@@ -19,13 +21,13 @@ export function CaRequestStockSideCard({
       </div>
 
       <p className="text-xs text-slate-500 leading-relaxed">
-        Low on SIMs? Submit a stock request to your Super Admin. Requests are
-        typically fulfilled within 24–48 hours.
+        {data.message}
       </p>
 
       <button
         type="button"
         onClick={onRequestStock}
+        disabled={!data.can_request}
         className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] hover:opacity-90"
         style={{ backgroundColor: APP_COLORS.greys.primary }}
       >
@@ -35,7 +37,7 @@ export function CaRequestStockSideCard({
 
       <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium">
         <Clock className="w-3 h-3" />
-        <span>Last request: 12 days ago • Fulfilled</span>
+        <span>{data.last_request_text}</span>
       </div>
     </div>
   );

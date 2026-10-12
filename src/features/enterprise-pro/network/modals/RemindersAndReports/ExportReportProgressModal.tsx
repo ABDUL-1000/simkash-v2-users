@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { AppModal } from "@/components/common/AppModal";
-import { CheckCircle2, Download, Loader2, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, Download, Loader2, FileSpreadsheet, AlertTriangle } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { getEnterpriseNetworkReport, downloadNetworkReport } from '../../api/exportEnterpriseNetworkReport';
+import { colors } from '@/constants/colors';
 
 interface ExportReportProgressModalProps {
   open: boolean;
@@ -13,42 +16,16 @@ export const ExportReportProgressModal: React.FC<ExportReportProgressModalProps>
   onOpenChange,
   config,
 }) => {
-  const [progress, setProgress] = useState(15);
-  const [isDone, setIsDone] = useState(false);
-
-  useEffect(() => {
-    if (!open) {
-      setProgress(15);
-      setIsDone(false);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsDone(true);
-          return 100;
-        }
-        return prev + 25;
-      });
-    }, 450);
-
-    return () => clearInterval(interval);
-  }, [open]);
-
-  const filename = `simkash-network-report-${config?.period || "may-2026"}.${config?.format || "xlsx"}`;
+  const query = useQuery({ queryKey: ['enterprise-my-network-export', config], queryFn: getEnterpriseNetworkReport,
+    enabled: open, staleTime: 0, retry: false, refetchOnWindowFocus: false });
+  const isDone = query.isSuccess && !query.isFetching;
+  const progress = isDone ? 100 : 0;
+  const filename = 'Enterprise_Network_Report.csv';
 
   const handleDownload = () => {
-    const blob = new Blob(["Mock network report export data"], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (query.isError) { void query.refetch(); return; }
+    if (!isDone || !query.data) return;
+    downloadNetworkReport(query.data, filename);
     onOpenChange(false);
   };
 
@@ -62,17 +39,17 @@ export const ExportReportProgressModal: React.FC<ExportReportProgressModalProps>
               : "bg-blue-50 text-blue-600 border-blue-100"
           }`}
         >
-          {isDone ? <CheckCircle2 className="w-7 h-7" /> : <Loader2 className="w-7 h-7 animate-spin" />}
+          {query.isError ? <AlertTriangle className="w-7 h-7"/> : isDone ? <CheckCircle2 className="w-7 h-7" /> : <Loader2 className="w-7 h-7 animate-spin" />}
         </div>
 
         <div>
           <h3 className="text-base font-bold text-slate-900">
-            {isDone ? "Report Ready for Download!" : "Compiling Network Report..."}
+            {query.isError ? 'Export Failed' : isDone ? "Report Ready for Download!" : "Compiling Network Report..."}
           </h3>
           <p className="text-xs text-slate-500 mt-1">
             {isDone
               ? "Your export file is prepared and ready to download."
-              : "Structuring performance metrics across 12 SCs and 247 APs..."}
+              : "Retrieving the network report..."}
           </p>
         </div>
 
@@ -80,7 +57,7 @@ export const ExportReportProgressModal: React.FC<ExportReportProgressModalProps>
         <div className="space-y-1 text-left">
           <div className="flex justify-between text-[11px] text-slate-500">
             <span>Progress</span>
-            <span className="font-bold text-slate-800">{progress}%</span>
+            <span className="font-bold text-slate-800">{isDone ? '100%' : query.isError ? 'Failed' : 'Loading…'}</span>
           </div>
           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
@@ -99,11 +76,12 @@ export const ExportReportProgressModal: React.FC<ExportReportProgressModalProps>
           </div>
           <div className="overflow-hidden">
             <span className="text-xs font-bold text-slate-800 block truncate">{filename}</span>
-            <span className="text-[11px] text-slate-400">Estimated size: ~142 KB</span>
+            <span className="text-[11px] text-slate-400">{query.data ? `${query.data.size.toLocaleString()} bytes` : 'CSV report'}</span>
           </div>
         </div>
 
         {/* Actions */}
+        {query.error && <p role="alert" className="text-xs" style={{ color: colors.danger }}>{query.error.message}</p>}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
@@ -114,16 +92,16 @@ export const ExportReportProgressModal: React.FC<ExportReportProgressModalProps>
           </button>
           <button
             type="button"
-            disabled={!isDone}
+            disabled={!isDone && !query.isError}
             onClick={handleDownload}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold transition ${
-              isDone
+              isDone || query.isError
                 ? "bg-[#1F3A5F] text-white hover:bg-slate-800"
                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
             }`}
           >
             <Download className="w-4 h-4" />
-            <span>Download</span>
+            <span>{query.isError ? 'Retry' : 'Download'}</span>
           </button>
         </div>
       </div>

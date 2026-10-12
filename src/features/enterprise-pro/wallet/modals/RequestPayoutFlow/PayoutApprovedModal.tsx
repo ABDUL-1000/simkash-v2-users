@@ -1,19 +1,24 @@
+import type { WalletActionResult } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { CheckCircle2, ArrowRight } from "lucide-react";
-import { mockBankAccount } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface PayoutApprovedModalProps {
+  result?: WalletActionResult | null;
   open: boolean;
   amount: number;
   onClose: () => void;
 }
 
 export const PayoutApprovedModal: React.FC<PayoutApprovedModalProps> = ({
+  result,
   open,
   amount,
   onClose,
 }) => {
+
+  const { bankAccount } = useEnterpriseWalletData();
   return (
     <AppModal
       open={open}
@@ -28,30 +33,30 @@ export const PayoutApprovedModal: React.FC<PayoutApprovedModalProps> = ({
         </div>
 
         <div>
-          <h4 className="text-base font-bold text-slate-900">Payout Dispatched Successfully</h4>
+          <h4 className="text-base font-bold text-slate-900">Payout {result?.status ?? "Completed"}</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Your withdrawal of ₦{amount.toLocaleString()}.00 has been cleared and forwarded to your settlement bank.
+            Your withdrawal of {result?.amount_formatted ?? result?.amount_paid_formatted ?? `₦${amount.toLocaleString()}`} has been cleared and forwarded to your settlement bank.
           </p>
         </div>
 
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2">
           <div className="flex justify-between">
             <span className="text-slate-500">Reference:</span>
-            <span className="font-mono font-bold text-slate-800">POUT-EP-2026-008472</span>
+            <span className="font-mono font-bold text-slate-800">{result?.reference ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Amount Sent:</span>
-            <span className="font-bold text-emerald-700">₦{amount.toLocaleString()}.00</span>
+            <span className="font-bold text-emerald-700">{result?.amount_formatted ?? result?.amount_paid_formatted ?? `₦${amount.toLocaleString()}`}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Destination:</span>
             <span className="font-semibold text-slate-800">
-              {mockBankAccount.bankName} ({mockBankAccount.accountNumberMask})
+              {result?.bank_name ?? bankAccount.bankName} ({result?.account_number_masked ?? bankAccount.accountNumberMask})
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Estimated Credit:</span>
-            <span className="font-bold text-slate-900">Within 2–4 hours</span>
+            <span className="text-slate-500">Status:</span>
+            <span className="font-bold text-slate-900">{result?.status ?? "—"}</span>
           </div>
         </div>
 

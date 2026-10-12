@@ -1,12 +1,12 @@
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Send, CheckCircle2 } from "lucide-react";
-import type { OnboardScFormData } from "../../types";
+import type { OnboardScResult } from '../../types/api';
 
 interface OnboardInviteSentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  data: OnboardScFormData | null;
+  data: OnboardScResult | null;
 }
 
 export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
@@ -15,8 +15,9 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
   data,
 }) => {
   const totalSims = data
-    ? data.posSims + data.cctvSims + data.gpsSims + data.routerSims
-    : 95;
+    ? data.initial_sim_allocation.pos + data.initial_sim_allocation.cctv + data.initial_sim_allocation.gps + data.initial_sim_allocation.router
+    : 0;
+  if (!data) return null;
 
   return (
     <AppModal open={open} onOpenChange={onOpenChange} size="sm" footer={null}>
@@ -28,8 +29,7 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
         <div>
           <h3 className="text-base font-bold text-slate-900">Onboarding Invite Sent!</h3>
           <p className="text-xs text-slate-500 mt-1">
-            An invitation link and login credentials have been sent to{" "}
-            <span className="font-semibold text-slate-800">{data?.email || "the coordinator"}</span>.
+            {data.message ?? `State Coordinator ${data.fullname} onboarded successfully.`}
           </p>
         </div>
 
@@ -37,15 +37,15 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
           <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-left space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-500">Coordinator</span>
-              <span className="font-bold text-slate-900">{data.fullName}</span>
+              <span className="font-bold text-slate-900">{data.fullname}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Assigned Territory</span>
               <span className="font-semibold text-slate-900">{data.state} State</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Commission Rate</span>
-              <span className="font-bold text-emerald-600">{(data.commissionRate * 100).toFixed(0)}%</span>
+              <span className="text-slate-500">Status</span>
+              <span className="font-bold text-emerald-600">{data.status}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Initial Allocation</span>
@@ -56,7 +56,7 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
 
         <div className="flex items-center gap-1.5 justify-center text-emerald-700 bg-emerald-50 py-1.5 px-3 rounded-lg text-[11px] font-medium">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Tracking ID: SC-INV-{Math.floor(100000 + Math.random() * 900000)}</span>
+          <span>Coordinator Code: {data.sc_code}</span>
         </div>
 
         <button

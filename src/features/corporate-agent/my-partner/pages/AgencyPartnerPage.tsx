@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -8,186 +10,107 @@ import {
   Zap,
   Plus,
   MoreVertical,
+  Search,
 } from "lucide-react";
-import { OnboardApModal } from "@/features/state-coordinator/modals/OnboardApModal";
-import { DistributeStockModal } from "@/features/state-coordinator/modals/DistributeStockModal";
-import { ConfirmDistributionModal } from "@/features/state-coordinator/modals/ConfirmDistributionModal";
-import { ExportApListModal } from "@/features/dashboard/Modals/ExportApListModal";
-import { ApQuickActionsMenuModal } from "@/features/state-coordinator/modals/ApQuickActionsMenuModal";
-import { ContactApModal } from "@/features/state-coordinator/modals/ContactApModal";
-import { ApCustomersModal } from "@/features/dashboard/Modals/ApCustomersModal";
-import { ReactivateApModal } from "@/features/state-coordinator/modals/ReactivateApModal";
-import { SuspendApModal } from "@/features/state-coordinator/modals/SuspendApModal";
-import { ConfirmSuspendApModal } from "@/features/state-coordinator/modals/ConfirmSuspendApModal";
-import { RemoveFromNetworkModal } from "@/features/state-coordinator/modals/RemoveFromNetworkModal";
-import { SendBonusReminderModal } from "@/features/state-coordinator/modals/SendBonusReminderModal";
-import { SendBulkReminderModal } from "@/features/state-coordinator/modals/SendBulkReminderModal";
-
-export interface AgencyPartnerData {
-  id: string;
-  initials: string;
-  name: string;
-  phone: string;
-  location: string;
-  joined: string;
-  status: "Active" | "Low Stock" | "Suspended" | "New";
-  stock: number;
-  stockStatus?: string;
-  customers: number;
-  activations: string;
-  bonusStatus: "Achieved" | "On Track" | "At Risk" | "Missed" | "N/A";
-  avatarBg: string;
-}
+import { appPaths } from "@/app/router/paths";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import {
+  useGetCaPartnersOverview,
+  useExportCaPartners,
+  useCaDistributeAllLow,
+  useCaRemindPartner,
+  useCaTogglePartnerStatus,
+} from "../api/useCaPartners";
+import type { PartnerTab, PartnerSort, PartnerItem } from "../types/api";
+import { OnboardPartnerModal } from "../Modals/OnboardPartnerModal";
+import { DistributeSimsToPartnerModal } from "../Modals/DistributeSimsToPartnerModal";
+import { DistributeMultipleModal } from "../Modals/DistributeMultipleModal";
+import { BulkReminderModal } from "../Modals/BulkReminderModal";
+import { RecallStockModal } from "../Modals/RecallStockModal";
+import { PartnerCustomersModal } from "../Modals/PartnerCustomersModal";
 
 export default function AgencyPartnerPage() {
   const navigate = useNavigate();
 
+  // Filter & Query States
+  const [tab, setTab] = useState<PartnerTab>("all");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sort] = useState<PartnerSort>("most_activations");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const { page, pageSize, setPage } = useTablePagination({
+    initialPage: 1,
+    initialPageSize: 20,
+  });
+
+  const { data: overview, isLoading, refetch } = useGetCaPartnersOverview({
+    tab,
+    search: debouncedSearch,
+    sort,
+    page,
+    limit: pageSize,
+  });
+
+  const exportMutation = useExportCaPartners();
+  const distributeAllLowMutation = useCaDistributeAllLow();
+
   // Modals state
   const [onboardModalOpen, setOnboardModalOpen] = useState(false);
   const [distributeModalOpen, setDistributeModalOpen] = useState(false);
-  const [confirmDistModalOpen, setConfirmDistModalOpen] = useState(false);
-  const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
-  const [contactModalOpen, setContactModalOpen] = useState(false);
-  const [customersModalOpen, setCustomersModalOpen] = useState(false);
-  const [reactivateModalOpen, setReactivateModalOpen] = useState(false);
-  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
-  const [confirmSuspendModalOpen, setConfirmSuspendModalOpen] = useState(false);
-  const [removeModalOpen, setRemoveModalOpen] = useState(false);
-  const [bonusReminderModalOpen, setBonusReminderModalOpen] = useState(false);
+  const [distributeMultipleModalOpen, setDistributeMultipleModalOpen] = useState(false);
   const [bulkReminderModalOpen, setBulkReminderModalOpen] = useState(false);
+  const [bulkReminderType, setBulkReminderType] = useState<"low_stock" | "bonus">("bonus");
+  const [recallStockModalOpen, setRecallStockModalOpen] = useState(false);
+  const [customersModalOpen, setCustomersModalOpen] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
-  const [selectedAp, setSelectedAp] = useState<AgencyPartnerData | null>(null);
+  const [selectedPartner, setSelectedPartner] = useState<PartnerItem | null>(null);
 
-  const agencyPartnersList: AgencyPartnerData[] = [
-    {
-      id: "rabiu-sani",
-      initials: "RS",
-      name: "Rabiu Sani",
-      phone: "08120600542",
-      location: "Lagos",
-      joined: "Jan 2026",
-      status: "Active",
-      stock: 18,
-      customers: 247,
-      activations: "847/mo",
-      bonusStatus: "Achieved",
-      avatarBg: "bg-[#2563EB] text-white",
-    },
-    {
-      id: "chioma-eze",
-      initials: "CE",
-      name: "Chioma Eze",
-      phone: "08071234567",
-      location: "Lagos",
-      joined: "Jan 2026",
-      status: "Active",
-      stock: 12,
-      customers: 198,
-      activations: "634/mo",
-      bonusStatus: "Achieved",
-      avatarBg: "bg-emerald-600 text-white",
-    },
-    {
-      id: "hassan-ibrahim",
-      initials: "HI",
-      name: "Hassan Ibrahim",
-      phone: "08098765432",
-      location: "Lagos",
-      joined: "Feb 2026",
-      status: "Active",
-      stock: 8,
-      customers: 124,
-      activations: "421/mo",
-      bonusStatus: "Achieved",
-      avatarBg: "bg-purple-600 text-white",
-    },
-    {
-      id: "abubakar-sule",
-      initials: "AS",
-      name: "Abubakar Sule",
-      phone: "08034567890",
-      location: "Lagos",
-      joined: "Feb 2026",
-      status: "Low Stock",
-      stock: 5,
-      stockStatus: "Low",
-      customers: 89,
-      activations: "287/mo",
-      bonusStatus: "Achieved",
-      avatarBg: "bg-amber-600 text-white",
-    },
-    {
-      id: "francis-udom",
-      initials: "FU",
-      name: "Francis Udom",
-      phone: "08120428684",
-      location: "Lagos",
-      joined: "Mar 2026",
-      status: "Low Stock",
-      stock: 3,
-      stockStatus: "Critical",
-      customers: 42,
-      activations: "100/mo",
-      bonusStatus: "At Risk",
-      avatarBg: "bg-[#2563EB] text-white",
-    },
-    {
-      id: "emeka-obi",
-      initials: "EO",
-      name: "Emeka Obi",
-      phone: "08056789012",
-      location: "Lagos",
-      joined: "Feb 2026",
-      status: "Active",
-      stock: 14,
-      customers: 156,
-      activations: "412/mo",
-      bonusStatus: "Achieved",
-      avatarBg: "bg-slate-700 text-white",
-    },
-    {
-      id: "glory-effah",
-      initials: "GE",
-      name: "Glory Effah",
-      phone: "08154147750",
-      location: "Lagos",
-      joined: "Jan 2026",
-      status: "Suspended",
-      stock: 0,
-      stockStatus: "OUT",
-      customers: 34,
-      activations: "0/mo",
-      bonusStatus: "N/A",
-      avatarBg: "bg-[#8C909B] text-white",
-    },
-    {
-      id: "kola-ibrahim",
-      initials: "KI",
-      name: "Kola Ibrahim",
-      phone: "08130567890",
-      location: "Lagos",
-      joined: "Apr 2026",
-      status: "New",
-      stock: 9,
-      stockStatus: "Low",
-      customers: 12,
-      activations: "247/mo",
-      bonusStatus: "On Track",
-      avatarBg: "bg-[#2563EB] text-white",
-    },
-  ];
+  const remindMutation = useCaRemindPartner(selectedPartner?.partner_id || selectedPartner?.id || 1);
+  const toggleStatusMutation = useCaTogglePartnerStatus(selectedPartner?.partner_id || selectedPartner?.id || 1);
+
+  const partners = overview?.partners || [];
+  const cards = overview?.cards;
+  const pagination = overview?.pagination;
+  const networkSummary = overview?.network_summary;
+  const apsNeedingStock = overview?.aps_needing_stock;
+  const apBonusStatus = overview?.ap_bonus_status;
+  const liveStockAlerts = overview?.live_stock_alerts || [];
+  const bonusTierProgress = overview?.bonus_tier_progress;
+
+  const handleRemindPartner = (partner: PartnerItem) => {
+    setSelectedPartner(partner);
+    remindMutation.mutate({
+      reminder_type: "bonus",
+      message: "Please push activations to secure this month payout.",
+    });
+  };
+
+  const handleToggleStatus = (partner: PartnerItem) => {
+    setSelectedPartner(partner);
+    toggleStatusMutation.mutate({
+      reason: partner.status.toLowerCase() === "suspended" ? "Reactivate partner" : "Suspend partner compliance",
+    });
+  };
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-[#0F152A]">
-            My Agency PartnersSSSS
+            My Agency Partners
           </h1>
           <p className="text-xs font-medium text-[#66738C]">
-            All Agency Partners onboarded by you in your SC network
+            All Agency Partners onboarded by you in your corporate network
           </p>
         </div>
 
@@ -207,238 +130,342 @@ export default function AgencyPartnerPage() {
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EFF4F8] text-[#2563EB]">
             <Users className="size-4" />
           </div>
-          <h3 className="text-2xl font-black text-[#0F152A]">23</h3>
-          <p className="text-[11px] font-bold text-[#0F152A]">Total APs</p>
-          <p className="text-[10px] text-[#8C909B]">Onboarded by you</p>
+          <h3 className="text-2xl font-black text-[#0F152A]">
+            {cards?.total_partners?.count_formatted ?? cards?.total_partners?.count ?? "0"}
+          </h3>
+          <p className="text-[11px] font-bold text-[#0F152A]">
+            {cards?.total_partners?.label ?? "Total APs"}
+          </p>
+          <p className="text-[10px] text-[#8C909B]">
+            {cards?.total_partners?.subtitle ?? "Onboarded by you"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EBFFF8] text-[#10B981]">
             <UserCheck className="size-4" />
           </div>
-          <h3 className="text-2xl font-black text-[#10B981]">19</h3>
-          <p className="text-[11px] font-bold text-[#0F152A]">Active APs</p>
-          <p className="text-[10px] text-[#8C909B]">Operating normally</p>
+          <h3 className="text-2xl font-black text-[#10B981]">
+            {cards?.active_partners?.count_formatted ?? cards?.active_partners?.count ?? "0"}
+          </h3>
+          <p className="text-[11px] font-bold text-[#0F152A]">
+            {cards?.active_partners?.label ?? "Active APs"}
+          </p>
+          <p className="text-[10px] text-[#8C909B]">
+            {cards?.active_partners?.subtitle ?? "Operating normally"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#FFFBEB] text-[#F59E0B]">
             <AlertTriangle className="size-4" />
           </div>
-          <h3 className="text-2xl font-black text-[#F59E0B]">3</h3>
-          <p className="text-[11px] font-bold text-[#0F152A]">Low Stock</p>
-          <p className="text-[10px] text-[#8C909B]">Need distribution</p>
+          <h3 className="text-2xl font-black text-[#F59E0B]">
+            {cards?.low_stock?.count_formatted ?? cards?.low_stock?.count ?? "0"}
+          </h3>
+          <p className="text-[11px] font-bold text-[#0F152A]">
+            {cards?.low_stock?.label ?? "Low Stock"}
+          </p>
+          <p className="text-[10px] text-[#8C909B]">
+            {cards?.low_stock?.subtitle ?? "Need distribution"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
             <Trophy className="size-4" />
           </div>
-          <h3 className="text-2xl font-black text-purple-600">18</h3>
+          <h3 className="text-2xl font-black text-purple-600">
+            {cards?.hit_bonus?.count_formatted ?? cards?.hit_bonus?.count ?? "0"}
+          </h3>
           <p className="text-[11px] font-bold text-[#0F152A]">
-            Bonus Achieved
+            {cards?.hit_bonus?.label ?? "Bonus Achieved"}
           </p>
-          <p className="text-[10px] text-[#8C909B]">This period</p>
+          <p className="text-[10px] text-[#8C909B]">
+            {cards?.hit_bonus?.subtitle ?? "This period"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EBFFF8] text-[#10B981]">
             <Zap className="size-4" />
           </div>
-          <h3 className="text-2xl font-black text-[#10B981]">1,847</h3>
-          <p className="text-[11px] font-bold text-[#0F152A]">Network Acts</p>
-          <p className="text-[10px] text-[#8C909B]">This month</p>
+          <h3 className="text-2xl font-black text-[#10B981]">
+            {cards?.network_activations?.count_formatted ?? cards?.network_activations?.count ?? "0"}
+          </h3>
+          <p className="text-[11px] font-bold text-[#0F152A]">
+            {cards?.network_activations?.label ?? "Network Acts"}
+          </p>
+          <p className="text-[10px] text-[#8C909B]">
+            {cards?.network_activations?.subtitle ?? "This month"}
+          </p>
         </div>
       </div>
+
+      {/* Live Stock Alerts Banner */}
+      {liveStockAlerts.length > 0 && (
+        <div className="space-y-2">
+          {liveStockAlerts.map((alert) => (
+            <div
+              key={alert.id}
+              className={`rounded-2xl border p-3.5 flex items-center justify-between text-xs font-bold ${
+                alert.severity === "critical"
+                  ? "border-[#EF4444]/30 bg-[#FFF7F8] text-[#EF4444]"
+                  : "border-[#F59E0B]/30 bg-[#FFFBEB] text-[#F59E0B]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>{alert.message}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDistributeMultipleModalOpen(true)}
+                className="underline hover:opacity-80"
+              >
+                Distribute Now
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Main 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Main (2 cols wide) - AP Cards List */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="space-y-3">
-            {agencyPartnersList.map((ap) => {
-              const isLow = ap.status === "Low Stock";
-              const isSuspended = ap.status === "Suspended";
-
-              return (
-                <div
-                  key={ap.id}
-                  className={`rounded-3xl border bg-white p-5 shadow-xs transition space-y-4 ${
-                    isLow
-                      ? "border-[#F59E0B]/50"
-                      : isSuspended
-                      ? "border-[#EF4444]/40"
-                      : "border-[#E2ECF6] hover:border-[#2563EB]"
+          {/* Filter Bar & Search */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-[#E2ECF6] bg-white p-3 shadow-xs">
+            {/* Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-1">
+              {(overview?.tabs || [
+                { id: "all", label: "All", count: 0, is_active: tab === "all" },
+                { id: "active", label: "Active", count: 0, is_active: tab === "active" },
+                { id: "low_stock", label: "Low Stock", count: 0, is_active: tab === "low_stock" },
+                { id: "suspended", label: "Suspended", count: 0, is_active: tab === "suspended" },
+                { id: "new", label: "New", count: 0, is_active: tab === "new" },
+              ]).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => {
+                    setTab(t.id);
+                    setPage(1);
+                  }}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                    tab === t.id
+                      ? "bg-[#0F152A] text-white shadow-xs"
+                      : "text-[#66738C] hover:bg-[#F8FAFC] hover:text-[#0F152A]"
                   }`}
                 >
-                  {/* Top Bar inside AP Card */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex size-10 shrink-0 items-center justify-center rounded-2xl font-black text-xs ${ap.avatarBg}`}
-                      >
-                        {ap.initials}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-[#0F152A]">
-                            {ap.name}
-                          </h3>
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold ${
-                              ap.status === "Active"
-                                ? "bg-[#EBFFF8] text-[#10B981]"
-                                : ap.status === "Low Stock"
-                                ? "bg-[#FFFBEB] text-[#F59E0B]"
-                                : ap.status === "Suspended"
-                                ? "bg-[#FFF7F8] text-[#EF4444]"
-                                : "bg-[#EFF4F8] text-[#2563EB]"
-                            }`}
-                          >
-                            • {ap.status}
-                          </span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative min-w-[200px]">
+              <Search className="absolute left-3 top-2.5 size-3.5 text-[#8C909B]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search partner by name, phone, or location..."
+                className="w-full rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] py-1.5 pl-8 pr-3 text-xs font-medium text-[#0F152A] outline-none focus:border-[#2563EB]"
+              />
+            </div>
+          </div>
+
+          {/* Cards List or Empty State */}
+          {isLoading ? (
+            <div className="rounded-3xl border border-[#E2ECF6] bg-white p-8 text-center text-xs text-[#8C909B]">
+              Loading agency partners...
+            </div>
+          ) : partners.length === 0 ? (
+            <div className="rounded-3xl border border-[#E2ECF6] bg-white p-4">
+              <AppEmptyState
+                title="No Agency Partners Found"
+                description="No agency partners match the selected tab or search query."
+              />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {partners.map((ap) => {
+                const isLow =
+                  ap.status.toLowerCase() === "low_stock" ||
+                  ap.status.toLowerCase() === "low stock" ||
+                  ap.sim_stock <= 5;
+                const isSuspended =
+                  ap.status.toLowerCase() === "suspended" ||
+                  ap.status_label?.toLowerCase() === "suspended";
+
+                const partnerId = ap.partner_id || ap.id;
+
+                return (
+                  <div
+                    key={partnerId}
+                    className={`rounded-3xl border bg-white p-5 shadow-xs transition space-y-4 ${
+                      isLow
+                        ? "border-[#F59E0B]/50"
+                        : isSuspended
+                        ? "border-[#EF4444]/40"
+                        : "border-[#E2ECF6] hover:border-[#2563EB]"
+                    }`}
+                  >
+                    {/* Top Bar inside AP Card */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex size-10 shrink-0 items-center justify-center rounded-2xl font-black text-xs bg-[#2563EB] text-white"
+                        >
+                          {ap.initials || ap.name.substring(0, 2).toUpperCase()}
                         </div>
-                        <p className="text-[11px] text-[#66738C] font-medium">
-                          {ap.phone} · {ap.location} · Joined {ap.joined}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-[#0F152A]">
+                              {ap.name}
+                            </h3>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold ${
+                                isSuspended
+                                  ? "bg-[#FFF7F8] text-[#EF4444]"
+                                  : isLow
+                                  ? "bg-[#FFFBEB] text-[#F59E0B]"
+                                  : "bg-[#EBFFF8] text-[#10B981]"
+                              }`}
+                            >
+                              • {ap.status_label || ap.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#66738C] font-medium">
+                            {ap.phone} · {ap.location} · Joined {ap.joined_date || "2026"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPartner(ap);
+                          setActionsMenuOpen(true);
+                        }}
+                        className="text-[#8C909B] hover:text-[#0F152A]"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                    </div>
+
+                    {/* Stat Grid (4 Columns) */}
+                    <div className="grid grid-cols-4 gap-2 text-center pt-1">
+                      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
+                        <h4
+                          className={`text-base font-black ${
+                            ap.sim_stock === 0
+                              ? "text-[#EF4444]"
+                              : ap.sim_stock <= 5
+                              ? "text-[#F59E0B]"
+                              : "text-[#0F152A]"
+                          }`}
+                        >
+                          {ap.sim_stock === 0 ? "OUT" : ap.sim_stock}
+                        </h4>
+                        <p className="text-[10px] text-[#8C909B] font-medium">
+                          {ap.sim_stock_label || "SIMs"}
                         </p>
                       </div>
+
+                      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
+                        <h4 className="text-base font-black text-[#0F152A]">
+                          {ap.customers_count}
+                        </h4>
+                        <p className="text-[10px] text-[#8C909B] font-medium">
+                          {ap.customers_label || "Customers"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
+                        <h4 className="text-base font-black text-[#10B981]">
+                          {ap.activations_this_month}
+                        </h4>
+                        <p className="text-[10px] text-[#8C909B] font-medium">
+                          {ap.activations_this_month_label || "This month"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 flex flex-col items-center justify-center">
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold ${
+                            ap.bonus_status.toLowerCase() === "achieved"
+                              ? "bg-purple-50 text-purple-600"
+                              : ap.bonus_status.toLowerCase() === "on track"
+                              ? "bg-[#EBFFF8] text-[#10B981]"
+                              : ap.bonus_status.toLowerCase() === "at risk"
+                              ? "bg-[#FFFBEB] text-[#F59E0B]"
+                              : "bg-[#F8FAFC] text-[#8C909B]"
+                          }`}
+                        >
+                          {ap.bonus_status_label || ap.bonus_status}
+                        </span>
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedAp(ap);
-                        setActionsMenuOpen(true);
-                      }}
-                      className="text-[#8C909B] hover:text-[#0F152A]"
-                    >
-                      <MoreVertical className="size-4" />
-                    </button>
-                  </div>
-
-                  {/* Stat Grid (4 Columns) */}
-                  <div className="grid grid-cols-4 gap-2 text-center pt-1">
-                    <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
-                      <h4
-                        className={`text-base font-black ${
-                          ap.stock === 0
-                            ? "text-[#EF4444]"
-                            : ap.stock <= 5
-                            ? "text-[#F59E0B]"
-                            : "text-[#0F152A]"
-                        }`}
+                    {/* Card Bottom Links */}
+                    <div className="flex items-center gap-4 text-xs font-extrabold pt-1 border-t border-[#E2ECF6]">
+                      <button
+                        type="button"
+                        onClick={() => navigate(appPaths.agencyPartnerDetails(String(partnerId)).path)}
+                        className="text-[#2563EB] hover:underline"
                       >
-                        {ap.stock === 0 ? "OUT" : ap.stock}
-                      </h4>
-                      <p className="text-[10px] text-[#8C909B] font-medium">
-                        SIMs
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
-                      <h4 className="text-base font-black text-[#0F152A]">
-                        {ap.customers}
-                      </h4>
-                      <p className="text-[10px] text-[#8C909B] font-medium">
-                        Customers
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
-                      <h4 className="text-base font-black text-[#10B981]">
-                        {ap.activations}
-                      </h4>
-                      <p className="text-[10px] text-[#8C909B] font-medium">
-                        This month
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 flex flex-col items-center justify-center">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold ${
-                          ap.bonusStatus === "Achieved"
-                            ? "bg-purple-50 text-purple-600"
-                            : ap.bonusStatus === "On Track"
-                            ? "bg-[#EBFFF8] text-[#10B981]"
-                            : ap.bonusStatus === "At Risk"
-                            ? "bg-[#FFFBEB] text-[#F59E0B]"
-                            : "bg-[#F8FAFC] text-[#8C909B]"
-                        }`}
+                        • View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPartner(ap);
+                          setDistributeModalOpen(true);
+                        }}
+                        className="text-[#10B981] hover:underline"
                       >
-                        {ap.bonusStatus}
-                      </span>
+                        • Distribute
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemindPartner(ap)}
+                        className="text-[#F59E0B] hover:underline"
+                      >
+                        • Remind
+                      </button>
                     </div>
                   </div>
-
-                  {/* Card Bottom Links */}
-                  <div className="flex items-center gap-4 text-xs font-extrabold pt-1 border-t border-[#E2ECF6]">
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/distribution/agency-partner/${ap.id}`)}
-                      className="text-[#2563EB] hover:underline"
-                    >
-                      • View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedAp(ap);
-                        setDistributeModalOpen(true);
-                      }}
-                      className="text-[#10B981] hover:underline"
-                    >
-                      • Distribute
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedAp(ap);
-                        setBonusReminderModalOpen(true);
-                      }}
-                      className="text-[#F59E0B] hover:underline"
-                    >
-                      • Remind
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Pagination Controls */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-3 text-xs">
             <span className="text-[11px] font-medium text-[#8C909B]">
-              Showing 1-7 of 23 APs
+              {pagination?.showing_text ||
+                `Showing ${partners.length} of ${pagination?.total_items ?? partners.length} APs`}
             </span>
 
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="rounded-lg border border-[#E2ECF6] px-2.5 py-1 text-xs font-bold text-[#66738C] hover:bg-[#F8FAFC]"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                className="rounded-lg border border-[#E2ECF6] px-2.5 py-1 text-xs font-bold text-[#66738C] hover:bg-[#F8FAFC] disabled:opacity-40"
               >
                 Prev
               </button>
+              <span className="rounded-lg bg-[#0F152A] px-3 py-1 text-xs font-bold text-white">
+                {page}
+              </span>
               <button
                 type="button"
-                className="rounded-lg bg-[#0F152A] px-3 py-1 text-xs font-bold text-white"
-              >
-                1
-              </button>
-              <button
-                type="button"
-                className="rounded-lg border border-[#E2ECF6] px-3 py-1 text-xs font-bold text-[#0F152A] hover:bg-[#F8FAFC]"
-              >
-                2
-              </button>
-              <button
-                type="button"
-                className="rounded-lg border border-[#E2ECF6] px-3 py-1 text-xs font-bold text-[#0F152A] hover:bg-[#F8FAFC]"
-              >
-                3
-              </button>
-              <button
-                type="button"
-                className="rounded-lg border border-[#E2ECF6] px-2.5 py-1 text-xs font-bold text-[#66738C] hover:bg-[#F8FAFC]"
+                disabled={pagination ? page >= pagination.total_pages : true}
+                onClick={() => setPage(page + 1)}
+                className="rounded-lg border border-[#E2ECF6] px-2.5 py-1 text-xs font-bold text-[#66738C] hover:bg-[#F8FAFC] disabled:opacity-40"
               >
                 Next
               </button>
@@ -457,27 +484,32 @@ export default function AgencyPartnerPage() {
             <div className="space-y-2 text-xs divide-y divide-[#E2ECF6]">
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C]">Total APs</span>
-                <span className="text-[#0F152A]">23</span>
+                <span className="text-[#0F152A]">{networkSummary?.total_aps ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C]">Active</span>
-                <span className="text-[#10B981]">19</span>
+                <span className="text-[#10B981]">{networkSummary?.active ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C]">Low Stock</span>
-                <span className="text-[#F59E0B]">3</span>
+                <span className="text-[#F59E0B]">{networkSummary?.low_stock ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C]">Suspended</span>
-                <span className="text-[#EF4444]">1</span>
+                <span className="text-[#EF4444]">{networkSummary?.suspended ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C]">New this month</span>
-                <span className="text-[#2563EB]">2</span>
+                <span className="text-[#2563EB]">{networkSummary?.new_this_month ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-black text-sm pt-2">
                 <span className="text-[#0F152A]">Network Acts</span>
-                <span className="text-[#10B981]">1,847 <span className="text-[10px] font-medium text-[#8C909B]">this month</span></span>
+                <span className="text-[#10B981]">
+                  {networkSummary?.network_activations_formatted ??
+                    networkSummary?.network_activations ??
+                    0}{" "}
+                  <span className="text-[10px] font-medium text-[#8C909B]">this month</span>
+                </span>
               </div>
             </div>
           </div>
@@ -489,54 +521,52 @@ export default function AgencyPartnerPage() {
             </h3>
 
             <div className="space-y-2 text-xs">
-              <div className="p-2.5 rounded-xl border border-[#F59E0B]/20 bg-white flex items-center justify-between">
-                <div>
-                  <h4 className="font-extrabold text-[#EF4444]">Francis Udom</h4>
-                  <p className="text-[10px] text-[#8C909B]">3 SIMs · 42 customers</p>
+              {(apsNeedingStock?.items && apsNeedingStock.items.length > 0) ? (
+                apsNeedingStock.items.map((item, idx) => (
+                  <div
+                    key={item.id ?? item.partner_id ?? idx}
+                    className="p-2.5 rounded-xl border border-[#F59E0B]/20 bg-white flex items-center justify-between"
+                  >
+                    <div>
+                      <h4 className="font-extrabold text-[#0F152A]">{item.name}</h4>
+                      <p className="text-[10px] text-[#8C909B]">
+                        {item.stock ?? 0} SIMs · {item.customers_count ?? 0} customers
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetAp = partners.find(
+                          (p) => (p.partner_id || p.id) === (item.partner_id || item.id)
+                        );
+                        if (targetAp) setSelectedPartner(targetAp);
+                        setDistributeModalOpen(true);
+                      }}
+                      className="rounded-lg bg-[#F59E0B] px-2.5 py-1 text-[10px] font-bold text-white hover:bg-amber-600"
+                    >
+                      Distribute
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="py-2 text-center text-[11px] text-[#64748B]">
+                  No partners currently critical on stock
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/sim-inventory/sc")}
-                  className="rounded-lg bg-[#EF4444] px-2.5 py-1 text-[10px] font-bold text-white"
-                >
-                  Distribute
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-[#F59E0B]/20 bg-white flex items-center justify-between">
-                <div>
-                  <h4 className="font-extrabold text-[#0F152A]">Abubakar Sule</h4>
-                  <p className="text-[10px] text-[#8C909B]">5 SIMs · 89 customers</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/sim-inventory/sc")}
-                  className="rounded-lg border border-[#F59E0B] px-2.5 py-1 text-[10px] font-bold text-[#F59E0B]"
-                >
-                  Distribute
-                </button>
-              </div>
-
-              <div className="p-2.5 rounded-xl border border-[#F59E0B]/20 bg-white flex items-center justify-between">
-                <div>
-                  <h4 className="font-extrabold text-[#0F152A]">Kola Ibrahim</h4>
-                  <p className="text-[10px] text-[#8C909B]">9 SIMs · 12 customers</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/sim-inventory/sc")}
-                  className="rounded-lg border border-[#F59E0B] px-2.5 py-1 text-[10px] font-bold text-[#F59E0B]"
-                >
-                  Distribute
-                </button>
-              </div>
+              )}
 
               <button
                 type="button"
-                onClick={() => navigate("/sim-inventory/sc")}
-                className="w-full rounded-xl border border-[#F59E0B] py-2 text-xs font-bold text-[#D9990D] hover:bg-[#F59E0B]/10 transition"
+                disabled={distributeAllLowMutation.isPending}
+                onClick={() =>
+                  distributeAllLowMutation.mutate({ quantity_per_partner: 10 }, {
+                    onSuccess: () => refetch(),
+                  })
+                }
+                className="w-full rounded-xl border border-[#F59E0B] py-2 text-xs font-bold text-[#D9990D] hover:bg-[#F59E0B]/10 transition disabled:opacity-50"
               >
-                Distribute to All Low APs
+                {distributeAllLowMutation.isPending
+                  ? "Distributing..."
+                  : "Distribute to All Low APs"}
               </button>
             </div>
           </div>
@@ -552,42 +582,66 @@ export default function AgencyPartnerPage() {
                 <span className="text-[#66738C] flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-purple-600" /> Achieved
                 </span>
-                <span className="text-purple-600">18</span>
+                <span className="text-purple-600">{apBonusStatus?.achieved ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C] flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-[#10B981]" /> On Track
                 </span>
-                <span className="text-[#10B981]">3</span>
+                <span className="text-[#10B981">{apBonusStatus?.on_track ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C] flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-[#F59E0B]" /> At Risk
                 </span>
-                <span className="text-[#F59E0B]">2</span>
+                <span className="text-[#F59E0B">{apBonusStatus?.at_risk ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C] flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-[#EF4444]" /> Missed
                 </span>
-                <span className="text-[#8C909B]">0</span>
+                <span className="text-[#8C909B]">{apBonusStatus?.missed ?? 0}</span>
               </div>
               <div className="flex justify-between py-1.5 font-bold">
                 <span className="text-[#66738C] flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-[#8C909B]" /> N/A (suspended)
                 </span>
-                <span className="text-[#8C909B]">1</span>
+                <span className="text-[#8C909B]">{apBonusStatus?.na ?? 0}</span>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={() => setBulkReminderModalOpen(true)}
+              onClick={() => {
+                setBulkReminderType("bonus");
+                setBulkReminderModalOpen(true);
+              }}
               className="text-xs font-extrabold text-[#F59E0B] hover:underline pt-1"
             >
               ▲ Send Reminders to At Risk
             </button>
           </div>
+
+          {/* Bonus Tier Progress Box (if available from API) */}
+          {bonusTierProgress && (
+            <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3">
+              <h3 className="text-xs font-extrabold text-[#0F152A]">
+                Combined Bonus Tier Progress
+              </h3>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-[#2563EB]">{bonusTierProgress.label}</span>
+                  <span className="text-[#64748B]">{bonusTierProgress.subtext}</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E2ECF6]">
+                  <div
+                    className="h-full rounded-full bg-[#2563EB] transition-all"
+                    style={{ width: `${Math.min(100, bonusTierProgress.percent_completed)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions Box */}
           <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3">
@@ -606,7 +660,7 @@ export default function AgencyPartnerPage() {
 
               <button
                 type="button"
-                onClick={() => navigate("/sim-inventory/sc")}
+                onClick={() => setDistributeMultipleModalOpen(true)}
                 className="w-full rounded-xl border border-[#10B981] bg-[#EBFFF8] py-2.5 text-xs font-bold text-[#10B981] hover:bg-emerald-100"
               >
                 Distribute to Multiple APs
@@ -614,7 +668,10 @@ export default function AgencyPartnerPage() {
 
               <button
                 type="button"
-                onClick={() => setBulkReminderModalOpen(true)}
+                onClick={() => {
+                  setBulkReminderType("bonus");
+                  setBulkReminderModalOpen(true);
+                }}
                 className="w-full rounded-xl border border-[#F59E0B] bg-[#FFFBEB] py-2.5 text-xs font-bold text-[#F59E0B] hover:bg-amber-100"
               >
                 Send Bulk Reminder
@@ -622,18 +679,19 @@ export default function AgencyPartnerPage() {
 
               <button
                 type="button"
-                onClick={() => setExportModalOpen(true)}
-                className="w-full rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] py-2.5 text-xs font-bold text-[#0F152A] hover:bg-[#EFF4F8]"
+                disabled={exportMutation.isPending}
+                onClick={() => exportMutation.mutate()}
+                className="w-full rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] py-2.5 text-xs font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-50"
               >
-                Export AP List
+                {exportMutation.isPending ? "Exporting..." : "Export AP List"}
               </button>
 
               <button
                 type="button"
-                onClick={() => alert("Viewing network activity...")}
+                onClick={() => setRecallStockModalOpen(true)}
                 className="w-full rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] py-2.5 text-xs font-bold text-[#66738C] hover:bg-[#EFF4F8]"
               >
-                View Network Activity
+                Recall Stock
               </button>
             </div>
           </div>
@@ -641,116 +699,157 @@ export default function AgencyPartnerPage() {
       </div>
 
       {/* --- MODALS --- */}
-      {/* 1. Onboard AP Modal */}
-      <OnboardApModal
+      {/* 1. Onboard Partner Modal */}
+      <OnboardPartnerModal
         open={onboardModalOpen}
         onOpenChange={setOnboardModalOpen}
+        onSuccess={() => refetch()}
       />
 
-      {/* 2. Distribute Stock Modal */}
-      <DistributeStockModal
+      {/* 2. Distribute Sims to Partner Modal */}
+      <DistributeSimsToPartnerModal
         open={distributeModalOpen}
         onOpenChange={setDistributeModalOpen}
-        apName={selectedAp?.name || "Rabiu Sani"}
-        apState={selectedAp?.location || "Lagos"}
-        onPreviewConfirm={() => {
-          setDistributeModalOpen(false);
-          setConfirmDistModalOpen(true);
-        }}
+        partnerId={selectedPartner?.partner_id || selectedPartner?.id}
+        partnerName={selectedPartner?.name}
+        phone={selectedPartner?.phone}
+        currentHolding={selectedPartner?.sim_stock}
+        onDistributeSuccess={() => refetch()}
       />
 
-      {/* 3. Confirm Distribution Modal */}
-      <ConfirmDistributionModal
-        open={confirmDistModalOpen}
-        onOpenChange={setConfirmDistModalOpen}
-        apName={selectedAp?.name || "Rabiu Sani"}
-        onEdit={() => setDistributeModalOpen(true)}
+      {/* 3. Distribute Multiple Modal */}
+      <DistributeMultipleModal
+        open={distributeMultipleModalOpen}
+        onOpenChange={setDistributeMultipleModalOpen}
+        partners={partners}
+        onSuccess={() => refetch()}
       />
 
-      {/* 4. Export AP List Modal */}
-      <ExportApListModal
-        open={exportModalOpen}
-        onOpenChange={setExportModalOpen}
-      />
-
-      {/* 5. AP Quick Actions Menu Modal */}
-      <ApQuickActionsMenuModal
-        open={actionsMenuOpen}
-        onOpenChange={setActionsMenuOpen}
-        apId={selectedAp?.id}
-        apName={selectedAp?.name}
-        onViewProfile={(id) => navigate(`/distribution/agency-partner/${id}`)}
-        onDistributeSims={() => setDistributeModalOpen(true)}
-        onSendBonusReminder={() => setBonusReminderModalOpen(true)}
-        onContactAp={() => setContactModalOpen(true)}
-        onViewCustomers={() => setCustomersModalOpen(true)}
-        onSuspendAp={() => setSuspendModalOpen(true)}
-        onRemoveFromNetwork={() => setRemoveModalOpen(true)}
-      />
-
-      {/* 6. Contact AP Modal */}
-      <ContactApModal
-        open={contactModalOpen}
-        onOpenChange={setContactModalOpen}
-        apName={selectedAp?.name}
-        phone={selectedAp?.phone}
-      />
-
-      {/* 7. AP Customers Modal */}
-      <ApCustomersModal
-        open={customersModalOpen}
-        onOpenChange={setCustomersModalOpen}
-        apName={selectedAp?.name}
-        apPhone={selectedAp?.phone}
-        totalCount={selectedAp?.customers}
-      />
-
-      {/* 8. Reactivate AP Modal */}
-      <ReactivateApModal
-        open={reactivateModalOpen}
-        onOpenChange={setReactivateModalOpen}
-        apName={selectedAp?.name}
-        apState={selectedAp?.location}
-      />
-
-      {/* 9. Suspend AP Modal */}
-      <SuspendApModal
-        open={suspendModalOpen}
-        onOpenChange={setSuspendModalOpen}
-        apName={selectedAp?.name}
-        onConfirmSuspend={() => {
-          setSuspendModalOpen(false);
-          setConfirmSuspendModalOpen(true);
-        }}
-      />
-
-      {/* 10. Confirm Suspend AP Modal */}
-      <ConfirmSuspendApModal
-        open={confirmSuspendModalOpen}
-        onOpenChange={setConfirmSuspendModalOpen}
-        apName={selectedAp?.name}
-      />
-
-      {/* 11. Remove from Network Modal */}
-      <RemoveFromNetworkModal
-        open={removeModalOpen}
-        onOpenChange={setRemoveModalOpen}
-        apName={selectedAp?.name}
-      />
-
-      {/* 12. Send Bonus Reminder Modal */}
-      <SendBonusReminderModal
-        open={bonusReminderModalOpen}
-        onOpenChange={setBonusReminderModalOpen}
-        apName={selectedAp?.name || "Francis Udom"}
-        apPhone={selectedAp?.phone || "08120428684"}
-      />
-
-      {/* 13. Send Bulk Reminder Modal */}
-      <SendBulkReminderModal
+      {/* 4. Bulk Reminder Modal */}
+      <BulkReminderModal
         open={bulkReminderModalOpen}
         onOpenChange={setBulkReminderModalOpen}
+        partners={partners}
+        defaultReminderType={bulkReminderType}
+        onSuccess={() => refetch()}
       />
+
+      {/* 5. Recall Stock Modal */}
+      <RecallStockModal
+        open={recallStockModalOpen}
+        onOpenChange={setRecallStockModalOpen}
+        partnerId={selectedPartner?.partner_id || selectedPartner?.id}
+        partnerName={selectedPartner?.name}
+        currentStock={selectedPartner?.sim_stock}
+        onSuccess={() => refetch()}
+      />
+
+      {/* 6. Partner Customers Modal */}
+      {selectedPartner && (
+        <PartnerCustomersModal
+          open={customersModalOpen}
+          onOpenChange={setCustomersModalOpen}
+          partnerId={selectedPartner.partner_id || selectedPartner.id}
+          partnerName={selectedPartner.name}
+          partnerPhone={selectedPartner.phone}
+        />
+      )}
+
+      {/* 7. Action Menu Modal for single partner actions */}
+      {selectedPartner && actionsMenuOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setActionsMenuOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-[#E2ECF6]">
+              <div>
+                <h3 className="font-extrabold text-[#0F152A]">{selectedPartner.name}</h3>
+                <p className="text-[11px] text-[#66738C]">{selectedPartner.phone}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActionsMenuOpen(false)}
+                className="text-xs text-[#8C909B] hover:text-[#0F152A]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1.5 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  navigate(appPaths.agencyPartnerDetails(String(selectedPartner.partner_id || selectedPartner.id)).path);
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F8FAFC] text-[#2563EB]"
+              >
+                View Full Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  setDistributeModalOpen(true);
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F8FAFC] text-[#10B981]"
+              >
+                Distribute SIMs
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  setCustomersModalOpen(true);
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F8FAFC] text-[#0F152A]"
+              >
+                View Customers
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  handleRemindPartner(selectedPartner);
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F8FAFC] text-[#F59E0B]"
+              >
+                Send Reminder
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  setRecallStockModalOpen(true);
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#F8FAFC] text-[#64748B]"
+              >
+                Recall Stock
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionsMenuOpen(false);
+                  handleToggleStatus(selectedPartner);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-xl hover:bg-[#F8FAFC] ${
+                  selectedPartner.status.toLowerCase() === "suspended"
+                    ? "text-[#10B981]"
+                    : "text-[#EF4444]"
+                }`}
+              >
+                {selectedPartner.status.toLowerCase() === "suspended"
+                  ? "Reactivate Partner"
+                  : "Suspend Partner"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,21 +1,17 @@
-import { Trophy, Zap, ArrowRight, ChevronRight } from "lucide-react";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import type { CaDashboardOverviewData } from "../types/api";
+import { Trophy, Zap, ArrowRight } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
 
 interface CaBonusTrackerCardProps {
-  onViewHistory?: () => void;
+  data: CaDashboardOverviewData["bonus_tracker"];
   onViewAllAps?: () => void;
 }
 
-const AP_BONUS_PREVIEW = [
-  { name: "Rabiu Sani", progress: "847/500", percent: 100, status: "Achieved", statusBg: "#F3E8FF", statusText: "#7E22CE", barColor: "#10B981" },
-  { name: "Chioma Eze", progress: "634/500", percent: 100, status: "Achieved", statusBg: "#F3E8FF", statusText: "#7E22CE", barColor: "#10B981" },
-  { name: "Hassan I.", progress: "421/500", percent: 100, status: "Achieved", statusBg: "#F3E8FF", statusText: "#7E22CE", barColor: "#10B981" },
-  { name: "Abubakar S.", progress: "287/500", percent: 57, status: "At Risk", statusBg: "#FEF3C7", statusText: "#D97706", barColor: "#F59E0B" },
-  { name: "Others (8)", progress: "387/1,000", percent: 38, status: "More", statusBg: "#F1F5F9", statusText: "#64748B", barColor: "#94A3B8" },
-];
+
 
 export function CaBonusTrackerCard({
-  onViewHistory,
+  data,
   onViewAllAps,
 }: CaBonusTrackerCardProps) {
   return (
@@ -33,15 +29,8 @@ export function CaBonusTrackerCard({
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400 font-medium">Jun 2026</span>
-          <button
-            type="button"
-            onClick={onViewHistory}
-            className="text-slate-600 hover:text-slate-900 font-bold flex items-center"
-          >
-            <span>View History</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          <span className="text-slate-400 font-medium">{data.period_label}</span>
+          {/* View History is commented out: no CA bonus-history endpoint supplied. */}
         </div>
       </div>
 
@@ -49,10 +38,10 @@ export function CaBonusTrackerCard({
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between">
           <h4 className="text-sm sm:text-base font-black text-slate-900">
-            2,216 of 3,000 activations
+            {data.current_activations.toLocaleString()} of {data.target_activations.toLocaleString()} activations
           </h4>
           <span className="text-xs font-semibold text-slate-500">
-            2,216 / 3,000 target • Reward: <strong>₦15,000</strong>
+            {data.target_activations.toLocaleString()} target • Reward: <strong>{data.bonus_amount_formatted}</strong>
           </span>
         </div>
 
@@ -60,7 +49,7 @@ export function CaBonusTrackerCard({
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
-              width: "74%",
+              width: `${Math.min(100, Math.max(0, data.percentage))}%`,
               backgroundColor: APP_COLORS.blues.primary,
             }}
           />
@@ -77,7 +66,7 @@ export function CaBonusTrackerCard({
       >
         <Zap className="w-4 h-4 text-blue-600 shrink-0" />
         <span className="font-semibold text-slate-700">
-          You're 74% there — 15 days left. Push your APs to activate more! 🔥
+          {data.banner_message}
         </span>
       </div>
 
@@ -90,7 +79,7 @@ export function CaBonusTrackerCard({
             borderColor: APP_COLORS.greys.stroke,
           }}
         >
-          <div className="text-base sm:text-lg font-black text-slate-900">15 Days Left</div>
+          <div className="text-base sm:text-lg font-black text-slate-900">{data.days_remaining} Days Left</div>
           <span className="text-[11px] text-slate-400 font-medium">Days remaining</span>
         </div>
 
@@ -101,7 +90,7 @@ export function CaBonusTrackerCard({
             borderColor: APP_COLORS.greys.stroke,
           }}
         >
-          <div className="text-base sm:text-lg font-black text-slate-900">782 To Go</div>
+          <div className="text-base sm:text-lg font-black text-slate-900">{data.activations_left} To Go</div>
           <span className="text-[11px] text-slate-400 font-medium">Activations left</span>
         </div>
 
@@ -112,7 +101,7 @@ export function CaBonusTrackerCard({
             borderColor: APP_COLORS.greys.stroke,
           }}
         >
-          <div className="text-base sm:text-lg font-black text-slate-900">148.5 Avg/Day</div>
+          <div className="text-base sm:text-lg font-black text-slate-900">{data.daily_average} Avg/Day</div>
           <span className="text-[11px] text-slate-400 font-medium">Daily Average</span>
         </div>
       </div>
@@ -124,26 +113,27 @@ export function CaBonusTrackerCard({
         </span>
 
         <div className="space-y-2.5">
-          {AP_BONUS_PREVIEW.map((item) => (
+          {!data.ap_network_bonus_status.length && <AppEmptyState title="No AP bonus milestones" description="Partner bonus progress will appear here." />}
+          {data.ap_network_bonus_status.map((item) => (
             <div key={item.name} className="flex items-center justify-between gap-3 text-xs">
               <span className="w-24 font-bold text-slate-800 truncate">{item.name}</span>
               <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${item.percent}%`,
-                    backgroundColor: item.barColor,
+                    width: `${item.target > 0 ? Math.min(100, Math.max(0, item.activations / item.target * 100)) : 0}%`,
+                    backgroundColor: APP_COLORS.greens.green,
                   }}
                 />
               </div>
               <span className="w-16 text-right font-medium text-slate-500 text-[11px]">
-                {item.progress}
+                {item.activations}/{item.target}
               </span>
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 w-16 text-center"
                 style={{
-                  backgroundColor: item.statusBg,
-                  color: item.statusText,
+                  backgroundColor: APP_COLORS.blues.surfaceLight,
+                  color: APP_COLORS.blues.primary,
                 }}
               >
                 {item.status}
@@ -158,7 +148,7 @@ export function CaBonusTrackerCard({
             onClick={onViewAllAps}
             className="text-xs font-bold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
           >
-            <span>View all 12 APs</span>
+            <span>View all APs</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

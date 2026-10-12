@@ -16,9 +16,9 @@ export const TxnDetailPayoutModal: React.FC<TxnDetailPayoutModalProps> = ({
   onClose,
   onDownloadReceipt,
 }) => {
-  const amount = txn?.amount ?? 500000;
-  const ref = txn?.ref ?? "TXN-OUT-2024-00124";
-  const date = txn?.date ?? "16 Jun 2026, 11:20";
+  const amount = txn?.amount ?? 0;
+  const ref = txn?.ref ?? "—";
+  const date = txn?.date ?? "—";
 
   return (
     <AppModal
@@ -36,11 +36,11 @@ export const TxnDetailPayoutModal: React.FC<TxnDetailPayoutModalProps> = ({
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bank Payout</span>
             <div className="text-2xl font-black text-slate-900 mt-0.5">
-              -₦{amount.toLocaleString()}.00
+              {txn?.amountFormatted ?? `₦${amount.toLocaleString()}`}
             </div>
           </div>
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3" /> Successfully Dispatched
+            <CheckCircle2 className="w-3 h-3" /> {txn?.status ?? "—"}
           </span>
         </div>
 
@@ -56,23 +56,22 @@ export const TxnDetailPayoutModal: React.FC<TxnDetailPayoutModalProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-slate-500">Beneficiary Bank:</span>
             <span className="font-semibold text-slate-800 flex items-center gap-1">
-              <Building2 className="w-3.5 h-3.5 text-slate-400" />
-              Access Bank (****0476)
-            </span>
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />—</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Account Name:</span>
-            <span className="font-medium text-slate-800">Zenith Corp Ltd</span>
+            <span className="font-medium text-slate-800">—</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">NIP Session ID:</span>
-            <span className="font-mono text-slate-600">NIP-99201948201</span>
+            <span className="font-mono text-slate-600">—</span>
           </div>
         </div>
 
         <div className="flex gap-2 pt-1">
           <button
             type="button"
+            disabled={!onDownloadReceipt}
             onClick={onDownloadReceipt}
             className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
           >

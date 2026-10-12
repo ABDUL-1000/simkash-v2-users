@@ -1,47 +1,45 @@
 import React from "react";
 import { Building2, Users, TrendingUp, Percent, Coins } from "lucide-react";
-import type { NetworkSummaryKPIs } from "../types";
+import type { EnterpriseScSummaryCards } from '../types/api';
 
 interface EpNetworkMetricCardsProps {
-  kpis?: NetworkSummaryKPIs;
+  kpis: EnterpriseScSummaryCards;
 }
 
 export const EpNetworkMetricCards: React.FC<EpNetworkMetricCardsProps> = ({ kpis }) => {
   const cards = [
     {
-      title: "State Coordinators",
-      value: kpis ? String(kpis.totalScs) : "12",
-      subtext: kpis
-        ? `${kpis.activeScs} active · ${kpis.suspendedScs} suspended · ${kpis.newScs} new`
-        : "10 active · 1 suspended · 1 new",
+      title: kpis.state_coordinators.label,
+      value: kpis.state_coordinators.value_formatted,
+      subtext: kpis.state_coordinators.subtext,
       icon: Building2,
       iconBg: "bg-blue-50 text-blue-600",
     },
     {
-      title: "Agency Partners",
-      value: kpis ? String(kpis.totalAps) : "247",
-      subtext: "Across all 12 SCs",
+      title: kpis.agency_partners.label,
+      value: kpis.agency_partners.value_formatted,
+      subtext: kpis.agency_partners.subtext,
       icon: Users,
       iconBg: "bg-emerald-50 text-emerald-600",
     },
     {
-      title: "Activations This Month",
-      value: kpis ? kpis.activationsThisMonth.toLocaleString() : "14,847",
-      subtext: "↑ 23% vs last month",
+      title: kpis.activations_this_month.label,
+      value: kpis.activations_this_month.value_formatted,
+      subtext: kpis.activations_this_month.subtext,
       icon: TrendingUp,
       iconBg: "bg-purple-50 text-purple-600",
     },
     {
-      title: "Margin This Month",
-      value: kpis ? `₦${kpis.marginThisMonth.toLocaleString()}` : "₦29,694,000",
-      subtext: "₦2,000/SIM avg margin",
+      title: kpis.margin_this_month.label,
+      value: kpis.margin_this_month.value_formatted,
+      subtext: kpis.margin_this_month.subtext,
       icon: Percent,
       iconBg: "bg-blue-50 text-blue-600",
     },
     {
-      title: "Network Commission",
-      value: kpis ? `₦${kpis.networkCommission.toLocaleString()}` : "₦2,370,000",
-      subtext: "8% of total margin",
+      title: kpis.network_commission.label,
+      value: kpis.network_commission.value_formatted,
+      subtext: kpis.network_commission.subtext,
       icon: Coins,
       iconBg: "bg-emerald-50 text-emerald-600",
       valColor: "text-emerald-600",

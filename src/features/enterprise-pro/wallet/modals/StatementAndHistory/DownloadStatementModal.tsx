@@ -1,3 +1,8 @@
+import { useGetEnterpriseWalletStatement } from "../../api/useGetEnterpriseWalletStatement";
+import { EpQueryState } from "../../../components/EpQueryState";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { openNotification } from "@/utils/notifications";
+import { colors } from "@/constants/colors";
 import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { FileText, Download, Calendar, CheckSquare } from "lucide-react";
@@ -13,14 +18,16 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
   onClose,
   onGenerate,
 }) => {
-  const [range, setRange] = useState("last-6-months");
-  const [format, setFormat] = useState<"pdf" | "csv">("pdf");
+  const [range, setRange] = useState("this-month");
+  const [format, setFormat] = useState<"pdf" | "csv">("csv");
   const [scope, setScope] = useState<string>("all");
 
+  const query = useGetEnterpriseWalletStatement(open);
+  const unsupported = () => openNotification({ state: "info", title: "Statement options", description: "The enterprise API currently provides its current statement as CSV, with all transactions." });
   const ranges = [
-    { id: "this-month", label: "This Month (June 2026)" },
+    { id: "this-month", label: "Current Statement" },
     { id: "last-3-months", label: "Last 3 Months" },
-    { id: "last-6-months", label: "Last 6 Months (Jan – Jun 2026)" },
+    { id: "last-6-months", label: "Last 6 Months" },
     { id: "all-time", label: "All Time" },
   ];
 
@@ -39,6 +46,13 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
       footer={null}
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch} />
+        {query.isSuccess && !query.data && <AppEmptyState title="No Statement Available" />}
+        {query.data && <div className="rounded-xl border p-3 text-xs space-y-2" style={{ borderColor: colors.border }}>
+          <p className="font-bold">Period: {query.data.period}</p>
+          {Object.entries({ "Opening balance": query.data.opening_balance, "Closing balance": query.data.closing_balance, "Total credits": query.data.total_credit, "Total debits": query.data.total_debit }).map(([label, amount]) => <div className="flex justify-between" key={label}><span>{label}</span><span>₦{(amount ?? 0).toLocaleString()}</span></div>)}
+          <div className="flex justify-between"><span>Transactions</span><span>{query.data.transactions_count}</span></div>
+        </div>}
         {/* Date Range Selection */}
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
@@ -49,7 +63,8 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
             {ranges.map((r) => (
               <div
                 key={r.id}
-                onClick={() => setRange(r.id)}
+                aria-disabled={r.id !== "this-month"}
+                onClick={() => r.id === "this-month" ? setRange(r.id) : unsupported()}
                 className={`p-2.5 rounded-xl border cursor-pointer text-xs transition ${
                   range === r.id
                     ? "border-blue-600 bg-blue-50/50 font-bold text-blue-900"
@@ -69,7 +84,8 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
           </label>
           <div className="grid grid-cols-2 gap-2">
             <div
-              onClick={() => setFormat("pdf")}
+              aria-disabled
+              onClick={unsupported}
               className={`p-3 rounded-xl border cursor-pointer text-xs flex items-center gap-2 transition ${
                 format === "pdf"
                   ? "border-blue-600 bg-blue-50/50 font-bold text-blue-900 ring-1 ring-blue-500"
@@ -79,7 +95,7 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
               <FileText className="w-4 h-4 text-rose-600" />
               <div>
                 <div>PDF Document</div>
-                <div className="text-[10px] text-slate-400 font-normal">Official signed report</div>
+                <div className="text-[10px] text-slate-400 font-normal">Unavailable from API</div>
               </div>
             </div>
 
@@ -108,7 +124,7 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
           </label>
           <select
             value={scope}
-            onChange={(e) => setScope(e.target.value)}
+            onChange={(e) => e.target.value === "all" ? setScope("all") : unsupported()}
             className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="all">All Inflow & Outflow Activities</option>
@@ -128,11 +144,12 @@ export const DownloadStatementModal: React.FC<DownloadStatementModalProps> = ({
             Cancel
           </button>
           <button
+            disabled={!query.data || query.isError}
             type="submit"
             className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm flex items-center gap-1.5 transition"
           >
             <Download className="w-3.5 h-3.5" />
-            Generate Statement
+            Download CSV
           </button>
         </div>
       </form>

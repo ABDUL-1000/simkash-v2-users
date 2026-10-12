@@ -1,14 +1,16 @@
 import { CreditCard, Video, MapPin, Wifi, ArrowRight } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { CA_CURRENT_INVENTORY_ITEMS } from "../data/ca-inventory.data";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+
 import type { CaCurrentInventoryCardItem } from "../types/ca-inventory.types";
 
 interface CaCurrentInventoryListProps {
+  items: CaCurrentInventoryCardItem[];
   onDistributeItem?: (item: CaCurrentInventoryCardItem) => void;
 }
 
 export function CaCurrentInventoryList({
-  onDistributeItem,
+  items, onDistributeItem,
 }: CaCurrentInventoryListProps) {
   const getIcon = (type: string) => {
     switch (type) {
@@ -46,12 +48,13 @@ export function CaCurrentInventoryList({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-900">Current Inventory</h3>
         <span className="text-[11px] text-slate-400 font-medium">
-          Last updated: Just now
+          Current stock
         </span>
       </div>
 
       <div className="space-y-3">
-        {CA_CURRENT_INVENTORY_ITEMS.map((item) => (
+        {!items.length && <AppEmptyState title="No SIM stock available" />}
+        {items.map((item) => (
           <div
             key={item.id}
             className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
@@ -71,10 +74,11 @@ export function CaCurrentInventoryList({
                   {item.type}
                 </div>
                 <div className="text-[11px] text-slate-400 font-medium">
-                  Ready to distribute
+                  {item.subtext}
                 </div>
                 {/* Telco carrier distribution chips */}
                 <div className="flex flex-wrap gap-1 mt-1">
+                  {!item.carriers.length && <AppEmptyState title="No network breakdown" />}
                   {item.carriers.map((c) => (
                     <span
                       key={c.name}
@@ -122,7 +126,7 @@ export function CaCurrentInventoryList({
                   />
                 </div>
                 <span className="text-[10px] text-slate-400 font-medium">
-                  {item.capacityPercent}% capacity
+                  {item.capacityText}
                 </span>
               </div>
 

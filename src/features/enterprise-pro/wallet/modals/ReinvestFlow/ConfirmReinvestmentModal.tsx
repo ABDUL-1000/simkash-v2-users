@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import { mockWalletBalance } from "../../data/mockWalletData";
+import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 import type { ReinvestType } from "./ReinvestSelectTypeModal";
 
 interface ConfirmReinvestmentModalProps {
@@ -20,21 +20,24 @@ export const ConfirmReinvestmentModal: React.FC<ConfirmReinvestmentModalProps> =
   onBack,
   onConfirm,
 }) => {
-  const [pin, setPin] = useState("");
-  const balanceAfter = mockWalletBalance.totalBalance - amount;
+
+  const { walletBalance } = useEnterpriseWalletData();  const [pin, setPin] = useState("");
+  const currentBalance = walletBalance?.totalBalance ?? 0;
+  const safeAmount = amount || 0;
+  const balanceAfter = currentBalance - safeAmount;
 
   const typeLabels: Record<ReinvestType, { name: string; output: string }> = {
     "sim-stock": {
       name: "Wholesale SIM Stock Order",
-      output: `${Math.floor(amount / 4700)} SIM Cards (@ ₦4,700/SIM)`,
+      output: `₦${safeAmount.toLocaleString()} allocated to stock`,
     },
     "debt-payoff": {
       name: "Pay Down Balance",
-      output: `₦${amount.toLocaleString()}.00 debt reduction`,
+      output: `₦${safeAmount.toLocaleString()}.00 debt reduction`,
     },
     "network-topup": {
       name: "Enterprise Network Top-Up",
-      output: `₦${amount.toLocaleString()}.00 airtime & data quota`,
+      output: `₦${safeAmount.toLocaleString()}.00 airtime & data quota`,
     },
   };
 
@@ -42,6 +45,7 @@ export const ConfirmReinvestmentModal: React.FC<ConfirmReinvestmentModalProps> =
     e.preventDefault();
     if (pin.length >= 4) {
       onConfirm();
+      setPin("");
     }
   };
 
@@ -62,7 +66,7 @@ export const ConfirmReinvestmentModal: React.FC<ConfirmReinvestmentModalProps> =
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Reinvestment Amount:</span>
-            <span className="font-black text-slate-900">₦{amount.toLocaleString()}.00</span>
+            <span className="font-black text-slate-900">₦{safeAmount.toLocaleString()}.00</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Asset Yield:</span>
@@ -70,7 +74,7 @@ export const ConfirmReinvestmentModal: React.FC<ConfirmReinvestmentModalProps> =
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-2">
             <span className="text-slate-500">Current Balance:</span>
-            <span className="font-mono text-slate-600">₦{mockWalletBalance.totalBalance.toLocaleString()}</span>
+            <span className="font-mono text-slate-600">₦{currentBalance.toLocaleString()}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Balance After Debit:</span>
@@ -125,7 +129,7 @@ export const ConfirmReinvestmentModal: React.FC<ConfirmReinvestmentModalProps> =
             className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-sm flex items-center gap-1.5 transition"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            Authorize ₦{amount.toLocaleString()}
+            Authorize ₦{safeAmount.toLocaleString()}
           </button>
         </div>
       </form>

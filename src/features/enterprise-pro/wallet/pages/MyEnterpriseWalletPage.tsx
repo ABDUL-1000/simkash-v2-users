@@ -1,3 +1,10 @@
+import { useGetEnterpriseWalletOverview } from "../api/useGetEnterpriseWalletOverview";
+import { EpQueryState } from "../../components/EpQueryState";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { useState } from "react";
+import type { SimOrderDraft } from "../../types";
+import { OrderMoreSimsModal } from "../../modals/OrderMoreSimsModal";
+import { ConfirmSimOrderModal } from "../../modals/ConfirmSimOrderModal";
 import React from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ArrowUpRight, Repeat, FileText } from "lucide-react";
@@ -16,6 +23,11 @@ import { useWalletModals } from "../hooks/useWalletModals";
 
 export const MyEnterpriseWalletPage: React.FC = () => {
   const modals = useWalletModals();
+  const overview = useGetEnterpriseWalletOverview();
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [orderDraft, setOrderDraft] = useState<SimOrderDraft | null>(null);
+  if (overview.isPending || overview.isError) return <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch} />;
+  if (!overview.data) return <AppEmptyState title="No Enterprise Wallet Data" description="Your wallet data is not available yet." />;
 
   return (
     <div className="space-y-6 pb-16">
@@ -55,20 +67,22 @@ export const MyEnterpriseWalletPage: React.FC = () => {
 
       {/* Main Balance Hero with Eye Toggle & Action Pills */}
       <EpWalletBalanceHero
+        hero={overview.data.hero_balance_card}
         onRequestPayout={() => modals.setPayoutModalOpen(true)}
         onReinvest={() => modals.setReinvestSelectOpen(true)}
         onPayBalance={() => modals.setPayBalanceOpen(true)}
-        onOrderSims={() => modals.handleStartReinvest("sim-stock", 500_000)}
+        onOrderSims={() => setOrderOpen(true)}
         onStatement={() => modals.setStatementModalOpen(true)}
       />
 
       {/* Amber Debt Alert Banner */}
       <EpBalanceWarningBanner
+        banner={overview.data.balance_warning_banner}
         onPayDown={() => modals.setPayBalanceOpen(true)}
       />
 
       {/* 4-Card Metrics Strip */}
-      <EpWalletMetricCards />
+      <EpWalletMetricCards cards={overview.data.middle_kpi_cards} />
 
       {/* 2-Column Responsive Workspace Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -92,11 +106,14 @@ export const MyEnterpriseWalletPage: React.FC = () => {
           />
           <EpWalletActivitySummary />
           <EpDebtSummarySidebar
+            banner={overview.data.balance_warning_banner}
             onPayBalance={() => modals.setPayBalanceOpen(true)}
           />
         </div>
       </div>
 
+      <OrderMoreSimsModal open={orderOpen} onOpenChange={setOrderOpen} onPreviewOrder={draft => { setOrderDraft(draft); setOrderOpen(false); }} />
+      {orderDraft && <ConfirmSimOrderModal open onOpenChange={open => { if (!open) setOrderDraft(null); }} order={orderDraft} onEdit={() => { setOrderDraft(null); setOrderOpen(true); }} />}
       {/* Modal Dialog Hubs */}
       <WalletModalsHub modals={modals} />
       <WalletSecondaryModalsHub modals={modals} />

@@ -12,7 +12,9 @@ export interface CaCurrentInventoryCardItem {
   id: string;
   type: string;
   count: number;
-  status: "Good" | "Low" | "Critical";
+  status: string;
+  subtext?: string;
+  capacityText?: string;
   statusColor: string;
   capacityPercent: number;
   capacityColor: string;
@@ -29,7 +31,8 @@ export interface CaApStockDistributionRow {
   gps: number;
   router: number;
   total: number;
-  status: "Good" | "Low" | "Critical" | "Suspended";
+  status: string;
+  customers?: number;
   avatarInitials: string;
 }
 
@@ -63,8 +66,8 @@ export interface CaHistoryKpiData {
 export interface CaHistoryEventItem {
   id: string;
   timeLabel: string;
-  periodGroup: "Today" | "Yesterday" | "This Week" | "Earlier";
-  eventType: "Received" | "Distributed" | "Returned" | "Adjusted";
+  periodGroup: string;
+  eventType: string;
   simType: string;
   network: string;
   qty: number;

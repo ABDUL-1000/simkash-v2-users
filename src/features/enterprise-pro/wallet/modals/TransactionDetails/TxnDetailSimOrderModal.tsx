@@ -16,9 +16,9 @@ export const TxnDetailSimOrderModal: React.FC<TxnDetailSimOrderModalProps> = ({
   onClose,
   onDownloadReceipt,
 }) => {
-  const amount = txn?.amount ?? 250000;
-  const ref = txn?.ref ?? "TXN-SIM-2024-00590";
-  const date = txn?.date ?? "14 Jun 2026, 16:45";
+  const amount = txn?.amount ?? 0;
+  const ref = txn?.ref ?? "—";
+  const date = txn?.date ?? "—";
 
   return (
     <AppModal
@@ -36,11 +36,11 @@ export const TxnDetailSimOrderModal: React.FC<TxnDetailSimOrderModalProps> = ({
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">SIM Stock Order</span>
             <div className="text-2xl font-black text-purple-600 mt-0.5">
-              -₦{amount.toLocaleString()}.00
+              {txn?.amountFormatted ?? `₦${amount.toLocaleString()}`}
             </div>
           </div>
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3" /> Batch Dispatched
+            <CheckCircle2 className="w-3 h-3" /> {txn?.status ?? "—"}
           </span>
         </div>
 
@@ -55,15 +55,15 @@ export const TxnDetailSimOrderModal: React.FC<TxnDetailSimOrderModalProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Batch Quantity:</span>
-            <span className="font-bold text-slate-800">50 Enterprise SIM Cards</span>
+            <span className="font-bold text-slate-800">{txn?.subtitle ?? "—"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Wholesale Unit Price:</span>
-            <span className="font-semibold text-slate-900">₦5,000.00 / SIM</span>
+            <span className="font-semibold text-slate-900">—</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Batch ID:</span>
-            <span className="font-mono text-slate-700">#SIM-B-8491</span>
+            <span className="font-mono text-slate-700">—</span>
           </div>
           <div className="flex justify-between border-t border-slate-200 pt-1.5">
             <span className="text-slate-500">Payment Channel:</span>
@@ -74,6 +74,7 @@ export const TxnDetailSimOrderModal: React.FC<TxnDetailSimOrderModalProps> = ({
         <div className="flex gap-2 pt-1">
           <button
             type="button"
+            disabled={!onDownloadReceipt}
             onClick={onDownloadReceipt}
             className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
           >

@@ -1,3 +1,8 @@
+import { useGetEnterpriseNetworkTree } from "../api/useGetEnterpriseNetworkTree";
+import { useGetEnterpriseNetworkActivity } from "../api/useGetEnterpriseNetworkActivity";
+import { useGetEnterpriseOverview } from "../api/useGetEnterpriseOverview";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { EpQueryState } from "../components/EpQueryState";
 import { AppModal } from "@/components/common/AppModal";
 import { colors } from "@/constants/colors";
 import { useNavigate } from "react-router-dom";
@@ -9,24 +14,56 @@ interface MyNetworkOverviewModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const TOP_COORDINATORS = [
-  { rank: 1, medal: "🥇", initials: "AO", name: "Aminat Okafor", state: "Lagos", acts: "1,847", earned: "₦3,841K" },
-  { rank: 2, medal: "🥈", initials: "FA", name: "Fatima A.", state: "Kaduna", acts: "1,204", earned: "₦2,504K" },
-  { rank: 3, medal: "🥉", initials: "KI", name: "Kola Ibrahim", state: "Oyo", acts: "1,123", earned: "₦2,335K" },
-  { rank: 4, medal: "4", initials: "CE", name: "Chidi Eze", state: "Abuja", acts: "982", earned: "₦2,042K" },
-  { rank: 5, medal: "5", initials: "CH", name: "Chioma Eze", state: "Imo", acts: "723", earned: "₦1,503K" },
-];
-
-const NETWORK_ACTIVITIES = [
-  { network: "MTN", phone: "07022222222", customer: "Chidi Eze", route: "SC: Aminat → AP: Rabiu Sani", comm: "+₦2,000", time: "2 min ago" },
-  { network: "GLO", phone: "08033333333", customer: "Fatima Abdullahi", route: "SC: Chidi Eze → AP: Amira Bello", comm: "+₦2,000", time: "8 min ago" },
-  { network: "AIRTEL", phone: "08144444444", customer: "James Okafor", route: "SC: Kola Ibrahim → AP: Yemi Adeyemi", comm: "+₦2,000", time: "15 min ago" },
-  { network: "9MOBILE", phone: "09055555555", customer: "Blessing Nwosu", route: "SC: Fatima A. → AP: Sani Abubakar", comm: "+₦2,000", time: "22 min ago" },
-  { network: "MTN", phone: "07066666666", customer: "Ahmed Musa", route: "SC: Ibrahim Musa → AP: Chioma Obi", comm: "+₦2,000", time: "35 min ago" },
-];
-
 export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverviewModalProps) {
   const navigate = useNavigate();
+  const tree = useGetEnterpriseNetworkTree(open);
+  const activity = useGetEnterpriseNetworkActivity({}, open);
+  const overview = useGetEnterpriseOverview();
+  const getActivationsCount = (item: any): number => {
+    const val = item?.activations ?? item?.activations_count ?? item?.total_activations ?? 0;
+    return typeof val === "number" ? val : Number(val) || 0;
+  };
+
+  const TOP_COORDINATORS = [...(tree.data?.state_coordinators ?? [])]
+    .sort((a, b) => getActivationsCount(b) - getActivationsCount(a))
+    .slice(0, 5)
+    .map((sc, index) => {
+      const actsCount = getActivationsCount(sc);
+      const name = sc.name || "Coordinator";
+      const initials =
+        (sc as any).initials ||
+        (name
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((part) => part[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase() || "SC");
+      const earned =
+        (sc as any).total_earnings_formatted ??
+        (sc as any).earnings_formatted ??
+        (sc as any).commission_formatted ??
+        "—";
+
+      return {
+        ...sc,
+        name,
+        medal: String(index + 1),
+        initials,
+        acts: actsCount.toLocaleString(),
+        earned,
+      };
+    });
+
+  const NETWORK_ACTIVITIES = (activity.data?.items ?? []).map((item) => ({
+    network: item.network || "SIM",
+    phone: item.phone || "—",
+    customer: item.state || "—",
+    route: `SC: ${item.coordinator_name || "—"} → AP: ${item.agent_name || "—"}`,
+    comm: item.commission_formatted || "—",
+    time: item.time_formatted || "—",
+  }));
 
   const handleGoToNetwork = () => {
     onOpenChange(false);
@@ -47,7 +84,7 @@ export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverview
       open={open}
       onOpenChange={onOpenChange}
       title="My Network Overview"
-      description="12 SCs · 247 APs · Jun 2026"
+      description={`${tree.data?.sc_count ?? 0} SCs · ${(tree.data as any)?.ap_count ?? (tree.data as any)?.aps_count ?? 0} APs`}
       descriptionColor={colors.textSecondary}
       size="md"
       footer={null}
@@ -57,19 +94,19 @@ export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverview
         <div className="grid grid-cols-4 gap-2">
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2.5">
             <p className="text-[9px] uppercase font-bold text-slate-400">STATE COORDS</p>
-            <p className="text-lg font-black text-slate-900 mt-0.5">12</p>
+            <p className="text-lg font-black text-slate-900 mt-0.5">{tree.data?.sc_count ?? "—"}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2.5">
             <p className="text-[9px] uppercase font-bold text-slate-400">AGENCY PTRS</p>
-            <p className="text-lg font-black text-slate-900 mt-0.5">247</p>
+            <p className="text-lg font-black text-slate-900 mt-0.5">{(tree.data as any)?.ap_count ?? (tree.data as any)?.aps_count ?? "—"}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2.5">
             <p className="text-[9px] uppercase font-bold text-slate-400">ACTS TODAY</p>
-            <p className="text-lg font-black text-slate-900 mt-0.5">47</p>
+            <p className="text-lg font-black text-slate-900 mt-0.5">{activity.data?.total ?? "—"}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-2.5">
             <p className="text-[9px] uppercase font-bold text-slate-400">COMMISSION</p>
-            <p className="text-sm font-black text-slate-900 mt-0.5">₦2.84M/mo</p>
+            <p className="text-sm font-black text-slate-900 mt-0.5">{overview.data?.secondary_cards?.network_commission?.amount_formatted ?? "—"}</p>
           </div>
         </div>
 
@@ -80,9 +117,11 @@ export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverview
             <span>ACTS / EARNINGS</span>
           </div>
 
+          <EpQueryState pending={tree.isPending} error={tree.error} retry={tree.refetch} />
+          {tree.isSuccess && !TOP_COORDINATORS.length && <AppEmptyState title="No State Coordinators" description="Your coordinators will appear here once your network grows." />}
           <div className="divide-y divide-slate-100">
-            {TOP_COORDINATORS.map((sc) => (
-              <div key={sc.name} className="flex items-center justify-between py-1.5">
+            {TOP_COORDINATORS.map((sc, index) => (
+              <div key={sc.id ?? `${sc.name}-${index}`} className="flex items-center justify-between py-1.5">
                 <div className="flex items-center gap-2">
                   <span className="w-4 text-xs font-bold text-slate-500 text-center">{sc.medal}</span>
                   <div className="flex size-7 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">
@@ -90,7 +129,7 @@ export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverview
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 text-xs">{sc.name}</p>
-                    <p className="text-[10px] text-slate-400">{sc.state}</p>
+                    <p className="text-[10px] text-slate-400">{sc.state || "—"}</p>
                   </div>
                 </div>
 
@@ -112,7 +151,7 @@ export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverview
           </div>
 
           <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500 border-t border-slate-100">
-            <span>And 7 more State Coordinators...</span>
+            <span>{Math.max(0, (tree.data?.sc_count ?? 0) - TOP_COORDINATORS.length)} more State Coordinators</span>
             <button onClick={handleGoToNetwork} className="font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5">
               View Full Network <ArrowRight className="size-3" />
             </button>
@@ -122,6 +161,8 @@ export function MyNetworkOverviewModal({ open, onOpenChange }: MyNetworkOverview
         {/* Today's Network Activity */}
         <div className="space-y-1.5 pt-1">
           <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">TODAY&apos;S NETWORK ACTIVITY</p>
+          <EpQueryState pending={activity.isPending} error={activity.error} retry={activity.refetch} />
+          {activity.isSuccess && !NETWORK_ACTIVITIES.length && <AppEmptyState title="No Network Activity" description="No network activations have been recorded today." />}
           <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-0.5">
             {NETWORK_ACTIVITIES.map((act, i) => (
               <div key={i} className="flex items-center justify-between py-1 text-xs">

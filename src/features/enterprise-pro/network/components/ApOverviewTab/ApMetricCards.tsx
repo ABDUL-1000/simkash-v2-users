@@ -1,45 +1,46 @@
 import React from "react";
 import { Users, UserCheck, Zap, Percent, Wallet } from "lucide-react";
 import { colors } from "@/constants/colors";
+import type { EnterpriseApSummaryCards } from '../../types/api';
 
-export const ApMetricCards: React.FC = () => {
+export const ApMetricCards: React.FC<{ summary?: EnterpriseApSummaryCards }> = ({ summary }) => {
   const cards = [
     {
       title: "Total SCs",
-      value: "12",
-      subtext: "Coordinating states",
+      value: summary?.state_coordinators.value.toLocaleString() ?? '—',
+      subtext: summary?.state_coordinators.subtext ?? '',
       icon: Users,
       iconColor: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
       title: "Agency Partners",
-      value: "247",
-      subtext: "Across 12 states",
+      value: summary?.agency_partners.value.toLocaleString() ?? '—',
+      subtext: summary?.agency_partners.subtext ?? '',
       icon: UserCheck,
       iconColor: "text-indigo-600",
       bgColor: "bg-indigo-50",
     },
     {
       title: "Total Activations",
-      value: "14,863",
-      subtext: "+14.2% this month",
+      value: summary?.total_activations.value.toLocaleString() ?? '—',
+      subtext: summary?.total_activations.subtext ?? '',
       icon: Zap,
       iconColor: "text-emerald-600",
       bgColor: "bg-emerald-50",
     },
     {
       title: "Avg Margin / SIM",
-      value: "18.4%",
-      subtext: "₦2,000 / activation",
+      value: summary?.avg_margin.value_formatted ?? '—',
+      subtext: summary?.avg_margin.subtext ?? '',
       icon: Percent,
       iconColor: "text-amber-600",
       bgColor: "bg-amber-50",
     },
     {
       title: "Total Commission",
-      value: "₦2.8M",
-      subtext: "Earned this cycle",
+      value: summary?.total_commission.value_formatted ?? '—',
+      subtext: summary?.total_commission.subtext ?? '',
       icon: Wallet,
       iconColor: "text-blue-700",
       bgColor: "bg-blue-50",
