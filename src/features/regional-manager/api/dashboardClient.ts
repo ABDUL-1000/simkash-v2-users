@@ -10,17 +10,17 @@ export function invalidateRmDashboard(client: QueryClient, userId?: number) {
     typeof queryKey[0] === "string" && queryKey[0].startsWith("rm-") && queryKey[1] === userId });
 }
 
-export function useRmQuery<T>(resource: string, path: string, params?: object, enabled = true, base = rmDashboardBase) {
+export function useRmQuery<T>(resource: string, path: string, params?: object, enabled = true, base = rmDashboardBase, normalize?: (raw: never) => T) {
   const token = useAuthStore((state) => state.accessToken);
   const userId = useAuthStore((state) => state.user?.id);
   return useQuery({
     queryKey: [resource, userId, path, params],
     enabled: Boolean(token && userId) && enabled,
     staleTime: 60_000,
-    queryFn: async ({ signal }) => {
+    queryFn: async ({ signal }): Promise<T> => {
       const { data } = await authedHttpClient.get<ApiResponse<T>>(`${base}${path}`, { params, signal });
       if (!data.success) throw new Error(data.message);
-      return data.data;
+      return normalize ? normalize(data.data as never) : data.data;
     },
   });
 }

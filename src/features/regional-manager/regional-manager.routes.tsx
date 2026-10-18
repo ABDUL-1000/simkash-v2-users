@@ -6,6 +6,7 @@ import { RegionalManagerWalletPage } from "./pages/RegionalManagerWalletPage";
 import { RegionalManagerInventoryPage } from "./pages/RegionalManagerInventoryPage";
 import { RegionalManagerCoordinatorsPage } from "./pages/RegionalManagerCoordinatorsPage";
 import { RegionalManagerCoordinatorPage } from "./pages/RegionalManagerCoordinatorPage";
+import { RmRedistributePage } from "./pages/RmRedistributePage";
 
 // Keep all live RM routes together so sidebar links cannot silently return to legacy mock pages.
 export const regionalManagerRoutes: TRouteData[] = [
@@ -15,7 +16,7 @@ export const regionalManagerRoutes: TRouteData[] = [
   { path: appPaths.rmStateCoordinators, element: <RegionalManagerCoordinatorsPage />, title: "My State Coordinators", isSearchable: true },
   { path: appPaths.rmSimInventory, element: <RegionalManagerInventoryPage />, title: "RM SIM Inventory", isSearchable: true },
   { path: appPaths.rmCoordinatorDetail().format, element: <RegionalManagerCoordinatorPage />, title: "State Coordinator Details", isSearchable: false },
-  { path: appPaths.rmRedistributeSims, element: <RegionalManagerInventoryPage key="redistribute" initialModal="redistribute" />, title: "Redistribute SIMs", isSearchable: false },
+  { path: appPaths.rmRedistributeSims, element: <RmRedistributePage />, title: "Redistribute SIMs", isSearchable: true },
   { path: appPaths.rmScDetails().format, element: <RegionalManagerCoordinatorPage />, title: "State Coordinator Details", isSearchable: false },
   ...[appPaths.rmCustomers, "/customers/rm", "/dashboard/regional-manager/state-coordinators"].map(path => ({
     path, element: <Navigate to={appPaths.rmStateCoordinators} replace />, title: "My State Coordinators", isSearchable: false,

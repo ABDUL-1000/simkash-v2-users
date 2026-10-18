@@ -32,5 +32,5 @@ export const useScPartners = (params: ScPartnerParams) => useScQuery<ScPartnersD
 export const useScActivations = (params: ScActivationParams) => useScQuery<ScActivationsData>("activations", scEndpoints.activations, params);
 export const useScTransactions = (params: ScTransactionParams, enabled = true) => useScQuery<ScTransactionsData>("transactions", scEndpoints.transactions, params, enabled);
 
-// GET payout-account is not consumed: its supplied response documents payout history
-// instead of a bank account. The overview's payout_account is the documented read model.
+export interface ScPayoutAccount { id: number; bank_name: string; bank_code: string; account_number: string; account_name: string; is_default: boolean; status: string }
+export const useScPayoutAccount = () => useScQuery<{ default_account: ScPayoutAccount | null; accounts: ScPayoutAccount[] }>("payout-account", scEndpoints.payoutAccount);

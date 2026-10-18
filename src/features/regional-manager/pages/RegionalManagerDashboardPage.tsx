@@ -10,7 +10,6 @@ import { RmDashboardWidgets } from "../components/dashboard/RmDashboardWidgets";
 import { RmCoordinatorsTable } from "../components/dashboard/RmCoordinatorsTable";
 import { RmRecentActivityFeed } from "../components/dashboard/RmRecentActivityFeed";
 import { rmDesignTokens } from "../components/dashboard/rmDesignTokens";
-import { RmInventoryRedistributeModal } from "../Modals/inventory/RmInventoryForms";
 import { RmDesignedRequest } from "../Modals/dashboard/RmDesignedRequest";
 import { RmDesignedDistribute } from "../Modals/dashboard/RmDesignedDistribute";
 import { RmDesignedOnboard, RmDesignedReminder } from "../Modals/dashboard/RmDesignedPeople";
@@ -18,7 +17,7 @@ import { RmDesignedOnboard, RmDesignedReminder } from "../Modals/dashboard/RmDes
 export function RegionalManagerDashboardPage() {
   const query = useGetRmDashboardOverview();
   const navigate = useNavigate();
-  const [modal, setModal] = useState<"onboard" | "request" | "redistribute" | "distribute" | "remind" | null>(null);
+  const [modal, setModal] = useState<"onboard" | "request" | "distribute" | "remind" | null>(null);
   const [selected, setSelected] = useState<RmTarget>();
   const close = () => { setModal(null); setSelected(undefined); };
   const distribute = (target?: RmTarget) => { setSelected(target); setModal("distribute"); };
@@ -30,14 +29,14 @@ export function RegionalManagerDashboardPage() {
         <RmCoordinatorsTable summary={query.data?.my_state_coordinators} onView={target => navigate(appPaths.rmCoordinatorDetail(target.id).path)} onDistribute={distribute} onOnboard={() => setModal("onboard")} onViewAll={() => navigate(appPaths.rmStateCoordinators)} />
         <RmRecentActivityFeed />
       </div>
-      {query.data && !query.error && <RmDashboardWidgets data={query.data} onRequest={() => setModal("request")} onDistribute={() => distribute()} onPayout={() => navigate(appPaths.rmWallet)} onOnboard={() => setModal("onboard")} onRemind={() => setModal("remind")} onRedistribute={() => setModal("redistribute")} />}
+      {query.data && !query.error && <RmDashboardWidgets data={query.data} onRequest={() => setModal("request")} onDistribute={() => distribute()} onPayout={() => navigate(appPaths.rmWallet)} onOnboard={() => setModal("onboard")} onRemind={() => setModal("remind")}
+        onRedistribute={() => navigate(appPaths.rmRedistributeSims)} onReports={() => navigate(`${appPaths.rmStateCoordinators}?view=comparison`)} />}
     </div>
-    {modal === "onboard" && <RmDesignedOnboard onClose={close} />}
+    {modal === "onboard" && <RmDesignedOnboard onClose={close} onViewAll={() => navigate(appPaths.rmStateCoordinators)} />}
     {modal === "request" && <RmDesignedRequest onClose={close} />}
-    {modal === "distribute" && <RmDesignedDistribute target={selected} onClose={close} />}
+    {modal === "distribute" && <RmDesignedDistribute target={selected} onClose={close} onViewProfile={id => navigate(appPaths.rmCoordinatorDetail(id).path)} />}
     {modal === "remind" && <RmDesignedReminder onClose={close} />}
-    {modal === "redistribute" && <RmInventoryRedistributeModal onClose={close} />}
-    {/* Network-report button remains commented out: no report endpoint supplied. Payouts use the dedicated wallet's PIN flow. */}
+    {/* Payouts use the dedicated wallet's PIN flow. */}
   </main>;
 }
 export default RegionalManagerDashboardPage;

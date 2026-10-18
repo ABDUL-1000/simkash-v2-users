@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { ScRequestPayoutModal } from "../modals/ScRequestPayoutModal";
 import { ScChangeBankModal } from "../modals/ScChangeBankModal";
+import { useScPayoutAccount } from "../api/queries";
 import { ScTransactionDetailsModal } from "../modals/ScTransactionDetailsModal";
 import { ScDownloadStatementModal } from "../modals/ScDownloadStatementModal";
 import { ScPayoutHistoryModal } from "../modals/ScPayoutHistoryModal";
@@ -49,11 +50,12 @@ export function ScWalletPage() {
   const [timeFilter, setTimeFilter] = useState("This Month");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const bankAccount = {
-    bankName: "Access Bank",
-    accountNumber: "****0476",
-    accountName: "Aminat Okafor",
-  };
+  // Saved default account from GET payout-account; the page's original placeholder is kept only until it loads.
+  const payoutAccount = useScPayoutAccount().data?.default_account;
+  const [savedAccount, setBankAccount] = useState<{ bankName: string; accountNumber: string; accountName: string }>();
+  const bankAccount = payoutAccount
+    ? { bankName: payoutAccount.bank_name, accountNumber: `****${payoutAccount.account_number.slice(-4)}`, accountName: payoutAccount.account_name }
+    : savedAccount ?? { bankName: "Access Bank", accountNumber: "****0476", accountName: "Aminat Okafor" };
 
   const recentPayouts = [
     { date: "Yesterday", amount: "₦30,000", status: "Paid" },
@@ -764,16 +766,18 @@ export function ScWalletPage() {
       <ScChangeBankModal
         open={changeBankOpen}
         onOpenChange={setChangeBankOpen}
-        onSuccess={() => {
+        currentAccount={bankAccount}
+        onSuccess={(saved) => {
+          setBankAccount(saved);
           setSuccessModalConfig({
             open: true,
             title: "Bank Account Updated!",
             subtitle:
               "Your payout bank account details have been updated successfully.",
             details: [
-              { label: "Bank Name", value: "Access Bank" },
-              { label: "Account Number", value: "0123450476" },
-              { label: "Account Name", value: "Aminat Okafor" },
+              { label: "Bank Name", value: saved.bankName },
+              { label: "Account Number", value: saved.accountNumber },
+              { label: "Account Name", value: saved.accountName },
             ],
           });
         }}

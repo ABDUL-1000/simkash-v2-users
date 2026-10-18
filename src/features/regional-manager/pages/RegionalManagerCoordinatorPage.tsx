@@ -13,7 +13,6 @@ import { rmDesignTokens } from "../components/dashboard/rmDesignTokens";
 import { RmDesignedDistribute } from "../Modals/dashboard/RmDesignedDistribute";
 import { RmDesignedReminder, RmDesignedSuspend } from "../Modals/dashboard/RmDesignedPeople";
 import { RmOnboardApForm } from "../Modals/dashboard/RmPeopleModals";
-import { RmInventoryRedistributeModal } from "../Modals/inventory/RmInventoryForms";
 export function RegionalManagerCoordinatorPage() {
   const { coordinatorId, id } = useParams();
   const value = coordinatorId ?? id;
@@ -35,12 +34,11 @@ export function RegionalManagerCoordinatorPage() {
         { key: "suspend", label: data.hero.status.toLowerCase() === "suspended" ? "Reactivate SC" : "Suspend SC", variant: "destructive", onClick: () => setModal("suspend") },
         { key: "contact", render: () => <Button href={`tel:${data.hero.phone.replace(/[^+\d]/g, "")}`}>Contact SC</Button> },
       ]} /><div className="mt-2 flex gap-2"><RmStatus value={data.hero.status} /><RmStatus value="State Coordinator" /></div></div></div>
-      <RmProfileLayout id={number} data={data} onAction={setModal} />
+      <RmProfileLayout id={number} data={data} onAction={action => action === "redistribute" ? navigate(appPaths.rmRedistributeSims) : setModal(action)} />
     </>}</RmQueryState>
     {modal === "distribute" && data && <RmDesignedDistribute target={target} onClose={close} />}
     {modal === "remind" && data && <RmDesignedReminder target={target} onClose={close} />}
     {modal === "suspend" && data && <RmDesignedSuspend target={target} suspended={data.hero.status.toLowerCase() === "suspended"} onClose={close} />}
     {modal === "onboard" && data && <RmOnboardApForm target={target} onClose={close} />}
-    {modal === "redistribute" && data && <RmInventoryRedistributeModal onClose={close} />}
   </main>;
 }

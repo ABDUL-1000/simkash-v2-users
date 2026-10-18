@@ -1,26 +1,52 @@
 import { useState } from "react";
-import { Alert, Input, Segmented } from "antd";
-import { useGetRmSimInventoryOverview, useRmRequestStockFromSuperAdmin } from "../../api/inventory";
-import { RmQueryState } from "../../components/dashboard/RmDashboardPrimitives";
-import { RmStockSummary } from "../../components/dashboard/RmDesign";
-import { RmConfirmed, RmDesignModal, RmQuantityRow } from "./RmDesignModal";
+import { Input, Skeleton } from "antd";
+import { rmSimTypes, useRmRequestStockFromSuperAdmin, emptyRmQuantities } from "../../api/inventory";
 import type { RmBulkStockPayload } from "../../types/territory";
-const types = ["pos", "cctv", "gps", "router"] as const;
+import { RmBadge, RmFlowModal, RmLabel, RmNote, RmPills, RmReceipt, RmResultModal, RmStepperRow, RmStockBox, RmTotalBar } from "../flow/RmFlow";
+import { rmFlow } from "../flow/rmFlowTokens";
+import { breakdownText, rmSimMeta, sumQuantities, useRmOwnStock } from "../flow/rmStock";
+
+type Urgency = RmBulkStockPayload["urgency"];
+interface RequestReceipt { reference?: string; status?: string; response_estimate?: string }
+
 export function RmDesignedRequest({ onClose }: { onClose: () => void }) {
-  const query = useGetRmSimInventoryOverview();
+  const own = useRmOwnStock();
   const mutation = useRmRequestStockFromSuperAdmin();
-  const [values, setValues] = useState<RmBulkStockPayload>({ pos_quantity: 0, cctv_quantity: 0, gps_quantity: 0, router_quantity: 0, urgency: "normal", notes: "" });
-  const total = types.reduce((sum, type) => sum + values[`${type}_quantity`], 0);
-  const valid = total > 0 && types.every(type => Number.isSafeInteger(values[`${type}_quantity`]) && values[`${type}_quantity`] >= 0);
-  if (mutation.isSuccess) return <RmConfirmed title="Request Submitted!" result={mutation.data} rows={[...types.filter(type => values[`${type}_quantity`] > 0).map(type => ({ label: `${type.toUpperCase()} SIM`, value: `${values[`${type}_quantity`]} requested` })), { label: "Total requested", value: `${total} SIMs` }]} onClose={onClose} />;
-  return <RmDesignModal title="Request SIM Stock" subtitle="Request from Super Admin" onClose={onClose} pending={mutation.isPending} error={mutation.error} onSubmit={() => mutation.mutate(values)} disabled={!valid} submitLabel="Submit Request">
-    <RmQueryState loading={query.isLoading} error={query.error} retry={() => void query.refetch()}>{query.data && <RmStockSummary total={query.data.summary_cards.total_available.count}>{query.data.current_inventory.map(item => `${item.label}: ${item.available}`).join(" · ")}</RmStockSummary>}</RmQueryState>
-    <Alert type="info" showIcon title="Requests go to Super Admin for stock allocation." />
-    <p className="text-xs font-semibold">REQUIRED QUANTITIES</p>
-    <div>{types.map(type => <RmQuantityRow key={type} label={`${type.toUpperCase()} SIM`} available={query.data?.current_inventory.find(stock => stock.type.toLowerCase() === type)?.available} value={values[`${type}_quantity`]} disabled={mutation.isPending} onChange={quantity => setValues(current => ({ ...current, [`${type}_quantity`]: quantity }))} />)}</div>
-    <p className="rounded-lg border p-3 text-sm font-semibold">{total} SIMs requested total</p>
-    <div><p className="mb-2 text-xs font-semibold">URGENCY</p><Segmented<RmBulkStockPayload["urgency"]> disabled={mutation.isPending} value={values.urgency} options={[{ label: "Normal", value: "normal" }, { label: "Urgent", value: "urgent" }]} onChange={urgency => setValues(current => ({ ...current, urgency }))} /></div>
-    {/* Critical urgency and predicted approval time are omitted: only normal/urgent are documented; response_estimate is displayed after a confirmed response. */}
-    <label className="block text-xs">JUSTIFICATION (OPTIONAL)<Input.TextArea className="mt-2" rows={3} value={values.notes} disabled={mutation.isPending} onChange={event => setValues(current => ({ ...current, notes: event.target.value }))} placeholder="Tell Admin why your region needs stock…" /></label>
-  </RmDesignModal>;
+  const [quantities, setQuantities] = useState(emptyRmQuantities);
+  const [urgency, setUrgency] = useState<Urgency>("normal");
+  const [notes, setNotes] = useState("");
+  const total = sumQuantities(quantities);
+  const submit = () => mutation.mutate({ pos_quantity: quantities.pos, cctv_quantity: quantities.cctv, gps_quantity: quantities.gps, router_quantity: quantities.router, urgency, notes: notes.trim() });
+
+  if (mutation.isSuccess) {
+    const receipt = (mutation.data.data ?? {}) as RequestReceipt;
+    return <RmResultModal title="Request Submitted!" subtitle={receipt.response_estimate ? `Average response: ${receipt.response_estimate}` : undefined} onClose={onClose} actions={[{ label: "Done", onClick: onClose }]}>
+      <RmReceipt heading="Requested SIM stock" rows={[
+        ...rmSimTypes.map(type => [rmSimMeta[type].label, `${quantities[type]} requested`] as [string, string]),
+        "divider", [<strong style={{ color: rmFlow.navy }}>Total requested</strong>, <strong style={{ color: rmFlow.navy }}>{total} SIMs</strong>],
+      ]} footer={<div className="flex items-center justify-between gap-2 text-[11px]" style={{ color: rmFlow.muted }}><span>Ref: {receipt.reference ?? "—"}</span><RmBadge>{receipt.status ? `${receipt.status[0].toUpperCase()}${receipt.status.slice(1)} Admin` : "Pending Admin"}</RmBadge></div>} />
+    </RmResultModal>;
+  }
+
+  return <RmFlowModal title="Request SIM Stock" subtitle="Request from Super Admin" onClose={onClose} pending={mutation.isPending}
+    secondary={{ label: "Cancel", onClick: onClose, disabled: mutation.isPending }} primary={{ label: "Submit Request", onClick: submit, disabled: total <= 0, loading: mutation.isPending }}>
+    {own.query.isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : <RmStockBox title={`Your current inventory: ${own.total?.toLocaleString() ?? "—"} SIMs`}>{breakdownText(own.byType)}</RmStockBox>}
+    <RmNote>Requests go directly to Super Admin. They distribute from the platform's master stock.</RmNote>
+    {mutation.error && <RmNote tone="danger">{mutation.error.message}</RmNote>}
+    <div>
+      <RmLabel>Required quantities</RmLabel>
+      {rmSimTypes.map(type => <RmStepperRow key={type} icon={rmSimMeta[type].icon} label={rmSimMeta[type].label} hint={`${own.byType?.[type] ?? "—"} available`} value={quantities[type]} disabled={mutation.isPending}
+        onChange={value => setQuantities(current => ({ ...current, [type]: value }))} />)}
+    </div>
+    <RmTotalBar left={`${total} SIMs requested total`} right={own.total !== undefined ? `Your stock after: ${(own.total + total).toLocaleString()} SIMs` : undefined} />
+    <div className="space-y-2">
+      <RmLabel>Urgency</RmLabel>
+      {/* "Critical" is shown but disabled: request-stock only accepts normal | urgent. */}
+      <RmPills<Urgency | "critical"> value={urgency} disabled={mutation.isPending} onChange={value => value !== "critical" && setUrgency(value)}
+        options={[{ value: "normal", label: "Normal" }, { value: "urgent", label: "Urgent" }, { value: "critical", label: "Critical", disabled: true }]} />
+    </div>
+    <label className="block space-y-2"><RmLabel>Justification (optional)</RmLabel>
+      <Input.TextArea rows={2} value={notes} disabled={mutation.isPending} onChange={event => setNotes(event.target.value)} placeholder="e.g. 3 SCs running critically low, high demand period in Lagos..." />
+    </label>
+  </RmFlowModal>;
 }

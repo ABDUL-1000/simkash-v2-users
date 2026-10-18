@@ -24,7 +24,7 @@ function TransactionRow({ row }: { row: RmGroupedTransactionItem }) {
   return <div className="flex items-center gap-3"><span className="rm-wallet-icon !size-10 !rounded-full" style={{ background: bg, color }}><Icon size={18} /></span><div className="min-w-0 flex-1"><strong className="text-sm">{row.title}</strong><p className="text-xs" style={{ color: colors.texts.muted }}>{row.subtitle}</p><p className="mt-1 text-[11px]" style={{ color: colors.texts.muted }}>{row.time} {failed && <RmStatus value={row.status} />}</p></div><div className="max-w-[40%] text-right"><strong className="break-words text-sm" style={{ color }}>{row.amount_formatted}</strong><p className="mt-1 break-all text-[10px]" style={{ color: colors.texts.muted }}>{row.reference}</p></div></div>;
 }
 const columns: ColumnsType<RmGroupedTransactionItem> = [{ title: "Transaction", render: (_, row) => <TransactionRow row={row} /> }];
-export function RmWalletTransactions({ categories, onStatement }: { categories?: Record<string, number>; onStatement: () => void }) {
+export function RmWalletTransactions({ categories, onStatement, onRetryPayout, onUpdateBank }: { categories?: Record<string, number>; onStatement: () => void; onRetryPayout?: () => void; onUpdateBank?: () => void }) {
   const [filters, setFilters] = useState<RmWalletFilters>({ category: "all", period: "this_month", search: "" });
   const [selected, setSelected] = useState<RmGroupedTransactionItem | null>(null);
   const pagination = useTablePagination({ initialPageSize: 12 });
@@ -44,5 +44,6 @@ export function RmWalletTransactions({ categories, onStatement }: { categories?:
       {groups.length ? groups.map(group => <div key={group.date_group}><p className="rm-wallet-group">{group.date_group}</p><DataTable columns={columns} dataSource={group.transactions} rowKey="id" pagination={false} onRowClick={setSelected} rowStyle={row => row.status.toLowerCase() === "failed" ? { background: colors.reds.light } : undefined} /></div>) : <AppEmptyState title="No Wallet Transactions" description="No transactions match your selected filters." />}
       <div className="flex flex-col gap-3 p-4"><span className="text-xs" style={{ color: colors.texts.muted }}>{query.data?.showing_text}</span><Pagination {...pagination.paginationConfig} total={query.data?.total ?? 0} responsive /></div>
     </RmQueryState>}
-  </RmPanel>{selected && <RmTransactionModal transaction={selected} onClose={() => setSelected(null)} />}</div>;
+  </RmPanel>{selected && <RmTransactionModal transaction={selected} onClose={() => setSelected(null)}
+    onRetryPayout={onRetryPayout && (() => { setSelected(null); onRetryPayout(); })} onUpdateBank={onUpdateBank && (() => { setSelected(null); onUpdateBank(); })} />}</div>;
 }

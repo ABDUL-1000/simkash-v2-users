@@ -3,8 +3,9 @@ import type { RmActivityItem, RmStateCoordinatorItem } from "./api";
 export interface RmPagination { total: number; page: number; limit: number; total_pages: number }
 export interface RmListParams { page: number; limit: number; search?: string }
 export interface RmCoordinatorParams extends RmListParams { status?: "all" | "active" | "at_risk" | "suspended" }
-export interface RmCoordinatorsData extends RmPagination { showing_text: string; coordinators: RmStateCoordinatorItem[] }
-export interface RmActivitiesData extends RmPagination { activities: RmActivityItem[] }
+// List responses are normalised to `items` in api/normalize.ts (live API and Swagger use different keys).
+export interface RmCoordinatorsData extends RmPagination { showing_text: string; items: RmStateCoordinatorItem[] }
+export interface RmActivitiesData extends RmPagination { showing_text: string; items: RmActivityItem[] }
 export interface RmApItem { id: number; name: string; initials: string; activations: number; activations_text: string; status: string; status_color: string }
 export interface RmApsData extends RmPagination { items: RmApItem[] }
 export interface RmStockHistoryItem { id: string; time_ago: string; breakdown_text: string; total_sims: number; total_sims_text: string; created_at: string }

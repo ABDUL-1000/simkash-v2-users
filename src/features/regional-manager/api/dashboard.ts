@@ -1,10 +1,13 @@
 import { useRmMutation, useRmQuery, type RmMutationOptions } from "./dashboardClient";
+import { rmPaginated } from "./normalize";
 import type { RmCoordinatorDetailData, RmDashboardOverviewData } from "../types/api";
 import type { RmActivitiesData, RmApsData, RmCoordinatorParams, RmCoordinatorsData, RmDistributePayload, RmListParams, RmOnboardScPayload, RmPayoutPayload, RmProfilePayload, RmQuickDistributePayload, RmRedistributePayload, RmReminderPayload, RmStockHistoryData, RmStockRequestPayload, RmSuspendPayload } from "../types/dashboard";
 
 export const useGetRmDashboardOverview = () => useRmQuery<RmDashboardOverviewData>("rm-dashboard-overview", "/overview");
-export const useGetRmStateCoordinators = (params: RmCoordinatorParams) => useRmQuery<RmCoordinatorsData>("rm-state-coordinators", "/state-coordinators", params);
-export const useGetRmRecentActivity = (params: RmListParams) => useRmQuery<RmActivitiesData>("rm-recent-activity", "/recent-activity", params);
+export const useGetRmStateCoordinators = (params: RmCoordinatorParams, enabled = true) => useRmQuery<RmCoordinatorsData>("rm-state-coordinators", "/state-coordinators", params, enabled, undefined,
+  raw => rmPaginated(raw, ["coordinators"], "State Coordinators"));
+export const useGetRmRecentActivity = (params: RmListParams) => useRmQuery<RmActivitiesData>("rm-recent-activity", "/recent-activity", params, true, undefined,
+  raw => rmPaginated(raw, ["activities"], "activities"));
 export const useGetRmCoordinatorDetail = (id?: number) => useRmQuery<RmCoordinatorDetailData>("rm-coordinator-detail", `/state-coordinators/${id}`, undefined, Boolean(id));
 export const useGetRmCoordinatorAps = (id: number, params: RmListParams) => useRmQuery<RmApsData>("rm-coordinator-aps", `/state-coordinators/${id}/agency-partners`, params, Boolean(id));
 export const useGetRmCoordinatorStockHistory = (id: number) => useRmQuery<RmStockHistoryData>("rm-coordinator-stock-history", `/state-coordinators/${id}/stock-history`, undefined, Boolean(id));

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input, Select, Tabs } from "antd";
 import { UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { PageHeader } from "@/components/common/PageHeader";
 import { colors } from "@/constants/colors";
@@ -17,13 +17,14 @@ import { RmCoordinatorSidebar } from "../components/coordinators/RmCoordinatorSi
 import { RmPageControls } from "../components/territory/RmPageControls";
 import { RmDesignedOnboard, RmDesignedSuspend } from "../Modals/dashboard/RmDesignedPeople";
 import { RmDesignedDistribute } from "../Modals/dashboard/RmDesignedDistribute";
-import { RmInventoryDistributeModal, RmInventoryRedistributeModal } from "../Modals/inventory/RmInventoryForms";
+import { RmInventoryDistributeModal } from "../Modals/inventory/RmInventoryForms";
 import { RmScContactModal, RmScExportModal, RmScReminderModal, RmScOnboardApModal } from "../Modals/coordinators/RmCoordinatorExtras";
 type Modal = Exclude<CoordinatorAction, "view"> | "onboard" | "export" | "bulkDistribute" | null;
 export function RegionalManagerCoordinatorsPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({ tab: "all", search: "", sortBy: "most_activations" });
-  const [view, setView] = useState("coordinators");
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState(searchParams.get("view") === "comparison" ? "comparison" : "coordinators");
   const pagination = useTablePagination({ initialPageSize: 12 });
   const query = useGetMyStateCoordinatorsOverview({ ...filters, page: pagination.page, limit: pagination.pageSize });
   const [modal, setModal] = useState<Modal>(null);
@@ -31,7 +32,7 @@ export function RegionalManagerCoordinatorsPage() {
   const close = () => { setModal(null); setSelected(undefined); };
   const open = (action: Modal, row?: CoordinatorRow) => { setSelected(row); setModal(action); };
   const change = (values: Partial<typeof filters>) => { setFilters(current => ({ ...current, ...values })); pagination.resetPage(); };
-  const onAction = (action: CoordinatorAction, row: CoordinatorRow) => action === "view" ? navigate(appPaths.rmCoordinatorDetail(row.id).path) : open(action, row);
+  const onAction = (action: CoordinatorAction, row: CoordinatorRow) => action === "view" ? navigate(appPaths.rmCoordinatorDetail(row.id).path) : action === "redistribute" ? navigate(appPaths.rmRedistributeSims) : open(action, row);
   const cards = query.data?.summary_cards;
   return <main className="rm-design mx-auto w-full min-w-0 max-w-[1440px] space-y-5 p-4 sm:p-6" style={{ ...rmDesignTokens, background: colors.backgrounds.base }}>
     <PageHeader title="My State Coordinators" description="All State Coordinators onboarded by you across your region" actions={[{ key: "onboard", label: "Onboard New SC", icon: <UserPlus size={15} />, style: { background: colors.blues.primary }, onClick: () => open("onboard") }]} />
@@ -45,7 +46,6 @@ export function RegionalManagerCoordinatorsPage() {
     {modal === "remind" && <RmScReminderModal target={selected} onClose={close} />}
     {modal === "distribute" && selected && <RmDesignedDistribute target={selected} onClose={close} />}
     {modal === "bulkDistribute" && <RmInventoryDistributeModal onClose={close} />}
-    {modal === "redistribute" && <RmInventoryRedistributeModal target={selected} onClose={close} />}
     {modal === "suspend" && selected && <RmDesignedSuspend target={selected} suspended={selected.status.toLowerCase() === "suspended"} onClose={close} />}
     {modal === "contact" && selected && <RmScContactModal target={selected} onClose={close} />}
     {modal === "onboardAp" && selected && <RmScOnboardApModal target={selected} onClose={close} />}

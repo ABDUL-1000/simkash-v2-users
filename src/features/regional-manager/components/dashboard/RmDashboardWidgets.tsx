@@ -1,14 +1,14 @@
 import { Button, Progress } from "antd";
-import { Bell, CheckCircle, Package, Shuffle, TrendingUp, Trophy, Upload, UserPlus, XCircle, AlertTriangle } from "lucide-react";
+import { Bell, ChartColumn, CheckCircle, Package, Shuffle, TrendingUp, Trophy, Upload, UserPlus, XCircle, AlertTriangle } from "lucide-react";
 import { colors } from "@/constants/colors";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { useGetRmSimInventoryOverview } from "../../api/inventory";
 import type { RmDashboardOverviewData } from "../../types/api";
 import { RmQueryState, RmStatus } from "./RmDashboardPrimitives";
 import { RmInfoRows, RmPanel } from "./RmDesign";
-export function RmDashboardWidgets({ data, onRequest, onDistribute, onPayout, onOnboard, onRemind, onRedistribute }: {
+export function RmDashboardWidgets({ data, onRequest, onDistribute, onPayout, onOnboard, onRemind, onRedistribute, onReports }: {
   data: RmDashboardOverviewData; onRequest: () => void; onDistribute: () => void; onPayout: () => void;
-  onOnboard: () => void; onRemind: () => void; onRedistribute: () => void;
+  onOnboard: () => void; onRemind: () => void; onRedistribute: () => void; onReports: () => void;
 }) {
   const query = useGetRmSimInventoryOverview();
   const health = data.network_health;
@@ -42,8 +42,9 @@ export function RmDashboardWidgets({ data, onRequest, onDistribute, onPayout, on
       { label: "Send Bonus Reminder", icon: Bell, action: onRemind, color: colors.warning },
       { label: "Request Stock from Admin", icon: Upload, action: onRequest, color: colors.textPrimary },
       { label: "Redistribute SIMs", icon: Shuffle, action: onRedistribute, color: colors.success },
+      { label: "View Network Reports", icon: ChartColumn, action: onReports, color: colors.blues.primary },
     ].map(item => <Button key={item.label} icon={<item.icon size={15} />} onClick={item.action} style={{ background: item.filled ? item.color : colors.backgrounds.background, color: item.filled ? colors.texts.whiteFixed : item.color, borderColor: item.color }}>{item.label}</Button>)}</div>
-      {/* <ViewNetworkReport /> remains commented out: no regional network-report endpoint supplied. */}
+      {/* Network reports open the SC performance comparison (GET /my-state-coordinator/comparison, with CSV export). */}
     </RmPanel>
   </aside>;
 }

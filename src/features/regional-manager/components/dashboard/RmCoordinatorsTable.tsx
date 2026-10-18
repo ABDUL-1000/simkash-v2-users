@@ -27,9 +27,9 @@ export function RmCoordinatorsTable({ summary, onView, onDistribute, onOnboard, 
     { title: "Last active", dataIndex: "last_active" },
     { title: "Actions", key: "actions", render: (_, row) => <div className="flex gap-1" onClick={(event) => event.stopPropagation()}><Button type="text" size="small" onClick={() => onView(row)} style={{ color: colors.blues.primary }}>View</Button><Button type="text" size="small" onClick={() => onDistribute(row)} style={{ color: colors.success }}>Distribute</Button></div> },
   ];
-  return <RmPanel title="My State Coordinators" description={summary?.subtitle} actions={[{ key: "onboard", label: "+ Onboard New SC", variant: "ghost", onClick: onOnboard }]}>
+  return <RmPanel title="My State Coordinators" description={summary?.subtitle} actions={[{ key: "onboard", label: "+ Onboard New SC", onClick: onOnboard, style: { background: colors.primary, borderColor: colors.primary, color: colors.texts.whiteFixed } }]}>
     {query.error && <Alert type="error" title="Unable to load coordinators" description={query.error.message} action={<Button onClick={() => void query.refetch()}>Retry</Button>} />}
-    <DataTable columns={columns} dataSource={query.error ? [] : query.data?.coordinators ?? []} rowKey="id" loading={query.isFetching}
+    <DataTable columns={columns} dataSource={query.error ? [] : query.data?.items ?? []} rowKey="id" loading={query.isFetching}
       rowStyle={(row) => row.highlight_row ? { background: colors.reds.light } : undefined} onRowClick={onView}
       pagination={{ ...pagination.paginationConfig, total: query.data?.total }} onSearch={(value) => { setSearch(value); pagination.resetPage(); }} searchPlaceholder="Search name, state or phone"
       headerRight={query.data?.showing_text}
