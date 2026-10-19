@@ -9,6 +9,8 @@ import { useGetAirtimeNetworks } from "@/features/bill-payment/api/useGetAirtime
 import { usePurchaseData } from "@/features/bill-payment/api/usePurchaseData";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
+import { NetworkDetectionHint } from "@/features/bill-payment/components/NetworkDetectionHint";
+import { detectNetworkFromPhone, isValidNgPhone, matchNetworkService, normalizeNgPhone } from "@/features/bill-payment/utils/detectNetwork";
 
 interface BuyDataModalProps {
   open: boolean;
@@ -30,12 +32,27 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
   const { networks, isLoading: isNetworksLoading } = useGetAirtimeNetworks();
 
   const [network, setNetwork] = useState<string>("");
+  // Once the user picks a network themselves (e.g. a ported number), detection stops overriding it.
+  const [manualNetwork, setManualNetwork] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>("");
+
+  const selectNetwork = (serviceID: string) => {
+    if (serviceID !== network) setSelectedBundleId("");
+    setNetwork(serviceID);
+  };
+  // Network is detected offline from the number prefix (no working verify endpoint).
+  const handlePhoneChange = (value: string) => {
+    const cleanPhone = normalizeNgPhone(value);
+    setPhoneNumber(cleanPhone);
+    if (manualNetwork) return;
+    const matched = matchNetworkService(detectNetworkFromPhone(cleanPhone), networks);
+    if (matched) selectNetwork(matched.serviceID);
+  };
   const [validityTab, setValidityTab] = useState<"daily" | "monthly">("monthly");
   const [selectedBundleId, setSelectedBundleId] = useState<string>("");
 
   // Map network to serviceID
-  const selectedServiceId = network ? `${network}-data` : "";
+  const selectedServiceId = network ? `${network.toLowerCase().replace(/-data$/, "")}-data` : "";
 
   const { plans, isLoading: isPlansLoading } = useGetDataPlans(selectedServiceId);
   const purchaseDataMutation = usePurchaseData();
@@ -165,8 +182,8 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
                     key={net.name}
                     type="button"
                     onClick={() => {
-                      setNetwork(net.serviceID);
-                      setSelectedBundleId("");
+                      selectNetwork(net.serviceID);
+                      setManualNetwork(true);
                     }}
                     className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
                       isSelected
@@ -195,7 +212,8 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
                 inputMode="numeric"
                 maxLength={11}
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="08012345678"
                 className="w-full rounded-2xl border border-[#E2ECF6] py-3 pl-10 pr-10 text-sm font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
               />
               <button
@@ -206,6 +224,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
                 <BookUser className="size-4" />
               </button>
             </div>
+            <NetworkDetectionHint phone={phoneNumber} network={network} manual={manualNetwork} networks={networks} onAuto={() => { setManualNetwork(false); const matched = matchNetworkService(detectNetworkFromPhone(phoneNumber), networks); if (matched) selectNetwork(matched.serviceID); }} />
           </div>
 
           {/* Select Bundle */}
@@ -306,7 +325,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!phoneNumber || !currentBundle?.price}
+              disabled={!network || !isValidNgPhone(phoneNumber) || !currentBundle?.price}
               className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />

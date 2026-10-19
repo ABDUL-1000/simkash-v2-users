@@ -6,6 +6,7 @@ import { useGetWalletTransactions } from "../api/useGetWalletTransactions";
 import { TransactionDetailDrawer } from "./TransactionDetailDrawer";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import type { WalletTransactionItem } from "../types/api";
+import { getTransactionNetwork, getTransactionRecipient, isBillTransaction, isCreditTransaction } from "../utils/transactionView";
 
 interface WalletTransactionsTableProps {
   type?: string;
@@ -57,9 +58,16 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       title: "DESCRIPTION",
       dataIndex: "description",
       key: "description",
-      width: 190,
+      width: 220,
       responsive: ["lg"],
-      render: (description?: string) => <span className="text-xs text-[#66738C]">{description || "—"}</span>,
+      render: (description: string | undefined, record) => {
+        const recipient = getTransactionRecipient(record);
+        const network = getTransactionNetwork(record);
+        return <div>
+          <span className="text-xs text-[#66738C]">{description || "—"}</span>
+          {isBillTransaction(record) && recipient && <p className="text-[11px] font-semibold text-[#0F152A]">{[network, recipient].filter(Boolean).join(" · ")}</p>}
+        </div>;
+      },
     },
     {
       title: "TYPE",
@@ -67,10 +75,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       key: "transaction_type",
       width: 120,
       render: (txnType: string) => {
-        const isCredit =
-          txnType?.toLowerCase().includes("credit") ||
-          txnType?.toLowerCase().includes("inflow") ||
-          txnType?.toLowerCase().includes("topup");
+        const isCredit = isCreditTransaction({ transaction_type: txnType, description: "" });
         return (
           <span
             className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-bold ${
@@ -90,10 +95,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
       key: "amount",
       width: 130,
       render: (amount: number, record) => {
-        const isCredit =
-          record.transaction_type?.toLowerCase().includes("credit") ||
-          record.transaction_type?.toLowerCase().includes("inflow") ||
-          record.transaction_type?.toLowerCase().includes("topup");
+        const isCredit = isCreditTransaction(record);
         return (
           <span
             className={`font-mono text-xs font-bold ${
@@ -173,7 +175,8 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
         ) : transactions.length === 0 ? (
           <AppEmptyState title="No wallet transactions yet" description="Your wallet activity will appear here." />
         ) : transactions.map((transaction) => {
-          const isCredit = /credit|inflow|top.?up|deposit|refund|commission/i.test(transaction.transaction_type ?? "");
+          const isCredit = isCreditTransaction(transaction);
+          const recipient = isBillTransaction(transaction) ? getTransactionRecipient(transaction) : undefined;
           return (
             <button key={transaction.id} type="button" onClick={() => setSelectedTxnId(transaction.id)} className="w-full min-w-0 rounded-xl border border-[#E2ECF6] bg-white p-3 text-left transition active:bg-slate-50">
               <div className="flex min-w-0 items-start justify-between gap-3">
@@ -184,7 +187,7 @@ export const WalletTransactionsTable: React.FC<WalletTransactionsTableProps> = (
                 <p className={`shrink-0 text-xs font-bold ${isCredit ? "text-[#10B981]" : "text-[#0F152A]"}`}>{isCredit ? "+" : "−"}₦{Number(transaction.amount || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-[10px] text-[#66738C]">{transaction.description || "—"}</p>
+                <p className="min-w-0 truncate text-[10px] text-[#66738C]">{transaction.description || "—"}{recipient && <span className="font-semibold text-[#0F152A]"> · {[getTransactionNetwork(transaction), recipient].filter(Boolean).join(" · ")}</span>}</p>
                 <Tag color={transaction.status?.toLowerCase() === "failed" ? "error" : transaction.status?.toLowerCase() === "pending" ? "warning" : "success"} className="m-0 shrink-0 rounded-full text-[9px] uppercase">{transaction.status || "Completed"}</Tag>
               </div>
               <p className="mt-2 text-[10px] text-[#8C909B]">{transaction.createdAt ? new Date(transaction.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>

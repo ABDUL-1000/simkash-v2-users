@@ -195,10 +195,7 @@ export default function BillPaymentsPage() {
           {/* Bill payment transaction history */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-[#0F152A]">Bill Payment Transaction History</h2>
-                <p className="mt-1 text-xs text-[#8C909B]">Your recent utility payments, top-ups, and tokens</p>
-              </div>
+              <h2 className="text-base font-bold text-[#0F152A]">Recent Bills</h2>
               <button
                 type="button"
                 onClick={() => setActiveTab("history")}
@@ -208,7 +205,7 @@ export default function BillPaymentsPage() {
               </button>
             </div>
 
-            <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs">
+            <div className="rounded-2xl border border-[#E2ECF6] bg-white px-5 py-1 shadow-xs">
               <BillTransactionsTable pageSize={5} />
             </div>
           </div>

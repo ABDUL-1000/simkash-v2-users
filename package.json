@@ -25,6 +25,7 @@
     "dayjs": "^1.11.21",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.23.0",
+    "naija-state-local-government": "1.1.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.81.0",

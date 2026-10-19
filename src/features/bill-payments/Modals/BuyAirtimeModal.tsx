@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { ArrowRight, BookUser, Loader2, Wallet } from "lucide-react";
+import { ArrowRight, BookUser, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
 import { useGetAirtimeNetworks } from "@/features/bill-payment/api/useGetAirtimeNetworks";
-import { useVerifyPhoneNetwork } from "@/features/bill-payment/api/useVerifyPhoneNetwork";
 import { usePurchaseAirtime } from "@/features/bill-payment/api/usePurchaseAirtime";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
+import { NetworkDetectionHint } from "@/features/bill-payment/components/NetworkDetectionHint";
+import { detectNetworkFromPhone, isValidNgPhone, matchNetworkService, normalizeNgPhone } from "@/features/bill-payment/utils/detectNetwork";
 
 interface BuyAirtimeModalProps {
   open: boolean;
@@ -20,10 +21,11 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
   const currentBalance = wallet?.balance ?? 0;
 
   const { networks: apiNetworks, isLoading: isLoadingNetworks } = useGetAirtimeNetworks();
-  const verifyNetworkMutation = useVerifyPhoneNetwork();
   const purchaseAirtimeMutation = usePurchaseAirtime();
 
   const [network, setNetwork] = useState<string>("");
+  // Once the user picks a network themselves (e.g. a ported number), detection stops overriding it.
+  const [manualNetwork, setManualNetwork] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
@@ -38,21 +40,13 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
 
   const availableNetworks = apiNetworks;
 
+  // The /airtime/verify endpoint is unavailable, so the network is detected offline from the number prefix.
   const handlePhoneChange = (value: string) => {
-    const cleanPhone = value.replace(/\D/g, "").slice(0, 11);
+    const cleanPhone = normalizeNgPhone(value);
     setPhoneNumber(cleanPhone);
-    if (cleanPhone.length === 11) {
-      verifyNetworkMutation.mutate({ phone: cleanPhone }, {
-        onSuccess: (res) => {
-          const detected = res.data?.network || res.data?.serviceID;
-          const matched = availableNetworks.find((item) =>
-            item.name.toLowerCase() === detected?.toLowerCase() ||
-            item.serviceID.toLowerCase() === detected?.toLowerCase()
-          );
-          if (matched) setNetwork(matched.serviceID);
-        },
-      });
-    }
+    if (manualNetwork) return;
+    const matched = matchNetworkService(detectNetworkFromPhone(cleanPhone), availableNetworks);
+    setNetwork(matched?.serviceID ?? "");
   };
 
   const handleSelectPreset = (val: number) => {
@@ -67,7 +61,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
   const handleConfirmPay = () => {
     purchaseAirtimeMutation.mutate(
       {
-        network,
+        network: network.toLowerCase(),
         amount: Number(amount),
         phone: phoneNumber,
         pin,
@@ -153,7 +147,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
                   <button
                     key={net.name}
                     type="button"
-                    onClick={() => setNetwork(net.serviceID)}
+                    onClick={() => { setNetwork(net.serviceID); setManualNetwork(true); }}
                     className={`rounded-full px-5 py-1.5 text-xs font-bold transition ${
                       isSelected
                         ? getNetworkColor(net.serviceID)
@@ -173,11 +167,6 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
               <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
                 PHONE NUMBER
               </label>
-              {verifyNetworkMutation.isPending && (
-                <span className="flex items-center gap-1 text-[10px] text-[#2563EB]">
-                  <Loader2 className="size-3 animate-spin" /> Detecting network...
-                </span>
-              )}
             </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base">
@@ -200,6 +189,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
                 <BookUser className="size-4" />
               </button>
             </div>
+            <NetworkDetectionHint phone={phoneNumber} network={network} manual={manualNetwork} networks={availableNetworks} onAuto={() => { setManualNetwork(false); setNetwork(matchNetworkService(detectNetworkFromPhone(phoneNumber), availableNetworks)?.serviceID ?? ""); }} />
           </div>
 
           {/* Amount Input */}
@@ -264,7 +254,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!amount || Number(amount) <= 0 || !phoneNumber}
+              disabled={!amount || Number(amount) <= 0 || !isValidNgPhone(phoneNumber) || !network}
               className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />

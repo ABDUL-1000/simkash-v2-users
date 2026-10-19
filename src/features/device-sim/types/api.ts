@@ -51,3 +51,17 @@ export interface DeviceSimListResponseData {
 export interface RenewSimPayload { sim_type: string; sim_number: string; duration: string; pin: string; }
 
 export interface DeviceSimFilters { page: number; limit: number; network?: string; status?: string; }
+
+export type SimRequestType = "pos" | "cctv" | "gps" | "router";
+export type SimRequestNetwork = "MTN" | "Airtel" | "Glo" | "T2" | "No preference";
+export type SimRequestDelivery = "Agent Visit" | "Pick Up";
+export interface RequestSimPayload {
+  sim_type: SimRequestType; preferred_network: SimRequestNetwork; quantity: number; delivery_method: SimRequestDelivery;
+  country: string; state: string; lga: string; street_address: string; landmark?: string; additional_notes?: string;
+}
+export interface SimRequestAgent { id: number; fullname: string; phone: string; email: string; whatsapp_link?: string }
+export interface RequestSimResponseData {
+  request_id: number; sim_type: string; typeLabel: string; preferred_network: string; quantity: number; delivery_method: string;
+  delivery_address: { country: string; state: string; lga: string; street_address: string; landmark?: string; additional_notes?: string };
+  status: string; assigned_agent?: SimRequestAgent | null;
+}

@@ -10,12 +10,16 @@ import {
   FileText,
   Hash,
   Loader2,
+  Package,
+  Smartphone,
+  Signal,
   Wallet,
 } from "lucide-react";
 import { openNotification } from "@/utils/notifications";
 import { useGetTransactionDetail } from "../api/useGetTransactionDetail";
 import type { WalletTransactionItem } from "../types/api";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { getTransactionFailureReason, getTransactionNetwork, getTransactionPlan, getTransactionProduct, getTransactionRecipient, isBillTransaction, isCreditTransaction } from "../utils/transactionView";
 
 interface TransactionDetailDrawerProps {
   open: boolean;
@@ -32,7 +36,7 @@ export const TransactionDetailDrawer: React.FC<TransactionDetailDrawerProps> = (
   transactionId,
   transaction: propTransaction,
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"ref" | "recipient" | null>(null);
   const effectiveId = id ?? transactionId;
 
   const { transaction: fetchedTransaction, isLoading } = useGetTransactionDetail(
@@ -41,27 +45,40 @@ export const TransactionDetailDrawer: React.FC<TransactionDetailDrawerProps> = (
 
   const tx = propTransaction || fetchedTransaction;
 
-  const isCredit =
-    tx?.transaction_type?.toLowerCase().includes("credit") ||
-    tx?.transaction_type?.toLowerCase().includes("inflow") ||
-    tx?.transaction_type?.toLowerCase().includes("deposit");
+  const isCredit = tx ? isCreditTransaction(tx) : false;
+  const recipient = tx && isBillTransaction(tx) ? getTransactionRecipient(tx) : undefined;
+  const network = tx ? getTransactionNetwork(tx) : undefined;
+  const plan = tx ? getTransactionPlan(tx) : undefined;
+  const product = tx ? getTransactionProduct(tx) : undefined;
+  const failureReason = tx ? getTransactionFailureReason(tx) : undefined;
 
   const isFailed = tx?.status?.toLowerCase() === "failed";
   const isPending = tx?.status?.toLowerCase() === "pending";
 
-  const handleCopyRef = () => {
-    if (!tx?.transaction_reference) return;
-    navigator.clipboard.writeText(tx.transaction_reference);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copy = (value: string | undefined, key: "ref" | "recipient") => {
+    if (!value) return;
+    void navigator.clipboard.writeText(value);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
   };
 
+  // No receipt endpoint exists, so the receipt is built from the transaction record itself.
   const handleDownloadReceipt = () => {
-    openNotification({
-      state: "info",
-      title: "Downloading Receipt",
-      description: `Generating transaction receipt for ${tx?.transaction_reference}...`,
-    });
+    if (!tx) return;
+    const rows: Array<[string, string | undefined]> = [
+      ["Reference", tx.transaction_reference], ["Description", tx.description], ["Type", tx.transaction_type],
+      ["Recipient", recipient], ["Network", network], ["Data plan", plan],
+      ["Amount", `${isCredit ? "+" : "-"}₦${Number(tx.amount || 0).toLocaleString()}`], ["Status", tx.status], ["Failure reason", failureReason],
+      ["Date", tx.createdAt ? new Date(tx.createdAt).toLocaleString() : undefined],
+      ["Balance before", `₦${Number(tx.balanceBefore || 0).toLocaleString()}`], ["Balance after", `₦${Number(tx.balanceAfter || 0).toLocaleString()}`],
+    ];
+    const text = ["Simkash — Transaction Receipt", "", ...rows.filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`)].join("\n");
+    const href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+    const link = document.createElement("a");
+    link.href = href; link.download = `receipt-${tx.transaction_reference || tx.id}.txt`;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+    openNotification({ state: "success", title: "Receipt downloaded" });
   };
 
   return (
@@ -134,6 +151,12 @@ export const TransactionDetailDrawer: React.FC<TransactionDetailDrawerProps> = (
             </div>
           </div>
 
+          {failureReason && (
+            <div className="rounded-xl border border-rose-100 bg-rose-50 p-3 text-xs text-rose-700">
+              <strong>Reason:</strong> {failureReason}.{Number(tx.balanceBefore) === Number(tx.balanceAfter) && " Your wallet was not debited."}
+            </div>
+          )}
+
           {/* Details List */}
           <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-3.5 text-xs">
             <div className="flex items-center justify-between py-1 border-b border-slate-50">
@@ -146,10 +169,10 @@ export const TransactionDetailDrawer: React.FC<TransactionDetailDrawerProps> = (
                 </span>
                 <button
                   type="button"
-                  onClick={handleCopyRef}
+                  onClick={() => copy(tx.transaction_reference, "ref")}
                   className="text-slate-400 hover:text-slate-700"
                 >
-                  {copied ? (
+                  {copied === "ref" ? (
                     <Check className="size-3 text-emerald-600" />
                   ) : (
                     <Copy className="size-3" />
@@ -166,6 +189,34 @@ export const TransactionDetailDrawer: React.FC<TransactionDetailDrawerProps> = (
                 {tx.transaction_type}
               </span>
             </div>
+
+            {recipient && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <Smartphone className="size-3.5" /> {/airtime|data/i.test(tx.transaction_type) ? "Phone Number" : "Recipient"}
+                </span>
+                <div className="flex items-center gap-1.5 font-mono font-bold text-slate-800">
+                  <span>{recipient}</span>
+                  <button type="button" aria-label="Copy recipient" onClick={() => copy(recipient, "recipient")} className="text-slate-400 hover:text-slate-700">
+                    {copied === "recipient" ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {network && isBillTransaction(tx) && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-400 flex items-center gap-1.5"><Signal className="size-3.5" /> Network</span>
+                <span className="font-bold text-slate-800">{network}{product && product.toUpperCase() !== network.toUpperCase() ? ` · ${product}` : ""}</span>
+              </div>
+            )}
+
+            {plan && (
+              <div className="flex items-center justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-400 flex items-center gap-1.5"><Package className="size-3.5" /> Data Plan</span>
+                <span className="font-mono font-bold text-slate-800">{plan}</span>
+              </div>
+            )}
 
             <div className="flex items-center justify-between py-1 border-b border-slate-50">
               <span className="text-slate-400 flex items-center gap-1.5">
