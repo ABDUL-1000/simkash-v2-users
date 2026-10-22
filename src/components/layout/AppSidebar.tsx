@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, LogOut, ArrowRight, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsLeft, ChevronsRight, LogOut, ArrowRight, Loader2 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { normalizeRole } from "@/utils/auth/roleRouting";
@@ -170,7 +170,7 @@ function NavigationRow({
 }
 
 export function AppSidebar() {
-  const { collapsed, setMobileOpen } = useSidebar();
+  const { collapsed, setMobileOpen, toggle } = useSidebar();
   const navigate = useNavigate();
   const { user, profile } = useGetAuthUser();
   const role = useAuthStore(state => state.user?.role);
@@ -202,7 +202,7 @@ export function AppSidebar() {
       style={{ backgroundColor: APP_COLORS.backgrounds.background }}
     >
       {/* Brand Header */}
-      <SidebarHeader className="flex h-16 items-center border-b-0 px-4">
+      <SidebarHeader className={cn("relative flex items-center border-b-0 px-4", collapsed ? "h-auto flex-col gap-4 py-4" : "h-16")}>
         <div
           className={cn(
             "flex w-full items-center gap-3",
@@ -216,6 +216,25 @@ export function AppSidebar() {
             </span>
           )}
         </div>
+        {/* Collapse toggle. Desktop: on the sidebar edge when expanded, centred under the logo when collapsed.
+            Mobile drawer: always "«", inside the edge, and it closes the drawer. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.matchMedia("(max-width: 767px)").matches) setMobileOpen(false);
+            else toggle();
+          }}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(
+            "z-40 flex size-7 items-center justify-center rounded-full border border-[#2563EB]/60 bg-[#EFF4F8] text-[#2563EB] shadow-xs transition hover:bg-[#2563EB] hover:text-white",
+            "max-md:absolute max-md:right-3 max-md:top-1/2 max-md:-translate-y-1/2",
+            !collapsed && "md:absolute md:-right-3.5 md:top-1/2 md:-translate-y-1/2",
+          )}
+        >
+          <ChevronsLeft className={cn("size-3.5", collapsed && "md:hidden")} />
+          {collapsed && <ChevronsRight className="hidden size-3.5 md:block" />}
+        </button>
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-2">

@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { PanelLeft } from "lucide-react";
+import { ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -63,15 +63,15 @@ export function SidebarTrigger({ className }: { className?: string }) {
     <Button
       variant="ghost"
       size="icon"
-      className={className}
-      aria-label="Toggle sidebar"
+      className={cn("size-7 rounded-full border border-[#2563EB]/60 bg-[#EFF4F8] text-[#2563EB] shadow-xs hover:bg-[#2563EB] hover:text-white", className)}
+      aria-label="Open sidebar"
       onClick={() => {
         if (window.matchMedia("(max-width: 767px)").matches)
           setMobileOpen(true);
         else toggle();
       }}
     >
-      <PanelLeft />
+      <ChevronsRight className="size-3.5" />
     </Button>
   );
 }

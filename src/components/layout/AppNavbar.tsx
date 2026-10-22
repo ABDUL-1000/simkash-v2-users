@@ -45,7 +45,8 @@ export function AppNavbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[#E2ECF6] bg-white px-4 sm:px-6 lg:px-8">
-      <SidebarTrigger className="shrink-0 text-[#0F152A]" />
+      {/* Mobile only: opens the drawer. Desktop collapse lives on the sidebar itself. */}
+      <SidebarTrigger className="shrink-0 md:hidden" />
 
       <div className="min-w-0">
         <h1 className="text-xs sm:text-lg font-bold text-[#0F152A] ">
