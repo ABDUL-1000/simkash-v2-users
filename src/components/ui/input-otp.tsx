@@ -40,11 +40,12 @@ function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {
 
 function InputOTPSlot({
   index,
-  masked = false,
+  masked = true,
   className,
   ...props
 }: React.ComponentProps<"div"> & {
   index: number
+  /** PINs show as dots by default; pass masked={false} for one-time codes the user must read. */
   masked?: boolean
 }) {
   const inputOTPContext = React.useContext(OTPInputContext)

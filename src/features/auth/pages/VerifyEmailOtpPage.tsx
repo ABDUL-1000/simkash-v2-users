@@ -45,13 +45,13 @@ export default function VerifyEmailOtpPage() {
 
   const { mutate: verifyRegistrationOtp, isPending: isVerifyingRegister } = useVerifyOtp({
     onError: (err) => {
-      setError((err as any)?.response?.data?.message || err?.message || "Invalid or expired OTP code.");
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || err?.message || "Invalid or expired OTP code.");
     },
   });
 
   const { mutate: verifyForgotOtp, isPending: isVerifyingForgot } = useVerifyForgotPasswordOtp({
     onError: (err) => {
-      setError((err as any)?.response?.data?.message || err?.message || "Invalid or expired reset code.");
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || err?.message || "Invalid or expired reset code.");
     },
   });
 
@@ -115,6 +115,7 @@ export default function VerifyEmailOtpPage() {
                 <InputOTPSlot
                   key={idx}
                   index={idx}
+                  masked={false}
                   className="size-12 rounded-xl border border-[#E2ECF6] bg-white text-lg font-bold text-[#0F172A] shadow-2xs transition-all data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/25"
                 />
               ))}

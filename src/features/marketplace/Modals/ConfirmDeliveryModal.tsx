@@ -81,6 +81,7 @@ export function ConfirmDeliveryModal({
                     <InputOTPSlot
                       key={idx}
                       index={idx}
+                      masked={false}
                       className="size-11 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-base font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
                     />
                   ))}
