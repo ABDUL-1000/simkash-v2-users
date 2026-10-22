@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Download, Search } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { authedHttpClient } from "@/utils/http/auth";
+import { openNotification } from "@/utils/notifications";
+import { useGetActivatedSims, useGetApDashboardSummary } from "../api";
+import type { ActivatedSimsResponse, ActivatedDeviceSimItem } from "../types/api";
 
 export interface HistoryRecordItem {
   id: string;
@@ -12,6 +16,22 @@ export interface HistoryRecordItem {
   activatedDate: string;
   status: "Active" | "Expiring" | "Expired" | "Renewed";
 }
+
+const PAGE = 15;
+const TAB_TYPES: Record<string, string> = { All: "all", "POS SIM": "pos", "CCTV SIM": "cctv", "GPS SIM": "gps", "Router SIM": "router" };
+const SHORT_TYPE: Record<string, string> = { pos: "POS", cctv: "CCTV", gps: "GPS", router: "Router" };
+const formatStamp = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+/** API status + expiry date → the modal's badge states ("Renewed" isn't reported by the API). */
+function toStatus(sim: ActivatedDeviceSimItem): HistoryRecordItem["status"] {
+  const daysLeft = (new Date(sim.expired_date).getTime() - Date.now()) / 86_400_000;
+  if (/expired/i.test(sim.status) || daysLeft < 0) return "Expired";
+  if (daysLeft <= 7) return "Expiring";
+  return "Active";
+}
+const toRecord = (sim: ActivatedDeviceSimItem): HistoryRecordItem => ({
+  id: String(sim.id), simNumber: sim.sim_number, type: SHORT_TYPE[sim.sim_type] ?? sim.type_label, network: sim.network,
+  customerName: sim.customer.fullname, customerPhone: sim.customer.phone, activatedDate: formatStamp(sim.activated_at), status: toStatus(sim),
+});
 
 interface SimActivationHistoryModalProps {
   open: boolean;
@@ -27,125 +47,38 @@ export function SimActivationHistoryModal({
   onExport,
 }: SimActivationHistoryModalProps) {
   const [activeTab, setActiveTab] = useState<"All" | "POS SIM" | "CCTV SIM" | "GPS SIM" | "Router SIM">("All");
-  const [dateFilter, setDateFilter] = useState<"Today" | "This Week" | "This Month" | "All Time">("All Time");
   const [search, setSearch] = useState("");
+  const [limit, setLimit] = useState(PAGE);
+  const [exporting, setExporting] = useState(false);
+  // Date pills (Today / This Week / This Month / All Time) are disabled: /activated has no date filter.
+  const query = useGetActivatedSims({ type: TAB_TYPES[activeTab], search: search.trim(), page: 1, limit });
+  const allTime = useGetActivatedSims({ type: "all", page: 1, limit: 1 });
+  const { summary } = useGetApDashboardSummary();
+  const filtered = query.sims.map(toRecord);
+  const total = query.result?.total ?? 0;
 
-  const records: HistoryRecordItem[] = [
-    {
-      id: "1",
-      simNumber: "SIM-2026-8192",
-      type: "POS",
-      network: "MTN",
-      customerName: "Chioma Adebayo",
-      customerPhone: "08031234567",
-      activatedDate: "12 Feb 2026 14:23",
-      status: "Active",
-    },
-    {
-      id: "2",
-      simNumber: "SIM-2026-4029",
-      type: "CCTV",
-      network: "Airtel",
-      customerName: "Olumide Bakare",
-      customerPhone: "08129876543",
-      activatedDate: "11 Feb 2026 09:15",
-      status: "Active",
-    },
-    {
-      id: "3",
-      simNumber: "SIM-2026-1102",
-      type: "GPS",
-      network: "Glo",
-      customerName: "Babajide Benson",
-      customerPhone: "08055551234",
-      activatedDate: "10 Feb 2026 18:45",
-      status: "Active",
-    },
-    {
-      id: "4",
-      simNumber: "SIM-2026-9938",
-      type: "Router",
-      network: "MTN",
-      customerName: "Amina Yusuf",
-      customerPhone: "08134567890",
-      activatedDate: "09 Feb 2026 11:30",
-      status: "Active",
-    },
-    {
-      id: "5",
-      simNumber: "SIM-2026-7281",
-      type: "POS",
-      network: "Airtel",
-      customerName: "Chinedu Okafor",
-      customerPhone: "08023456789",
-      activatedDate: "08 Feb 2026 16:10",
-      status: "Active",
-    },
-    {
-      id: "6",
-      simNumber: "SIM-2026-5541",
-      type: "CCTV",
-      network: "Glo",
-      customerName: "Funke Akindele",
-      customerPhone: "08144556677",
-      activatedDate: "05 Feb 2026 13:05",
-      status: "Expiring",
-    },
-    {
-      id: "7",
-      simNumber: "SIM-2026-3392",
-      type: "GPS",
-      network: "MTN",
-      customerName: "Ibrahim Bello",
-      customerPhone: "08099887766",
-      activatedDate: "04 Feb 2026 10:20",
-      status: "Expiring",
-    },
-    {
-      id: "8",
-      simNumber: "SIM-2026-2210",
-      type: "Router",
-      network: "Airtel",
-      customerName: "Nkechi Obi",
-      customerPhone: "08177665544",
-      activatedDate: "01 Feb 2026 08:00",
-      status: "Expired",
-    },
-    {
-      id: "9",
-      simNumber: "SIM-2026-1049",
-      type: "POS",
-      network: "Glo",
-      customerName: "Tunde Folawiyo",
-      customerPhone: "08088776655",
-      activatedDate: "28 Jan 2026 15:40",
-      status: "Expired",
-    },
-    {
-      id: "10",
-      simNumber: "SIM-2026-9048",
-      type: "Router",
-      network: "MTN",
-      customerName: "Zainab Balogun",
-      customerPhone: "08122334455",
-      activatedDate: "25 Jan 2026 12:00",
-      status: "Renewed",
-    },
-  ];
-
-  const filtered = records.filter((r) => {
-    const matchesSearch =
-      r.simNumber.toLowerCase().includes(search.toLowerCase()) ||
-      r.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      r.customerPhone.includes(search);
-    const matchesTab =
-      activeTab === "All" ||
-      (activeTab === "POS SIM" && r.type === "POS") ||
-      (activeTab === "CCTV SIM" && r.type === "CCTV") ||
-      (activeTab === "GPS SIM" && r.type === "GPS") ||
-      (activeTab === "Router SIM" && r.type === "Router");
-    return matchesSearch && matchesTab;
-  });
+  // Exports up to 100 records (the endpoint's page-size maximum) for the current tab and search as CSV.
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ type: TAB_TYPES[activeTab], search: search.trim(), page: "1", limit: "100" });
+      const { data } = await authedHttpClient.get<ActivatedSimsResponse>(`/partner/device-sim/activated?${params}`);
+      if (!data.success) throw new Error(data.message);
+      const rows = data.data.sims;
+      const cell = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+      const csv = [["SIM Number", "Type", "Network", "Customer", "Phone", "Activated", "Expires", "Status", "Commission"],
+        ...rows.map(sim => [sim.sim_number, sim.type_label, sim.network, sim.customer.fullname, sim.customer.phone, sim.activated_at, sim.expired_date, sim.status, sim.commission])]
+        .map(line => line.map(cell).join(",")).join("\n");
+      const href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      const link = document.createElement("a"); link.href = href; link.download = "sim-activation-history.csv";
+      document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000);
+      onExport?.();
+    } catch (error) {
+      openNotification({ state: "error", title: "Export failed", description: (error as Error).message });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getStatusBadge = (status: HistoryRecordItem["status"]) => {
     switch (status) {
@@ -178,7 +111,7 @@ export function SimActivationHistoryModal({
               <button
                 key={tab}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                onClick={() => { setActiveTab(tab); setLimit(PAGE); }}
                 className={`pb-2.5 text-xs font-bold shrink-0 transition border-b-2 -mb-px ${
                   isSelected
                     ? "border-[#2563EB] text-[#2563EB]"
@@ -191,28 +124,7 @@ export function SimActivationHistoryModal({
           })}
         </div>
 
-        {/* Date Filter Pills */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-            {(["Today", "This Week", "This Month", "All Time"] as const).map((d) => {
-              const isSelected = dateFilter === d;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDateFilter(d)}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-bold shrink-0 transition ${
-                    isSelected
-                      ? "bg-[#0F152A] text-white shadow-xs"
-                      : "bg-[#F8FAFC] border border-[#E2ECF6] text-[#66738C] hover:bg-[#EFF4F8]"
-                  }`}
-                >
-                  {d}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Date Filter Pills are disabled: no date filter on /partner/device-sim/activated. */}
 
         {/* Search Input */}
         <div className="relative">
@@ -221,28 +133,25 @@ export function SimActivationHistoryModal({
             type="text"
             placeholder="Search by SIM number or customer name..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setLimit(PAGE); }}
             className="w-full rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] pl-10 pr-4 py-3 text-xs text-[#0F152A] outline-none focus:border-[#2563EB]"
           />
         </div>
 
         {/* 4 Summary Metric Cards Strip (Matching Image 4) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 text-center">
           <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 space-y-0.5">
             <span className="text-[10px] font-extrabold text-[#8C909B] uppercase">TOTAL</span>
-            <h3 className="text-lg font-black text-[#0F152A]">847</h3>
+            <h3 className="text-lg font-black text-[#0F152A]">{(allTime.result?.total ?? 0).toLocaleString()}</h3>
           </div>
           <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 space-y-0.5">
             <span className="text-[10px] font-extrabold text-[#8C909B] uppercase">THIS MONTH</span>
-            <h3 className="text-lg font-black text-[#0F152A]">247</h3>
+            <h3 className="text-lg font-black text-[#0F152A]">{(summary?.this_month.activations ?? 0).toLocaleString()}</h3>
           </div>
-          <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 space-y-0.5">
-            <span className="text-[10px] font-extrabold text-[#8C909B] uppercase">THIS WEEK</span>
-            <h3 className="text-lg font-black text-[#0F152A]">47</h3>
-          </div>
+          {/* THIS WEEK card is disabled: no weekly activation count in the API. */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 space-y-0.5">
             <span className="text-[10px] font-extrabold text-[#8C909B] uppercase">TODAY</span>
-            <h3 className="text-lg font-black text-[#0F152A]">12</h3>
+            <h3 className="text-lg font-black text-[#0F152A]">{(summary?.today.activations ?? 0).toLocaleString()}</h3>
           </div>
         </div>
 
@@ -262,6 +171,8 @@ export function SimActivationHistoryModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2ECF6] font-medium text-[#0F152A]">
+                {query.isLoading && <tr><td colSpan={7} className="p-4"><div className="h-24 animate-pulse rounded-xl bg-slate-100" /></td></tr>}
+                {!query.isLoading && filtered.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-[11px] text-[#8C909B]">{query.error ? query.error.message : "No activations found."}</td></tr>}
                 {filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-[#F8FAFC]">
                     <td className="p-3 font-extrabold font-mono text-[#0F152A]">
@@ -305,15 +216,16 @@ export function SimActivationHistoryModal({
           </div>
           <div className="flex items-center justify-between p-3 border-t border-[#E2ECF6] bg-[#F8FAFC]">
             <span className="text-xs text-[#8C909B] font-medium">
-              Showing {filtered.length} of 847
+              Showing {filtered.length} of {total.toLocaleString()}
             </span>
-            <button
+            {filtered.length < total && <button
               type="button"
-              onClick={() => alert("Loading more records...")}
+              disabled={query.isFetching}
+              onClick={() => setLimit(current => current + PAGE)}
               className="text-xs font-bold text-[#2563EB] hover:underline"
             >
-              Load more
-            </button>
+              {query.isFetching ? "Loading..." : "Load more"}
+            </button>}
           </div>
         </div>
 
@@ -321,11 +233,12 @@ export function SimActivationHistoryModal({
         <div className="flex items-center justify-between pt-3 border-t border-[#E2ECF6]">
           <button
             type="button"
-            onClick={() => onExport?.()}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#2563EB] hover:underline"
+            onClick={() => void exportCsv()}
+            disabled={exporting}
+            className="flex items-center gap-1.5 disabled:opacity-50 text-xs font-bold text-[#2563EB] hover:underline"
           >
             <Download className="size-4" />
-            <span>Export History</span>
+            <span>{exporting ? "Exporting..." : "Export History"}</span>
           </button>
 
           <button

@@ -5,14 +5,24 @@ import type { ApDashboardSummaryResponse, ApRecentActivationsResponse, ApSimStoc
 
 function useApQuery<T>(key: readonly unknown[], path: string) {
   const token = useAuthStore((state) => state.accessToken);
-  return useQuery({ queryKey: key, queryFn: async () => (await authedHttpClient.get<T>(path)).data, enabled: Boolean(token), staleTime: 60_000 });
+  return useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data } = await authedHttpClient.get<T>(path);
+      const envelope = data as { success?: boolean; message?: string };
+      if (envelope.success === false) throw new Error(envelope.message || "Request failed");
+      return data;
+    },
+    enabled: Boolean(token),
+    staleTime: 60_000,
+  });
 }
 export const useGetApDashboardSummary = () => {
   const query = useApQuery<ApDashboardSummaryResponse>(["ap-dashboard-summary"], "/partner/dashboard");
   return { ...query, summary: query.data?.data };
 };
-export const useGetApRecentActivations = () => {
-  const query = useApQuery<ApRecentActivationsResponse>(["ap-recent-activations"], "/partner/dashboard/recent-activations");
+export const useGetApRecentActivations = (limit = 10) => {
+  const query = useApQuery<ApRecentActivationsResponse>(["ap-recent-activations", limit], `/partner/dashboard/recent-activations?limit=${limit}`);
   return { ...query, activations: query.data?.data ?? [] };
 };
 export const useGetApSimStock = () => {

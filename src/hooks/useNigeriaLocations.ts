@@ -2,7 +2,11 @@ import { useMemo } from "react";
 import NaijaStates from "naija-state-local-government";
 
 // Nigerian states and LGAs from the `naija-state-local-government` package (static data, no network calls).
-const STATE_ALIASES: Record<string, string[]> = { "Federal Capital Territory": ["FCT", "Abuja"] };
+// Alternate spellings used by users and by our API (e.g. /user/apply/options returns "FCT - Abuja" and "Nasarawa").
+const STATE_ALIASES: Record<string, string[]> = {
+  "Federal Capital Territory": ["FCT", "Abuja", "FCT Abuja", "Abuja FCT"],
+  Nassarawa: ["Nasarawa"],
+};
 const ALL_STATES = NaijaStates.states();
 const lgaCache = new Map<string, string[]>();
 

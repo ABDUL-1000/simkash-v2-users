@@ -3,65 +3,54 @@ import { AppModal } from "@/components/common/AppModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { useRepayPayLater } from "../api/usePayLater";
+import type { PayLaterRepayResult, PayLaterScheduleItem } from "../types/api";
 
 interface RepayFullBalanceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  outstandingAmount?: number;
-  dueDate?: string;
+  outstandingAmount: number;
+  dueDate?: string | null;
+  /** Unpaid schedule items shown as the outstanding breakdown. */
+  breakdown: PayLaterScheduleItem[];
   onOpenPartialRepayment?: () => void;
+  onTopUpClick?: () => void;
 }
 
-export function RepayFullBalanceModal({
-  open,
-  onOpenChange,
-  outstandingAmount = 11900,
-  dueDate = "30 Jun 2026",
-  onOpenPartialRepayment,
-}: RepayFullBalanceModalProps) {
+const pinSlot = "size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20";
+
+export function RepayFullBalanceModal({ open, onOpenChange, outstandingAmount, dueDate, breakdown, onOpenPartialRepayment, onTopUpClick }: RepayFullBalanceModalProps) {
   const [pin, setPin] = useState("");
   const [step, setStep] = useState<"form" | "success" | "failure">("form");
-  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<PayLaterRepayResult | null>(null);
+  const [failureReason, setFailureReason] = useState("");
+  const { wallet } = useGetAuthUser();
+  const repay = useRepayPayLater();
 
-  const walletBalance = 50000;
+  const walletBalance = wallet?.balance ?? 0;
   const isInsufficient = walletBalance < outstandingAmount;
   const balanceAfter = walletBalance - outstandingAmount;
-
-  const breakdownItems = [
-    { service: "Airtime (MTN · 15 Jun)", amount: "₦500" },
-    { service: "Electricity (EKEDC · 10 Jun)", amount: "₦3,000" },
-    { service: "Cable TV (DSTV · 5 Jun)", amount: "₦7,900" },
-    { service: "Data (MTN · 1 Jun)", amount: "₦500" },
-    { service: "Airtime (Airtel · 25 May)", amount: "₦11,900" },
-  ];
+  const breakdownItems = breakdown.filter(item => (item.total_outstanding ?? item.amount) > 0);
 
   const handleConfirmPay = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (pin === "0000") {
-        setStep("failure");
-      } else {
-        setStep("success");
-      }
-    }, 1000);
-  };
-
-  const resetAll = () => {
-    setStep("form");
-    setPin("");
+    repay.mutate({ amount: outstandingAmount, method: "wallet", pin }, {
+      onSuccess: data => { setResult(data); setStep("success"); },
+      onError: error => { setFailureReason(error.message); setStep("failure"); },
+    });
   };
 
   const handleClose = () => {
-    resetAll();
+    setStep("form");
+    setPin("");
     onOpenChange(false);
   };
 
   const successDetails: SuccessDetailItem[] = [
     { label: "Repayment Type", value: "Full Balance Repayment" },
-    { label: "Amount Repaid", value: `₦${outstandingAmount.toLocaleString()}` },
-    { label: "New Outstanding", value: "₦0.00" },
-    { label: "Restored Credit Limit", value: "₦2,000.00" },
+    { label: "Amount Repaid", value: result?.repaid_amount_formatted ?? `₦${outstandingAmount.toLocaleString()}` },
+    { label: "Credit Still Used", value: result?.new_used_credit_formatted ?? "—" },
+    { label: "Available Credit", value: result?.available_credit_formatted ?? "—" },
     { label: "Payment Source", value: "SimKash Wallet" },
   ];
 
@@ -83,23 +72,25 @@ export function RepayFullBalanceModal({
             <h2 className="text-3xl font-extrabold text-[#EF4444]">
               ₦{outstandingAmount.toLocaleString()}
             </h2>
-            <p className="text-xs text-[#8C909B]">Due: {dueDate}</p>
+            {dueDate && <p className="text-xs text-[#8C909B]">Due: {dueDate}</p>}
           </div>
 
           {/* Outstanding Breakdown List */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-[#8C909B]">
-              OUTSTANDING BREAKDOWN
-            </label>
-            <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3.5 text-xs">
-              {breakdownItems.map((item, idx) => (
-                <div key={idx} className="flex justify-between py-2 first:pt-0 last:pb-0">
-                  <span className="text-[#66738C] font-medium">{item.service}</span>
-                  <span className="font-bold text-[#0F152A]">{item.amount}</span>
-                </div>
-              ))}
+          {breakdownItems.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[#8C909B]">
+                OUTSTANDING BREAKDOWN
+              </label>
+              <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3.5 text-xs">
+                {breakdownItems.map((item) => (
+                  <div key={item.id} className="flex justify-between py-2 first:pt-0 last:pb-0">
+                    <span className="text-[#66738C] font-medium">{item.service} · {item.date}</span>
+                    <span className="font-bold text-[#0F152A]">{item.total_outstanding_formatted ?? item.amount_formatted}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Repay From Card */}
           <div className="flex items-center justify-between rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 px-4 text-xs">
@@ -115,8 +106,8 @@ export function RepayFullBalanceModal({
                 <span className="font-extrabold text-[#0F152A]">₦{balanceAfter.toLocaleString()}</span>
               </div>
               <div className="flex justify-between py-1 font-semibold text-[#065F46]">
-                <span>Credit limit restored:</span>
-                <span className="font-extrabold text-[#F59E0B]">₦2,000</span>
+                <span>Credit restored:</span>
+                <span className="font-extrabold text-[#F59E0B]">₦{outstandingAmount.toLocaleString()}</span>
               </div>
             </div>
           ) : (
@@ -125,12 +116,15 @@ export function RepayFullBalanceModal({
                 ● Insufficient wallet balance. Top up ₦{(outstandingAmount - walletBalance).toLocaleString()} to repay in full.
               </p>
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="rounded-xl bg-[#F59E0B] px-4 py-2 font-bold text-white shadow-xs hover:bg-amber-600"
-                >
-                  Top Up Wallet
-                </button>
+                {onTopUpClick && (
+                  <button
+                    type="button"
+                    onClick={() => { handleClose(); onTopUpClick(); }}
+                    className="rounded-xl bg-[#F59E0B] px-4 py-2 font-bold text-white shadow-xs hover:bg-amber-600"
+                  >
+                    Top Up Wallet
+                  </button>
+                )}
                 {onOpenPartialRepayment && (
                   <button
                     type="button"
@@ -153,29 +147,9 @@ export function RepayFullBalanceModal({
               ENTER PIN TO REPAY
             </label>
             <div className="flex justify-center">
-              <InputOTP
-                maxLength={4}
-                value={pin}
-                onChange={setPin}
-                containerClassName="gap-3"
-              >
+              <InputOTP maxLength={4} value={pin} onChange={setPin} containerClassName="gap-3">
                 <InputOTPGroup className="gap-3">
-                  <InputOTPSlot
-                    index={0}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
-                  <InputOTPSlot
-                    index={1}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
-                  <InputOTPSlot
-                    index={2}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
-                  <InputOTPSlot
-                    index={3}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
+                  {[0, 1, 2, 3].map(index => <InputOTPSlot key={index} index={index} className={pinSlot} />)}
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -193,10 +167,10 @@ export function RepayFullBalanceModal({
             <button
               type="button"
               onClick={handleConfirmPay}
-              disabled={pin.length < 4 || isInsufficient || isLoading}
+              disabled={pin.length < 4 || isInsufficient || outstandingAmount <= 0 || repay.isPending}
               className="rounded-xl bg-[#0F152A] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-slate-800 disabled:opacity-50"
             >
-              {isLoading ? "Processing..." : `Repay ₦${outstandingAmount.toLocaleString()} in Full`}
+              {repay.isPending ? "Processing..." : `Repay ₦${outstandingAmount.toLocaleString()} in Full`}
             </button>
           </div>
         </div>
@@ -207,7 +181,7 @@ export function RepayFullBalanceModal({
         open={open && step === "success"}
         onOpenChange={handleClose}
         title="PayLater Balance Cleared!"
-        subtitle={`Successfully repaid ₦${outstandingAmount.toLocaleString()}`}
+        subtitle={`Successfully repaid ${result?.repaid_amount_formatted ?? `₦${outstandingAmount.toLocaleString()}`}`}
         details={successDetails}
         walletBalanceText={`Wallet Balance: ₦${balanceAfter.toLocaleString()}`}
         doneButtonText="Done"
@@ -220,10 +194,10 @@ export function RepayFullBalanceModal({
         onOpenChange={handleClose}
         title="Repayment Failed"
         subtitle="We couldn't process your repayment. Your wallet was not debited."
-        reason="Invalid PIN or server communication error. Please try again."
+        reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("form")}
+        onTryAgain={() => { setPin(""); setStep("form"); }}
         onCancel={handleClose}
       />
     </>

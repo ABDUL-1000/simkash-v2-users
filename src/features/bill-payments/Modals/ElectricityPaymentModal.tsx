@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { PayLaterMode } from "@/features/paylater/types/api";
+import { usePayLaterBillMode } from "@/features/paylater/hooks/usePayLaterBillMode";
 import { ArrowRight, CheckCircle2, Loader2, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
@@ -12,11 +14,14 @@ import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 interface ElectricityPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Charge PayLater credit instead of the wallet. */
+  payLater?: PayLaterMode;
 }
 
-export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPaymentModalProps) {
+export function ElectricityPaymentModal({ open, onOpenChange, payLater }: ElectricityPaymentModalProps) {
   const { wallet, user } = useGetAuthUser();
-  const currentBalance = wallet?.balance ?? 0;
+  const credit = usePayLaterBillMode("electricity", payLater);
+  const currentBalance = credit.active ? credit.availableCredit : wallet?.balance ?? 0;
   const userPhone = user?.phone || "";
 
   const { services: apiServices, isLoading: isServicesLoading } = useGetElectricityServices();
@@ -79,6 +84,10 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
   };
 
   const handleConfirmPay = () => {
+    if (credit.active) {
+      credit.submit({ serviceID: provider, billersCode: meterNumber, variation_code: meterType, amount: Number(amount), phone: userPhone, pin }, { onSuccess: r => { setGeneratedToken(r.provider_response?.token ?? ""); setTxnRef(r.bill_reference); setStep("success"); }, onError: msg => { setFailureReason(msg); setStep("failure"); } });
+      return;
+    }
     purchaseElectricityMutation.mutate(
       {
         serviceID: provider,
@@ -127,7 +136,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
     { label: "Type", value: meterType === "prepaid" ? "Prepaid" : "Postpaid" },
     { label: "Customer", value: `${customerName} · ${customerAddress}` },
     { label: "Amount", value: `₦${parsedAmount.toLocaleString()}` },
-    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "Pay from", value: `${credit.source} (₦${currentBalance.toLocaleString()})` },
     { label: "After", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
@@ -139,6 +148,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
     { label: "Token", value: generatedToken },
     { label: "Amount", value: `₦${parsedAmount.toLocaleString()}` },
     { label: "Ref", value: txnRef },
+    ...credit.successRows,
   ];
 
   return (
@@ -155,7 +165,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
           {/* Wallet Balance Banner */}
           <div className="flex items-center gap-2 rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
             <span>💰</span>
-            <span>Wallet Balance · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span>{credit.balanceLabel} · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
 
           {/* Select Provider */}
@@ -320,7 +330,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
             <span className="flex items-center gap-2 text-[#8C909B]">
               <Wallet className="size-4 text-[#8C909B]" /> Pay from
             </span>
-            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
+            <span className="font-bold text-[#0F152A]">{credit.source} · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
           {/* Actions */}
@@ -335,7 +345,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!amount || Number(amount) <= 0 || !meterNumber}
+              disabled={!amount || Number(amount) <= 0 || !meterNumber || (credit.active && parsedAmount > currentBalance)}
               className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />
@@ -356,7 +366,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
         confirmButtonText={`Pay ₦${parsedAmount.toLocaleString()}`}
-        isLoading={purchaseElectricityMutation.isPending}
+        isLoading={purchaseElectricityMutation.isPending || credit.isPending}
       />
 
       {/* 3. Reusable Success Modal with Token Display */}
@@ -366,7 +376,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
         title="Electricity Token Generated!"
         subtitle={`Token generated for meter ${meterNumber}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
+        walletBalanceText={credit.successFooter(`Wallet: ₦${balanceAfter.toLocaleString()}`)}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -376,7 +386,7 @@ export function ElectricityPaymentModal({ open, onOpenChange }: ElectricityPayme
         open={open && step === "failure"}
         onOpenChange={handleClose}
         title="Purchase Failed"
-        subtitle="We couldn't generate your electricity token. Your wallet was not debited."
+        subtitle={`We couldn't generate your electricity token. ${credit.notDebitedText}`}
         reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"

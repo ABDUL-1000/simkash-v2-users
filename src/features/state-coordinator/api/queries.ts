@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 import { authedHttpClient } from "@/utils/http/auth";
 import type { ApiResponse } from "@/features/auth/types/api";
 import type { ScDashboardOverviewData, ScWalletOverviewData } from "../types/api";
-import type { ScActivationParams, ScActivationsData, ScPartnerParams, ScPartnersData, ScTransactionParams, ScTransactionsData } from "../types/requests";
+import type { ScActivationParams, ScActivationsData, ScListParams, ScPartnerParams, ScPartnersData, ScPayoutsData, ScTransactionParams, ScTransactionsData } from "../types/requests";
 import { scEndpoints } from "./endpoints";
 
 export const scQueryKeys = {
@@ -30,6 +30,7 @@ export const useScDashboard = () => useScQuery<ScDashboardOverviewData>("dashboa
 export const useScWallet = () => useScQuery<ScWalletOverviewData>("wallet", scEndpoints.wallet);
 export const useScPartners = (params: ScPartnerParams) => useScQuery<ScPartnersData>("partners", scEndpoints.partners, params);
 export const useScActivations = (params: ScActivationParams) => useScQuery<ScActivationsData>("activations", scEndpoints.activations, params);
+export const useScPayouts = (params: ScListParams, enabled = true) => useScQuery<ScPayoutsData>("payouts", scEndpoints.payouts, params, enabled);
 export const useScTransactions = (params: ScTransactionParams, enabled = true) => useScQuery<ScTransactionsData>("transactions", scEndpoints.transactions, params, enabled);
 
 export interface ScPayoutAccount { id: number; bank_name: string; bank_code: string; account_number: string; account_name: string; is_default: boolean; status: string }

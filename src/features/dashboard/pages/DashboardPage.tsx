@@ -35,6 +35,10 @@ export default function DashboardPage() {
       navigate(appPaths.deviceSim);
       return;
     }
+    if (serviceId === "pos-request") {
+      navigate(appPaths.posRequest);
+      return;
+    }
     setActiveBillModal(serviceId);
   };
 

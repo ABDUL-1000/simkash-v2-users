@@ -9,6 +9,8 @@ import { ScNetworkPage } from "../state-coordinator/pages/ScNetworkPage";
 import { ScActivationDetailsPage } from "../state-coordinator/pages/ScActivationDetailsPage";
 import { ScBonusTrackerPage } from "../state-coordinator/pages/ScBonusTrackerPage";
 import { ScBonusHistoryPage } from "../state-coordinator/pages/ScBonusHistoryPage";
+import { ScAgencyPartnersPage } from "../state-coordinator/pages/ScAgencyPartnersPage";
+import { ScAgentDetailPage } from "../state-coordinator/pages/ScAgentDetailPage";
 import { SimActivationPage } from "../agency-partner/pages/SimActivationPage";
 import CorporateAgentDashboardPage from "../corporate-agent/pages/CorporateAgentDashboardPage";
 import CaSimInventoryPage from "../corporate-agent/inventory/pages/CaSimInventoryPage";
@@ -53,6 +55,8 @@ export const dashboardRoutes: TRouteData[] = [
   { path: appPaths.scWallet, element: <ScWalletPage />, title: "SC Wallet", isSearchable: true },
   { path: appPaths.scSimInventory, element: <ScSimInventoryPage />, title: "SIM Inventory", isSearchable: true },
   { path: "/sim-inventory", element: <ScSimInventoryPage />, title: "SIM Inventory Overview", isSearchable: true },
+  { path: appPaths.scAgencyPartners, element: <ScAgencyPartnersPage />, title: "My Agency Partners", isSearchable: true },
+  { path: appPaths.scAgentDetail().format, element: <ScAgentDetailPage />, title: "Agency Partner Details", isSearchable: false },
   { path: appPaths.scNetwork, element: <ScNetworkPage />, title: "Network Activity", isSearchable: true },
   { path: "/network", element: <ScNetworkPage />, title: "Network Activity", isSearchable: true },
   { path: appPaths.scActivationDetails().format, element: <ScActivationDetailsPage />, title: "Activation Details", isSearchable: true },

@@ -1,13 +1,7 @@
 import {
-  BarChart3,
   Smartphone,
   Users,
-  RefreshCw,
-  ClipboardList,
-  Coins,
-  Handshake,
-  Download,
-  MessageSquare,
+
 } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 
@@ -23,15 +17,15 @@ export function ApMoreActionsModal({
   onSelectAction,
 }: ApMoreActionsModalProps) {
   const actions = [
-    { key: "reports", label: "View Reports", icon: BarChart3, color: "text-[#2563EB]" },
+    // { key: "reports", label: "View Reports", icon: BarChart3, color: "text-[#2563EB]" },
     { key: "sim-history", label: "SIM History", icon: Smartphone, color: "text-[#0F152A]" },
     { key: "customers", label: "My Customers", icon: Users, color: "text-[#2563EB]" },
-    { key: "transfer", label: "Transfer SIMs", icon: RefreshCw, color: "text-[#2563EB]" },
-    { key: "kyc", label: "KYC Update", icon: ClipboardList, color: "text-[#D9990D]" },
-    { key: "commission", label: "Commission", icon: Coins, color: "text-[#F59E0B]" },
-    { key: "refer", label: "Refer Partner", icon: Handshake, color: "text-[#D9990D]" },
-    { key: "export", label: "Export Data", icon: Download, color: "text-[#2563EB]" },
-    { key: "support", label: "Support", icon: MessageSquare, color: "text-[#66738C]" },
+    // { key: "transfer", label: "Transfer SIMs", icon: RefreshCw, color: "text-[#2563EB]" },
+    // { key: "kyc", label: "KYC Update", icon: ClipboardList, color: "text-[#D9990D]" },
+    // { key: "commission", label: "Commission", icon: Coins, color: "text-[#F59E0B]" },
+    // { key: "refer", label: "Refer Partner", icon: Handshake, color: "text-[#D9990D]" },
+    // { key: "export", label: "Export Data", icon: Download, color: "text-[#2563EB]" },
+    // { key: "support", label: "Support", icon: MessageSquare, color: "text-[#66738C]" },
   ];
 
   const handleItemClick = (key: string) => {

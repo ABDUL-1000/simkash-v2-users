@@ -1,95 +1,72 @@
-import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import type { DistributeSummaryData } from "./DistributeStockModal";
+import { useDistributeInventorySims } from "../api/inventory";
+import type { InventoryDistributionResult, SimType } from "../types/operations";
+import { SC_SIM_TYPES, SIM_TYPE_LABELS } from "../utils/simTypes";
 
 interface ConfirmDistributionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  summaryData?: DistributeSummaryData | null;
-  apName?: string;
-  apDetails?: string;
-  posQty?: number;
-  cctvQty?: number;
-  gpsQty?: number;
-  routerQty?: number;
-  totalToSend?: number;
-  yourStockBefore?: number;
-  yourStockAfter?: number;
-  apStockBefore?: number;
-  apStockAfter?: number;
+  partner: { id: number; name: string; phone: string; initials: string; stock: number } | null;
+  /** SIM numbers picked per type from GET /sim-inventory/undistributed. */
+  sims: Record<SimType, string[]>;
+  yourStockBefore: number;
   note?: string;
   onEdit?: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (result: InventoryDistributionResult) => void;
 }
 
 export function ConfirmDistributionModal({
   open,
   onOpenChange,
-  summaryData,
-  apName: apNameProp,
-  apDetails: apDetailsProp,
-  posQty: posQtyProp,
-  cctvQty: cctvQtyProp,
-  gpsQty: gpsQtyProp,
-  routerQty: routerQtyProp,
-  totalToSend: totalToSendProp,
-  yourStockBefore: yourStockBeforeProp,
-  yourStockAfter: yourStockAfterProp,
-  apStockBefore: apStockBeforeProp,
-  apStockAfter: apStockAfterProp,
-  note: noteProp,
+  partner,
+  sims,
+  yourStockBefore,
+  note,
   onEdit,
   onSuccess,
 }: ConfirmDistributionModalProps) {
-  const [pin, setPin] = useState("");
+  const distribute = useDistributeInventorySims();
+  const types = SC_SIM_TYPES;
+  const totalToSend = types.reduce((sum, type) => sum + sims[type].length, 0);
+  const yourStockAfter = Math.max(0, yourStockBefore - totalToSend);
 
-  const apName = summaryData?.apName || apNameProp || "Francis Udom";
-  const apDetails =
-    apDetailsProp ||
-    (summaryData
-      ? `${summaryData.apState} · ${summaryData.apStockBefore} SIMs now`
-      : "Lagos · 42 customers · 3 SIMs now");
-  const posQty = summaryData ? summaryData.posQty : (posQtyProp ?? 15);
-  const cctvQty = summaryData ? summaryData.cctvQty : (cctvQtyProp ?? 5);
-  const gpsQty = summaryData ? summaryData.gpsQty : (gpsQtyProp ?? 0);
-  const routerQty = summaryData ? summaryData.routerQty : (routerQtyProp ?? 0);
-  const totalToSend = summaryData ? summaryData.totalToSend : (totalToSendProp ?? 20);
-  const yourStockBefore = summaryData ? summaryData.yourStockBefore : (yourStockBeforeProp ?? 42);
-  const yourStockAfter = summaryData ? summaryData.yourStockAfter : (yourStockAfterProp ?? 22);
-  const apStockBefore = summaryData ? summaryData.apStockBefore : (apStockBeforeProp ?? 3);
-  const apStockAfter = summaryData ? summaryData.apStockAfter : (apStockAfterProp ?? 23);
-  const note = summaryData?.note || noteProp || "Emergency stock for Francis";
+  const close = (value: boolean) => { if (distribute.isPending) return; if (!value) distribute.reset(); onOpenChange(value); };
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin.length < 4) return;
-    onSuccess?.();
-    onOpenChange(false);
+    if (!partner || totalToSend === 0) return;
+    const picked = Object.fromEntries(types.filter((type) => sims[type].length).map((type) => [type, sims[type]]));
+    distribute.mutate({ partner_id: partner.id, phone: partner.phone, sims: picked, note: note?.trim() || undefined }, {
+      onSuccess: (response) => {
+        onOpenChange(false);
+        onSuccess?.(response.data as InventoryDistributionResult);
+      },
+    });
   };
 
   return (
     <AppModal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={close}
       title="Confirm Distribution"
       description="Review before sending to AP"
       size="md"
+      showCloseButton={!distribute.isPending}
     >
-      <form onSubmit={handleConfirm} className="space-y-4 pt-1 text-xs">
+      {partner && <form onSubmit={handleConfirm} className="space-y-4 pt-1 text-xs">
         {/* Recipient AP Card */}
         <div className="rounded-2xl border border-[#10B981]/30 bg-[#EBFFF8] p-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-xl bg-[#10B981]/20 font-black text-[#10B981]">
-              FU
+              {partner.initials}
             </div>
             <div>
               <h4 className="font-extrabold text-[#0F152A] text-sm">
-                {apName}
+                {partner.name}
               </h4>
               <p className="text-[11px] text-[#66738C] font-medium">
-                {apDetails}
+                {partner.phone} · {partner.stock} SIMs now
               </p>
             </div>
           </div>
@@ -102,22 +79,12 @@ export function ConfirmDistributionModal({
           </span>
 
           <div className="space-y-1.5 pt-1 text-xs">
-            <div className="flex justify-between font-bold text-[#0F152A]">
-              <span>POS SIM</span>
-              <span className="font-black">{posQty} units</span>
-            </div>
-            <div className="flex justify-between font-bold text-[#10B981]">
-              <span>CCTV SIM</span>
-              <span className="font-black">{cctvQty} units</span>
-            </div>
-            <div className="flex justify-between text-[#8C909B] font-medium">
-              <span>GPS SIM</span>
-              <span>{gpsQty} units</span>
-            </div>
-            <div className="flex justify-between text-[#8C909B] font-medium">
-              <span>Router SIM</span>
-              <span>{routerQty} units</span>
-            </div>
+            {types.map((type) => (
+              <div key={type} className={`flex justify-between ${sims[type].length ? "font-bold text-[#0F152A]" : "text-[#8C909B] font-medium"}`}>
+                <span>{SIM_TYPE_LABELS[type]}</span>
+                <span className={sims[type].length ? "font-black" : ""}>{sims[type].length} units</span>
+              </div>
+            ))}
           </div>
 
           <div className="flex justify-between font-black text-sm pt-2 border-t border-[#E2ECF6] text-[#0F152A]">
@@ -132,11 +99,6 @@ export function ConfirmDistributionModal({
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#8C909B]">
               YOUR INVENTORY AFTER
             </span>
-            <p className="text-[11px] text-[#66738C]">
-              POS: 25 → 10<br />
-              CCTV: 10 → 5<br />
-              GPS: 5 (unchanged)
-            </p>
             <p className="text-xs font-black text-[#F59E0B] pt-0.5">
               Total: {yourStockBefore} → {yourStockAfter} SIMs
             </p>
@@ -144,70 +106,61 @@ export function ConfirmDistributionModal({
 
           <div className="space-y-1">
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#8C909B]">
-              {apName.split(" ")[0].toUpperCase()} AFTER
+              {partner.name.split(" ")[0].toUpperCase()} AFTER
             </span>
-            <p className="text-[11px] text-[#66738C]">
-              POS: 3 → 18<br />
-              CCTV: 0 → 5<br />
-              GPS: 0 (unchanged)
-            </p>
             <p className="text-xs font-black text-[#10B981] pt-0.5">
-              Total: {apStockBefore} → {apStockAfter} SIMs
+              Total: {partner.stock} → {partner.stock + totalToSend} SIMs
             </p>
           </div>
         </div>
 
-        {/* Warning Banner */}
-        <div className="rounded-2xl border border-[#FCEEC1] bg-[#FFFBEB] p-3 text-xs text-[#D9990D] font-medium flex items-center gap-2">
+        {/* Selected SIM numbers */}
+        <details className="rounded-2xl border border-[#E2ECF6] bg-white p-3">
+          <summary className="cursor-pointer text-[11px] font-bold text-[#2563EB]">View SIM numbers</summary>
+          <div className="mt-2 space-y-1.5">
+            {types.filter((type) => sims[type].length).map((type) => (
+              <p key={type} className="text-[11px] text-[#66738C]"><strong className="text-[#0F152A]">{SIM_TYPE_LABELS[type]}:</strong> <span className="font-mono">{sims[type].join(", ")}</span></p>
+            ))}
+          </div>
+        </details>
+
+        {yourStockAfter < 10 && <div className="rounded-2xl border border-[#FCEEC1] bg-[#FFFBEB] p-3 text-xs text-[#D9990D] font-medium flex items-center gap-2">
           <AlertTriangle className="size-4 shrink-0 text-[#D9990D]" />
-          <span>Your stock will be moderate. Consider requesting from RM soon.</span>
-        </div>
+          <span>Your stock will be low after this distribution.</span>
+        </div>}
 
         {/* Note if provided */}
-        {note && (
+        {note?.trim() && (
           <p className="text-xs italic text-[#66738C] px-1 font-medium">
-            "{note}"
+            "{note.trim()}"
           </p>
         )}
 
-        {/* PIN Authorization Input */}
-        <div className="space-y-1.5 text-center pt-1">
-          <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
-            ENTER SECURITY PIN
-          </label>
-          <div className="flex justify-center">
-            <InputOTP maxLength={4} value={pin} onChange={(v) => setPin(v)}>
-              <InputOTPGroup className="gap-2">
-                <InputOTPSlot index={0} className="size-11 text-base font-bold rounded-xl border border-[#E2ECF6]" />
-                <InputOTPSlot index={1} className="size-11 text-base font-bold rounded-xl border border-[#E2ECF6]" />
-                <InputOTPSlot index={2} className="size-11 text-base font-bold rounded-xl border border-[#E2ECF6]" />
-                <InputOTPSlot index={3} className="size-11 text-base font-bold rounded-xl border border-[#E2ECF6]" />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-        </div>
+        {/* The PIN step is omitted: POST /sim-inventory/distribute has no PIN field. */}
+        {distribute.error && <div className="rounded-2xl border border-[#F7D2D7] bg-[#FFF7F8] p-3 text-[#EF4444] font-medium">{distribute.error.message}</div>}
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-[#E2ECF6]">
           <button
             type="button"
+            disabled={distribute.isPending}
             onClick={() => {
-              onOpenChange(false);
+              close(false);
               onEdit?.();
             }}
-            className="px-4 py-2.5 text-xs font-bold text-[#66738C] hover:text-[#0F152A]"
+            className="px-4 py-2.5 text-xs font-bold text-[#66738C] hover:text-[#0F152A] disabled:opacity-50"
           >
-            ← Edit Quantities
+            ← Edit Selection
           </button>
           <button
             type="submit"
-            disabled={pin.length < 4}
+            disabled={distribute.isPending || totalToSend === 0}
             className="rounded-xl bg-[#10B981] px-6 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-600 disabled:opacity-50"
           >
-            Distribute {totalToSend} SIMs
+            {distribute.isPending ? "Distributing…" : `Distribute ${totalToSend} SIMs`}
           </button>
         </div>
-      </form>
+      </form>}
     </AppModal>
   );
 }

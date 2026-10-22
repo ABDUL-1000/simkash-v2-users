@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { PayLaterMode } from "@/features/paylater/types/api";
+import { usePayLaterBillMode } from "@/features/paylater/hooks/usePayLaterBillMode";
 import { ArrowRight, BookUser, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
@@ -14,11 +16,14 @@ import { detectNetworkFromPhone, isValidNgPhone, matchNetworkService, normalizeN
 interface BuyAirtimeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Charge PayLater credit instead of the wallet. */
+  payLater?: PayLaterMode;
 }
 
-export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
+export function BuyAirtimeModal({ open, onOpenChange, payLater }: BuyAirtimeModalProps) {
   const { wallet } = useGetAuthUser();
-  const currentBalance = wallet?.balance ?? 0;
+  const credit = usePayLaterBillMode("airtime", payLater);
+  const currentBalance = credit.active ? credit.availableCredit : wallet?.balance ?? 0;
 
   const { networks: apiNetworks, isLoading: isLoadingNetworks } = useGetAirtimeNetworks();
   const purchaseAirtimeMutation = usePurchaseAirtime();
@@ -59,6 +64,10 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
   };
 
   const handleConfirmPay = () => {
+    if (credit.active) {
+      credit.submit({ network: network.toLowerCase(), amount: Number(amount), phone: phoneNumber, pin }, { onSuccess: r => { setTxnRef(r.bill_reference); setStep("success"); }, onError: msg => { setFailureReason(msg); setStep("failure"); } });
+      return;
+    }
     purchaseAirtimeMutation.mutate(
       {
         network: network.toLowerCase(),
@@ -106,7 +115,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
     },
     { label: "Phone", value: phoneNumber },
     { label: "Amount", value: `₦${parsedAmount.toLocaleString()}` },
-    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "Pay from", value: `${credit.source} (₦${currentBalance.toLocaleString()})` },
     { label: "Balance after", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
@@ -116,6 +125,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
     { label: "Network", value: network },
     { label: "Amount", value: `₦${parsedAmount.toLocaleString()}` },
     { label: "Ref", value: txnRef },
+    ...credit.successRows,
   ];
 
   return (
@@ -132,7 +142,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
           {/* Wallet Balance Banner */}
           <div className="flex items-center gap-2 rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
             <span>💰</span>
-            <span>Wallet Balance · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span>{credit.balanceLabel} · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
 
           {/* Select Network */}
@@ -239,7 +249,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
             <span className="flex items-center gap-2 text-[#8C909B]">
               <Wallet className="size-4 text-[#8C909B]" /> Pay from
             </span>
-            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
+            <span className="font-bold text-[#0F152A]">{credit.source} · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
           {/* Footer Actions */}
@@ -254,7 +264,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!amount || Number(amount) <= 0 || !isValidNgPhone(phoneNumber) || !network}
+              disabled={!amount || Number(amount) <= 0 || !isValidNgPhone(phoneNumber) || !network || (credit.active && parsedAmount > currentBalance)}
               className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />
@@ -275,7 +285,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
         confirmButtonText={`Buy Airtime ₦${parsedAmount.toLocaleString()}`}
-        isLoading={purchaseAirtimeMutation.isPending}
+        isLoading={purchaseAirtimeMutation.isPending || credit.isPending}
       />
 
       {/* 3. Reusable Success Modal */}
@@ -285,7 +295,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
         title="Airtime Sent!"
         subtitle={`₦${parsedAmount.toLocaleString()} ${network} airtime sent to ${phoneNumber}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
+        walletBalanceText={credit.successFooter(`Wallet: ₦${balanceAfter.toLocaleString()}`)}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -295,7 +305,7 @@ export function BuyAirtimeModal({ open, onOpenChange }: BuyAirtimeModalProps) {
         open={open && step === "failure"}
         onOpenChange={handleClose}
         title="Purchase Failed"
-        subtitle="We couldn't complete this purchase. Your wallet was not debited."
+        subtitle={`We couldn't complete this purchase. ${credit.notDebitedText}`}
         reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"

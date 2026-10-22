@@ -13,12 +13,20 @@ import {
   Users,
 } from "lucide-react";
 import { AgentStatCard } from "@/components/common/AgentStatCard";
-import { ReusableBonusTracker } from "@/components/common/ReusableBonusTracker";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { useAuthStore } from "@/store/authStore";
+import {
+  useGetApDashboardSummary,
+  useGetApMonthlyCommission,
+  useGetApRecentActivations,
+  useGetApRecentActivity,
+  useGetApRecentCustomers,
+  useGetApSimStock,
+} from "../api";
 import { ActionSuccessModal, type DetailItem } from "@/features/state-coordinator/modals/ActionSuccessModal";
-import { QuickActivateSimModal, type ActivationFormData } from "../modals/QuickActivateSimModal";
-import { ConfirmActivationModal } from "../modals/ConfirmActivationModal";
-import { SimActivatedSuccessModal } from "../modals/SimActivatedSuccessModal";
-import { ApRequestPayoutModal } from "../modals/ApRequestPayoutModal";
+import { ApActivateSimFlow } from "../modals/ApActivateSimFlow";
+import { ApRequestPayoutModal, type PartnerPayoutResult } from "../modals/ApRequestPayoutModal";
+import { PayoutAccountModal } from "../modals/PayoutAccountModal";
 import { AwaitingApprovalPayoutModal } from "../modals/AwaitingApprovalPayoutModal";
 import { AllActivationsModal } from "../modals/AllActivationsModal";
 import { ApMoreActionsModal } from "../modals/ApMoreActionsModal";
@@ -35,18 +43,58 @@ import { ExportDataModal } from "../modals/ExportDataModal";
 import { ReferPartnerModal } from "../modals/ReferPartnerModal";
 import { appPaths } from "@/app/router/paths";
 
+const naira = (value?: number) => `₦${Number(value ?? 0).toLocaleString()}`;
+const NETWORK_COLORS: Record<string, string> = {
+  mtn: "bg-[#FFFBEB] text-[#D9990D]",
+  airtel: "bg-[#FFF1F2] text-[#EF4444]",
+  glo: "bg-[#EBFFF8] text-[#10B981]",
+  "9mobile": "bg-[#EFF4F8] text-[#2563EB]",
+  etisalat: "bg-[#EFF4F8] text-[#2563EB]",
+};
+const networkColor = (network: string) => NETWORK_COLORS[network.toLowerCase()] ?? "bg-[#F1F5F9] text-[#66738C]";
+const isCompleted = (status: string) => /complet|success|active/i.test(status);
+
+// Recent-activity icons by the API's `type` (commission, activation, stock, payout, bonus, …).
+const ACTIVITY_STYLES: Array<{ match: RegExp; icon: typeof Coins; tone: string }> = [
+  { match: /commission/i, icon: Coins, tone: "bg-[#EFF4F8] text-[#2563EB]" },
+  { match: /activat/i, icon: Smartphone, tone: "bg-[#EFF4F8] text-[#2563EB]" },
+  { match: /stock|transfer|receiv/i, icon: Box, tone: "bg-[#EBFFF8] text-[#10B981]" },
+  { match: /payout|withdraw/i, icon: DollarSign, tone: "bg-[#FEF3C7] text-[#D9990D]" },
+  { match: /bonus|target/i, icon: Trophy, tone: "bg-[#F3E8FF] text-[#7C3AED]" },
+];
+const activityStyle = (type: string) => ACTIVITY_STYLES.find(style => style.match.test(type)) ?? ACTIVITY_STYLES[0];
+
+// SIM stock rows: API breakdown key → label and bar colour (as in the design).
+const STOCK_ROWS = [
+  { key: "pos_sim", label: "POS SIM", bar: "bg-[#2563EB]" },
+  { key: "cctv_sim", label: "CCTV SIM", bar: "bg-[#7C3AED]" },
+  { key: "gps_sim", label: "GPS SIM", bar: "bg-[#10B981]" },
+  { key: "router_sim", label: "Router SIM", bar: "bg-[#F59E0B]" },
+] as const;
+
 export function AgencyPartnerDashboardPage() {
   const navigate = useNavigate();
+  const fullname = useAuthStore(state => state.userProfile?.fullname);
+
+  // Live dashboard data
+  const { summary, isLoading: summaryLoading } = useGetApDashboardSummary();
+  const activationsQuery = useGetApRecentActivations(10);
+  const { stock, isLoading: stockLoading } = useGetApSimStock();
+  const { commission, isLoading: commissionLoading } = useGetApMonthlyCommission();
+  const customersQuery = useGetApRecentCustomers(4);
+  const activityQuery = useGetApRecentActivity(5);
+  const walletBalance = summary ? naira(summary.wallet.balance) : undefined;
+  const todayUp = summary?.today.comparison.direction !== "down";
 
   // Visibility Toggles
   const [showWalletBalance, setShowWalletBalance] = useState(true);
 
   // Modals state
   const [quickActivateModalOpen, setQuickActivateModalOpen] = useState(false);
-  const [confirmActivationModalOpen, setConfirmActivationModalOpen] = useState(false);
-  const [simActivatedSuccessModalOpen, setSimActivatedSuccessModalOpen] = useState(false);
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
   const [awaitingApprovalModalOpen, setAwaitingApprovalModalOpen] = useState(false);
+  const [payoutResult, setPayoutResult] = useState<PartnerPayoutResult | null>(null);
+  const [payoutAccountOpen, setPayoutAccountOpen] = useState(false);
   const [requestStockModalOpen, setRequestStockModalOpen] = useState(false);
   const [allActivationsModalOpen, setAllActivationsModalOpen] = useState(false);
   const [moreActionsModalOpen, setMoreActionsModalOpen] = useState(false);
@@ -65,7 +113,6 @@ export function AgencyPartnerDashboardPage() {
   const [transferData, setTransferData] = useState<TransferSimFormData | null>(null);
 
   // Activation Flow Data Context
-  const [activationData, setActivationData] = useState<ActivationFormData | null>(null);
 
   // Success Modal State
   const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -90,110 +137,6 @@ export function AgencyPartnerDashboardPage() {
     setSuccessModalOpen(true);
   };
 
-  // Recent Activations Feed (Matching Image 1)
-  const recentActivations = [
-    {
-      phone: "07022222222",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      simType: "POS SIM",
-      customer: "Chidi Eze",
-      time: "2 min ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "08120600542",
-      network: "Airtel",
-      networkColor: "bg-[#FFF1F2] text-[#EF4444]",
-      simType: "CCTV SIM",
-      customer: "Aminat Nduka",
-      time: "45 min ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "08163083409",
-      network: "Glo",
-      networkColor: "bg-[#EBFFF8] text-[#10B981]",
-      simType: "POS SIM",
-      customer: "Ibrahim Musa",
-      time: "1 hr ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "07055093537",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      simType: "GPS SIM",
-      customer: "Fatima Ali",
-      time: "3 hrs ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "09122222222",
-      network: "9mobile",
-      networkColor: "bg-[#EFF4F8] text-[#2563EB]",
-      simType: "Router SIM",
-      customer: "Emeka Obi",
-      time: "5 hrs ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "08065942373",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      simType: "POS SIM",
-      customer: "Grace Okonkwo",
-      time: "Yesterday",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "07083175021",
-      network: "Airtel",
-      networkColor: "bg-[#FFF1F2] text-[#EF4444]",
-      simType: "CCTV SIM",
-      customer: "Hassan Ibrahim",
-      time: "Yesterday",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "08099282811",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      simType: "POS SIM",
-      customer: "Chioma Eze",
-      time: "2 days ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "09078959999",
-      network: "Glo",
-      networkColor: "bg-[#EBFFF8] text-[#10B981]",
-      simType: "POS SIM",
-      customer: "Abubakar Sule",
-      time: "2 days ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-    {
-      phone: "08083175021",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      simType: "GPS SIM",
-      customer: "Musa Abdullahi",
-      time: "3 days ago",
-      commission: "+₦1,000",
-      status: "Completed",
-    },
-  ];
-
   return (
     <div className="w-full min-w-0 space-y-6">
       {/* Welcome & Dashboard Title Header */}
@@ -203,7 +146,7 @@ export function AgencyPartnerDashboardPage() {
             Agency Partner Dashboard
           </h1>
           <p className="text-xs text-[#66738C] font-medium mt-0.5">
-            Welcome back, Rabiu Sani! 👋 Track activations, inventory, and bonuses.
+            Welcome back{fullname ? `, ${fullname}` : ""}! 👋 Track activations, inventory, and commission.
           </p>
         </div>
         <button
@@ -221,28 +164,26 @@ export function AgencyPartnerDashboardPage() {
         {/* Card 1: Today's Activations */}
         <AgentStatCard
           title="Today's Activations"
-          value="12"
-          subtitle="+₦12,000 commission"
+          value={summaryLoading ? "…" : (summary?.today.activations ?? 0).toLocaleString()}
+          subtitle={summary ? `+${naira(summary.today.commission)} commission` : undefined}
           subtitleColor="text-[#10B981]"
-          badgeText="↑ 4 more than yesterday"
-          badgeColor="bg-[#EBFFF8] text-[#10B981]"
+          badgeText={summary?.today.comparison.text ? `${todayUp ? "↑" : "↓"} ${summary.today.comparison.text}` : undefined}
+          badgeColor={todayUp ? "bg-[#EBFFF8] text-[#10B981]" : "bg-[#FFF7F8] text-[#EF4444]"}
         />
 
-        {/* Card 2: This Month */}
+        {/* Card 2: This Month — the monthly target badge is not in /partner/dashboard, so it's not shown */}
         <AgentStatCard
           title="This Month"
-          value="247"
-          subtitle="₦247,000 commission"
+          value={summaryLoading ? "…" : (summary?.this_month.activations ?? 0).toLocaleString()}
+          subtitle={summary ? `${naira(summary.this_month.commission)} commission` : undefined}
           subtitleColor="text-[#10B981]"
-          badgeText="Target: 200 Exceeded 🎉"
-          badgeColor="bg-[#F3E8FF] text-[#7C3AED]"
         />
 
         {/* Card 3: Wallet Balance */}
         <AgentStatCard
           title="Wallet Balance"
-          value={showWalletBalance ? "₦45,000" : "••••••••"}
-          subtitle="₦45,000 pending payout"
+          value={summaryLoading ? "…" : showWalletBalance ? walletBalance ?? "₦0" : "••••••••"}
+          subtitle={commission ? `${naira(commission.pending_payout)} pending payout` : undefined}
           subtitleColor="text-[#F59E0B]"
           action={
             <div className="flex items-center gap-2 shrink-0">
@@ -265,7 +206,7 @@ export function AgencyPartnerDashboardPage() {
         />
       </div>
 
-      {/* 2. REUSABLE BONUS TRACKER WIDGET (Matching Image 1) */}
+      {/* 2. Bonus tracker is disabled: no partner endpoint supplies the bonus period, target or progress.
       <ReusableBonusTracker
         period="Jun 2026 · 15 days left"
         status="Achieved"
@@ -275,7 +216,7 @@ export function AgencyPartnerDashboardPage() {
         creditedNote="Credited to wallet on 15 Jun"
         nextPeriodInfo="Next period starts 1 Jul 2026 · New target: 200 activations · ₦5,000 bonus"
         onViewHistory={() => navigate(appPaths.scBonusHistory)}
-      />
+      /> */}
 
       {/* 3. 5 QUICK ACTION PILL CARDS STRIP (Matching Image 1) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-3.5">
@@ -303,7 +244,7 @@ export function AgencyPartnerDashboardPage() {
 
         {/* Action 3: My Customers */}
         <div
-          onClick={() => navigate(appPaths.deviceSim)}
+          onClick={() => navigate(appPaths.apCustomers)}
           className="rounded-3xl border border-[#E2ECF6] bg-white p-3.5 sm:p-4 text-center shadow-xs cursor-pointer hover:border-[#7C3AED] hover:shadow-md transition space-y-2 sm:space-y-2.5"
         >
           <div className="mx-auto flex size-11 sm:size-12 items-center justify-center rounded-2xl bg-[#F3E8FF] text-[#7C3AED]">
@@ -354,6 +295,13 @@ export function AgencyPartnerDashboardPage() {
             </div>
 
             {/* Table */}
+            {activationsQuery.isLoading ? (
+              <div className="space-y-2 p-4">{Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-10 animate-pulse rounded-xl bg-slate-100" />)}</div>
+            ) : activationsQuery.error ? (
+              <div className="p-4"><AppEmptyState title="Couldn't load activations" description={activationsQuery.error.message} actionText="Retry" onAction={() => void activationsQuery.refetch()} /></div>
+            ) : activationsQuery.activations.length === 0 ? (
+              <div className="p-4"><AppEmptyState title="No activations yet" description="SIMs you activate will appear here." actionText="Activate SIM" onAction={() => setQuickActivateModalOpen(true)} /></div>
+            ) : (
             <div className="overflow-x-auto w-full">
               <table className="w-full min-w-[560px] text-left text-xs border-collapse">
                 <thead>
@@ -365,34 +313,34 @@ export function AgencyPartnerDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2ECF6] font-medium text-[#0F152A]">
-                  {recentActivations.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[#F8FAFC] whitespace-nowrap">
+                  {activationsQuery.activations.map((item) => (
+                    <tr key={item.id} className="hover:bg-[#F8FAFC] whitespace-nowrap">
                       <td className="p-3 sm:p-3.5">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${item.networkColor}`}
+                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${networkColor(item.network)}`}
                           >
                             {item.network}
                           </span>
                           <span className="font-extrabold text-[#0F152A] font-mono">
-                            {item.phone}
+                            {item.sim_number}
                           </span>
                         </div>
-                        <span className="text-[10px] text-[#8C909B] font-medium block mt-0.5">
-                          {item.time}
+                        <span className="text-[10px] text-[#8C909B] font-medium block mt-0.5" title={new Date(item.created_at).toLocaleString()}>
+                          {item.time_ago}
                         </span>
                       </td>
                       <td className="p-3 sm:p-3.5">
-                        <div className="font-bold text-[#0F152A]">{item.simType}</div>
+                        <div className="font-bold text-[#0F152A]">{item.sim_type}</div>
                         <span className="text-[10px] text-[#8C909B] font-medium">
-                          {item.customer}
+                          {item.customer_name}
                         </span>
                       </td>
                       <td className="p-3 sm:p-3.5 font-black text-[#10B981]">
-                        {item.commission}
+                        +{naira(item.commission)}
                       </td>
                       <td className="p-3 sm:p-3.5 text-right">
-                        <span className="rounded-full bg-[#EBFFF8] px-2.5 py-0.5 text-[10px] font-extrabold text-[#10B981]">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${isCompleted(item.status) ? "bg-[#EBFFF8] text-[#10B981]" : "bg-[#FFFBEB] text-[#D9990D]"}`}>
                           {item.status}
                         </span>
                       </td>
@@ -401,6 +349,7 @@ export function AgencyPartnerDashboardPage() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         </div>
 
@@ -424,50 +373,26 @@ export function AgencyPartnerDashboardPage() {
               </button>
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#0F152A]">42</h2>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0F152A]">{stockLoading ? "…" : (stock?.total_available ?? 0).toLocaleString()}</h2>
               <p className="text-xs text-[#8C909B] font-medium">SIMs available</p>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div>
-                <div className="flex justify-between py-1 text-xs">
-                  <span className="text-[#8C909B] font-medium">POS SIM</span>
-                  <span className="font-bold text-[#0F152A]">18</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-[#EFF4F8]">
-                  <div className="h-full rounded-full bg-[#2563EB] w-[43%]" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between py-1 text-xs">
-                  <span className="text-[#8C909B] font-medium">CCTV SIM</span>
-                  <span className="font-bold text-[#0F152A]">12</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-[#EFF4F8]">
-                  <div className="h-full rounded-full bg-[#7C3AED] w-[28%]" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between py-1 text-xs">
-                  <span className="text-[#8C909B] font-medium">GPS SIM</span>
-                  <span className="font-bold text-[#0F152A]">8</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-[#EFF4F8]">
-                  <div className="h-full rounded-full bg-[#10B981] w-[19%]" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between py-1 text-xs">
-                  <span className="text-[#8C909B] font-medium">Router SIM</span>
-                  <span className="font-bold text-[#0F152A]">4</span>
-                </div>
-                <div className="h-1.5 w-full rounded-full bg-[#EFF4F8]">
-                  <div className="h-full rounded-full bg-[#F59E0B] w-[10%]" />
-                </div>
-              </div>
+              {STOCK_ROWS.map(row => {
+                const count = stock?.breakdown[row.key] ?? 0;
+                const percent = stock && stock.total_available > 0 ? Math.round(count / stock.total_available * 100) : 0;
+                return (
+                  <div key={row.key}>
+                    <div className="flex justify-between py-1 text-xs">
+                      <span className="text-[#8C909B] font-medium">{row.label}</span>
+                      <span className="font-bold text-[#0F152A]">{count.toLocaleString()}</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-[#EFF4F8]">
+                      <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${percent}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <button
@@ -483,24 +408,28 @@ export function AgencyPartnerDashboardPage() {
           <div className="rounded-3xl border border-[#E2ECF6] bg-white p-4 sm:p-5 shadow-xs space-y-3">
             <h3 className="text-base font-black text-[#0F152A]">Commission This Month</h3>
 
+            {commissionLoading ? <div className="h-20 animate-pulse rounded-xl bg-slate-100" /> : (
             <div className="space-y-2 text-xs divide-y divide-[#E2ECF6]">
               <div className="flex justify-between items-center gap-2 py-1 first:pt-0">
-                <span className="text-[#8C909B] truncate">Own activations (247 × ₦1,000)</span>
-                <span className="font-bold text-[#0F152A] shrink-0">₦247,000</span>
+                <span className="text-[#8C909B] truncate">Own activations ({(commission?.own_activations.count ?? 0).toLocaleString()} × {naira(commission?.own_activations.rate)})</span>
+                <span className="font-bold text-[#0F152A] shrink-0">{naira(commission?.own_activations.total)}</span>
               </div>
-              <div className="flex justify-between items-center gap-2 py-1">
-                <span className="text-[#8C909B] truncate">Bonus earned (target hit)</span>
-                <span className="font-bold text-[#0F152A] shrink-0">₦5,000</span>
-              </div>
+              {Boolean(commission?.bonus_earned.amount) && (
+                <div className="flex justify-between items-center gap-2 py-1">
+                  <span className="text-[#8C909B] truncate">Bonus earned{commission?.bonus_earned.description ? ` (${commission.bonus_earned.description.toLowerCase()})` : ""}</span>
+                  <span className="font-bold text-[#0F152A] shrink-0">{naira(commission?.bonus_earned.amount)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center gap-2 py-2 pt-2 border-t border-[#E2ECF6]">
                 <span className="font-extrabold text-[#0F152A]">Total</span>
-                <span className="font-black text-[#10B981] text-base shrink-0">₦252,000</span>
+                <span className="font-black text-[#10B981] text-base shrink-0">{naira(commission?.total)}</span>
               </div>
             </div>
+            )}
 
             <div className="flex items-center justify-between gap-2 flex-wrap pt-1 text-xs border-t border-[#E2ECF6]">
               <span className="text-[11px] text-[#F59E0B] font-bold">
-                Pending payout: ₦45,000
+                Pending payout: {naira(commission?.pending_payout)}
               </span>
               <button
                 type="button"
@@ -517,25 +446,25 @@ export function AgencyPartnerDashboardPage() {
             <h3 className="text-base font-black text-[#0F152A]">Recent Customers</h3>
 
             <div className="space-y-3 text-xs">
-              {[
-                { initials: "CE", name: "Chidi Eze", sim: "POS SIM", active: true },
-                { initials: "AN", name: "Aminat Nduka", sim: "CCTV SIM", active: true },
-                { initials: "IM", name: "Ibrahim Musa", sim: "GPS SIM", active: false },
-                { initials: "FA", name: "Fatima Ali", sim: "POS SIM", active: true },
-              ].map((c, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-2">
+              {customersQuery.isLoading ? (
+                Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-8 animate-pulse rounded-lg bg-slate-100" />)
+              ) : customersQuery.customers.length === 0 ? (
+                <p className="py-2 text-[11px] text-[#8C909B]">{customersQuery.error ? "Couldn't load customers." : "No customers yet."}</p>
+              ) : customersQuery.customers.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex size-8 items-center justify-center rounded-full bg-[#EFF4F8] font-bold text-[#2563EB] text-xs shrink-0">
                       {c.initials}
                     </div>
                     <div className="min-w-0">
                       <h5 className="font-extrabold text-[#0F152A] truncate">{c.name}</h5>
-                      <p className="text-[10px] text-[#8C909B] truncate">{c.sim}</p>
+                      <p className="text-[10px] text-[#8C909B] truncate">{c.sim_type}</p>
                     </div>
                   </div>
                   <span
+                    title={c.status}
                     className={`size-2 rounded-full shrink-0 ${
-                      c.active ? "bg-[#10B981]" : "bg-[#F59E0B]"
+                      /active/i.test(c.status) ? "bg-[#10B981]" : "bg-[#F59E0B]"
                     }`}
                   />
                 </div>
@@ -545,10 +474,10 @@ export function AgencyPartnerDashboardPage() {
             <div className="pt-2 border-t border-[#E2ECF6]">
               <button
                 type="button"
-                onClick={() => navigate(appPaths.deviceSim)}
+                onClick={() => navigate(appPaths.apCustomers)}
                 className="text-xs font-bold text-[#2563EB] hover:underline"
               >
-                View all 247 customers →
+                View all {customersQuery.total.toLocaleString()} customers →
               </button>
             </div>
           </div>
@@ -558,111 +487,54 @@ export function AgencyPartnerDashboardPage() {
             <h3 className="text-base font-black text-[#0F152A]">Recent Activity</h3>
 
             <div className="space-y-3.5 text-xs">
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 items-center justify-center rounded-full bg-[#EFF4F8] text-[#2563EB] mt-0.5 shrink-0">
-                  <Coins className="size-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-extrabold text-[#0F152A] truncate">+₦1,000 commission</p>
-                  <p className="text-[10px] text-[#8C909B] truncate">07022222222 · 2 min ago</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 items-center justify-center rounded-full bg-[#EFF4F8] text-[#2563EB] mt-0.5 shrink-0">
-                  <Smartphone className="size-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-extrabold text-[#0F152A] truncate">SIM activated</p>
-                  <p className="text-[10px] text-[#8C909B] truncate">Chidi Eze · 45 min ago</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 items-center justify-center rounded-full bg-[#EBFFF8] text-[#10B981] mt-0.5 shrink-0">
-                  <Box className="size-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-extrabold text-[#0F152A] truncate">Stock received</p>
-                  <p className="text-[10px] text-[#8C909B] truncate">20 SIMs from SC · 1 hr ago</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 items-center justify-center rounded-full bg-[#FEF3C7] text-[#D9990D] mt-0.5 shrink-0">
-                  <DollarSign className="size-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-extrabold text-[#0F152A] truncate">Payout requested</p>
-                  <p className="text-[10px] text-[#8C909B] truncate">₦45,000 · Yesterday</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 items-center justify-center rounded-full bg-[#F3E8FF] text-[#7C3AED] mt-0.5 shrink-0">
-                  <Trophy className="size-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-extrabold text-[#0F152A] truncate">+₦5,000 bonus paid</p>
-                  <p className="text-[10px] text-[#8C909B] truncate">Target hit · 15 Jun</p>
-                </div>
-              </div>
+              {activityQuery.isLoading ? (
+                Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-8 animate-pulse rounded-lg bg-slate-100" />)
+              ) : activityQuery.activities.length === 0 ? (
+                <p className="py-2 text-[11px] text-[#8C909B]">{activityQuery.error ? "Couldn't load recent activity." : "No recent activity."}</p>
+              ) : activityQuery.activities.map((activity) => {
+                const { icon: Icon, tone } = activityStyle(activity.type);
+                return (
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <div className={`flex size-7 items-center justify-center rounded-full mt-0.5 shrink-0 ${tone}`}>
+                      <Icon className="size-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-extrabold text-[#0F152A] truncate">{activity.title}</p>
+                      <p className="text-[10px] text-[#8C909B] truncate" title={new Date(activity.timestamp).toLocaleString()}>{activity.subtitle}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* ALL AP DASHBOARD MODALS */}
-      {/* 1. Step 1: Quick Activate SIM Modal (Image 2) */}
-      <QuickActivateSimModal
-        open={quickActivateModalOpen}
-        onOpenChange={setQuickActivateModalOpen}
-        onProceedToConfirm={(data) => {
-          setActivationData(data);
-          setConfirmActivationModalOpen(true);
-        }}
-      />
-
-      {/* 2. Step 2: Confirm Activation Modal (Image 3) */}
-      <ConfirmActivationModal
-        open={confirmActivationModalOpen}
-        onOpenChange={setConfirmActivationModalOpen}
-        data={activationData}
-        onBack={() => setQuickActivateModalOpen(true)}
-        onConfirmSuccess={(data) => {
-          setActivationData(data);
-          setSimActivatedSuccessModalOpen(true);
-        }}
-      />
-
-      {/* 3. Step 3: SIM Activated Success Modal (Image 4) */}
-      <SimActivatedSuccessModal
-        open={simActivatedSuccessModalOpen}
-        onOpenChange={setSimActivatedSuccessModalOpen}
-        data={activationData}
-        onActivateAnother={() => setQuickActivateModalOpen(true)}
-        onDone={() => {
-          setActivationData(null);
-        }}
-      />
+      {/* 1-3. SIM activation flow: Quick Activate → Confirm → Success */}
+      <ApActivateSimFlow open={quickActivateModalOpen} onOpenChange={setQuickActivateModalOpen} />
 
       {/* 4. Request Payout Modal (Image 5) */}
       <ApRequestPayoutModal
         open={payoutModalOpen}
         onOpenChange={setPayoutModalOpen}
-        availableBalance="₦8,200"
-        onRequestSuccess={() => {
+        onChangeBank={() => setPayoutAccountOpen(true)}
+        onRequestSuccess={(result) => {
+          setPayoutResult(result);
           setAwaitingApprovalModalOpen(true);
         }}
       />
-      {/* 5. Awaiting Approval Payout Modal (New Image 1) */}
+      <PayoutAccountModal open={payoutAccountOpen} onOpenChange={setPayoutAccountOpen} />
+      {/* 5. Awaiting Approval Payout Modal — shows the submitted payout */}
       <AwaitingApprovalPayoutModal
         open={awaitingApprovalModalOpen}
         onOpenChange={setAwaitingApprovalModalOpen}
-        amount="₦8,200"
-        bankName="Access Bank"
-        accountNumber="****0476"
-        requestedDate="22 Jan 2026, 2:45 PM"
+        amount={payoutResult ? `₦${payoutResult.amount.toLocaleString()}` : undefined}
+        bankName={payoutResult?.bank_account.bank_name}
+        accountNumber={payoutResult ? `****${payoutResult.bank_account.account_number.slice(-4)}` : undefined}
+        requestedDate={new Date().toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+        reference={payoutResult?.reference}
+        statusLabel={payoutResult?.status}
         onContactSupport={() => {
           triggerSuccessModal(
             "Contacting Support",
@@ -700,7 +572,7 @@ export function AgencyPartnerDashboardPage() {
           if (actionKey === "reports") setMyReportsModalOpen(true);
           else if (actionKey === "sim-history") setSimHistoryModalOpen(true);
           else if (actionKey === "transfer") setTransferSimModalOpen(true);
-          else if (actionKey === "customers") navigate(appPaths.deviceSim);
+          else if (actionKey === "customers") navigate(appPaths.apCustomers);
           else if (actionKey === "support") setSupportCenterModalOpen(true);
           else if (actionKey === "export") setExportDataModalOpen(true);
           else if (actionKey === "refer") setReferPartnerModalOpen(true);

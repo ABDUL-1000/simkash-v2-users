@@ -1,92 +1,123 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Check,
   CheckCircle2,
   Clock,
-  Hourglass,
+  Loader2,
   Package,
   Search,
+  ShieldCheck,
   Smartphone,
   Trophy,
   X,
   Zap,
 } from "lucide-react";
+import { appPaths } from "@/app/router/paths";
 import { AgentStatCard } from "@/components/common/AgentStatCard";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { ActionSuccessModal, type DetailItem } from "@/features/state-coordinator/modals/ActionSuccessModal";
 import { PreviewActivationModal, type ActivationPreviewData } from "../../dashboard/Modals/PreviewActivationModal";
-import { CancelActivationModal, type CancelActivationData } from "../../dashboard/Modals/CancelActivationModal";
-import { RetryActivationModal, type RetryActivationData } from "../../dashboard/Modals/RetryActivationModal";
 import { ActivationDetailsModal, type ActivationRecord } from "../../dashboard/Modals/ActivationDetailsModal";
-import { TargetAchievedModal } from "@/features/state-coordinator/modals/TargetAchievedModal";
+import { useGetActivatedSims, useGetApDashboardSummary, useGetUnactivatedSims, useVerifyCustomerForSim } from "../api";
+import type { ActivateSimResponseData, ActivatedDeviceSimItem, VerifyCustomerResponseData } from "../types/api";
+// Pending activations, cancel/retry and the target-achieved bonus modal are disabled: the partner API has no
+// pending-activation, cancel, retry or bonus-target endpoints. Their modals remain in dashboard/Modals.
+// import { CancelActivationModal } from "../../dashboard/Modals/CancelActivationModal";
+// import { RetryActivationModal } from "../../dashboard/Modals/RetryActivationModal";
+// import { TargetAchievedModal } from "@/features/state-coordinator/modals/TargetAchievedModal";
+
+const SIM_TYPES = [
+  { key: "pos", label: "POS SIM" },
+  { key: "cctv", label: "CCTV SIM" },
+  { key: "gps", label: "GPS SIM" },
+  { key: "router", label: "Router SIM" },
+] as const;
+type SimTypeKey = typeof SIM_TYPES[number]["key"];
+const typeLabel = (key: string) => SIM_TYPES.find(type => type.key === key)?.label ?? key.toUpperCase();
+
+const NETWORK_CHIP: Record<string, string> = {
+  mtn: "bg-[#FFFBEB] text-[#D9990D] border-[#FCD34D]",
+  airtel: "bg-[#FEF2F2] text-[#EF4444] border-[#FCA5A5]",
+  glo: "bg-[#ECFDF5] text-[#059669] border-[#6EE7B7]",
+  t2: "bg-[#F1F5F9] text-[#0F152A] border-[#CBD5E1]",
+  "9mobile": "bg-[#F1F5F9] text-[#0F152A] border-[#CBD5E1]",
+};
+const NETWORK_PILL: Record<string, string> = {
+  mtn: "bg-[#FFFBEB] text-[#D9990D]",
+  airtel: "bg-[#FEF2F2] text-[#EF4444]",
+  glo: "bg-[#ECFDF5] text-[#059669]",
+};
+const naira = (value?: number) => `₦${Number(value ?? 0).toLocaleString()}`;
+const formatDate = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const formatDay = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+/** TODAY / YESTERDAY / THIS WEEK / EARLIER THIS MONTH / "SEPTEMBER 2026". */
+function dateGroup(iso: string) {
+  const date = new Date(iso);
+  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const days = Math.round((startOf(now) - startOf(date)) / 86_400_000);
+  if (days <= 0) return "TODAY";
+  if (days === 1) return "YESTERDAY";
+  if (days < 7) return "THIS WEEK";
+  if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) return "EARLIER THIS MONTH";
+  return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" }).toUpperCase();
+}
+
+const HISTORY_PAGE_SIZE = 15;
 
 export function SimActivationPage() {
-  const [activeTab, setActiveTab] = useState<
-    "activate" | "pending" | "history"
-  >("activate");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"activate" | "history">("activate");
+
+  // --- LIVE DATA ---
+  const { summary } = useGetApDashboardSummary();
+  // Stock counts per type (summary) — one lightweight call across all types.
+  const stockQuery = useGetUnactivatedSims({ type: "all", page: 1, limit: 1 });
+  const stockSummary = stockQuery.result?.summary;
 
   // --- TAB 1 FORM STATE ---
-  const [selectedSimType, setSelectedSimType] = useState("POS SIM");
-  const [selectedNetwork, setSelectedNetwork] = useState("MTN");
-  const [simNumber, setSimNumber] = useState("07022222222");
-  const [customerName, setCustomerName] = useState("Chidi Eze");
-  const [customerPhone, setCustomerPhone] = useState("08120600542");
-  const [address, setAddress] = useState("");
-  const [email, setEmail] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState("30 Days");
-  const [notes, setNotes] = useState("");
+  const [selectedSimType, setSelectedSimType] = useState<SimTypeKey>("pos");
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("");
+  const [simNumber, setSimNumber] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customer, setCustomer] = useState<VerifyCustomerResponseData | null>(null);
+  const verify = useVerifyCustomerForSim();
 
-  // Stock inventory levels
-  const simTypeStocks: Record<string, number> = {
-    "POS SIM": 18,
-    "CCTV SIM": 12,
-    "GPS SIM": 8,
-    "Router SIM": 4,
-  };
-
-  const planPrices: Record<string, string> = {
-    "30 Days": "₦5,000",
-    "60 Days": "₦9,500",
-    "90 Days": "₦13,500",
-  };
-
-  const planExpiries: Record<string, string> = {
-    "30 Days": "24 Jul 2026",
-    "60 Days": "23 Aug 2026",
-    "90 Days": "22 Sep 2026",
-  };
+  // Unactivated SIMs of the selected type (the SIM picker and network chips come from these).
+  const typeSimsQuery = useGetUnactivatedSims({ type: selectedSimType, page: 1, limit: 100 });
+  const typeSims = typeSimsQuery.sims;
+  const networks = useMemo(() => {
+    const counts = new Map<string, number>();
+    typeSims.forEach(sim => counts.set(sim.network, (counts.get(sim.network) ?? 0) + 1));
+    return [...counts.entries()].map(([id, count]) => ({ id, count }));
+  }, [typeSims]);
+  const networkSims = typeSims.filter(sim => !selectedNetwork || sim.network === selectedNetwork);
+  const selectedSim = typeSims.find(sim => sim.sim_number === simNumber);
+  const typeStock = stockSummary?.[selectedSimType] ?? 0;
+  const totalStock = stockSummary?.total ?? 0;
 
   // --- MODALS STATE ---
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewData, setPreviewData] = useState<ActivationPreviewData | null>(null);
-
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [cancelData, setCancelData] = useState<CancelActivationData | null>(null);
-
-  const [retryModalOpen, setRetryModalOpen] = useState(false);
-  const [retryData, setRetryData] = useState<RetryActivationData | null>(null);
-
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ActivationRecord | null>(null);
-  const [targetAchievedModalOpen, setTargetAchievedModalOpen] = useState(false);
 
-  const handleViewDetails = (rec: any) => {
+  const handleViewDetails = (rec: ActivatedDeviceSimItem) => {
     setSelectedRecord({
-      id: rec.id ? String(rec.id) : undefined,
-      reference: `ACT-2026-0084${rec.id ? String(rec.id).padStart(2, "0") : "70"}`,
-      simNumber: rec.simNumber || "07022222222",
-      simType: rec.type || rec.simType || "POS SIM",
-      network: rec.network || "MTN",
-      status: rec.status || "Completed",
-      customerName: rec.customer || rec.customerName || "Customer",
-      customerPhone: rec.phone || rec.customerPhone || "08120600542",
-      planName: rec.plan || "30 Days",
-      activatedDate: rec.date || "24 Jun 2026 · 03:47 PM",
-      expiryDate: "24 Jul 2026",
-      commission: rec.commission || "+₦1,000",
-      walletAfter: "₦45,000",
-      stockUsed: "1 POS SIM (17 remaining)",
-      failureReason: rec.failedReason || "Network unavailable",
+      id: String(rec.id),
+      reference: `#${rec.id}`,
+      simNumber: rec.sim_number,
+      simType: rec.type_label,
+      network: rec.network,
+      status: /fail/i.test(rec.status) ? "Failed" : /pend/i.test(rec.status) ? "Pending" : "Completed",
+      customerName: rec.customer.fullname,
+      customerPhone: rec.customer.phone,
+      activatedDate: formatDate(rec.activated_at),
+      expiryDate: formatDay(rec.expired_date),
+      commission: `+${naira(rec.commission)}`,
     });
     setDetailsModalOpen(true);
   };
@@ -114,246 +145,93 @@ export function SimActivationPage() {
     setSuccessModalOpen(true);
   };
 
-  // --- TAB 3 HISTORY FILTERS & SEARCH ---
+  // --- TAB 3 HISTORY FILTERS & SEARCH (type + search are API filters) ---
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterSimType, setFilterSimType] = useState("All");
-  const [filterNetwork, setFilterNetwork] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterSimType, setFilterSimType] = useState<"all" | SimTypeKey>("all");
+  const [historyPage, setHistoryPage] = useState(1);
+  const history = useGetActivatedSims({ type: filterSimType, search: searchQuery, page: historyPage, limit: HISTORY_PAGE_SIZE });
+  const historyTotal = history.result?.total ?? 0;
+  const historyPages = Math.max(1, history.result?.totalPages ?? 1);
+  const allTimeTotal = useGetActivatedSims({ type: "all", page: 1, limit: 1 }).result?.total;
+  const historyGroups = useMemo(() => {
+    const groups: Array<{ label: string; items: ActivatedDeviceSimItem[] }> = [];
+    history.sims.forEach(sim => {
+      const label = dateGroup(sim.activated_at);
+      const last = groups[groups.length - 1];
+      if (last?.label === label) last.items.push(sim); else groups.push({ label, items: [sim] });
+    });
+    return groups;
+  }, [history.sims]);
+  const changeHistoryFilter = (apply: () => void) => { apply(); setHistoryPage(1); };
 
-  const historyRecords = [
-    // TODAY
-    {
-      id: "1",
-      group: "TODAY",
-      simNumber: "08031234567",
-      type: "POS SIM",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      customer: "Adebayo Ogunlesi",
-      phone: "08120600542",
-      plan: "30D",
-      commission: "+₦1,000",
-      date: "Today, 2:45 PM",
-      status: "Completed",
-    },
-    {
-      id: "2",
-      group: "TODAY",
-      simNumber: "09012345678",
-      type: "CCTV SIM",
-      network: "Airtel",
-      networkColor: "bg-[#FEF2F2] text-[#EF4444]",
-      customer: "Ngozi Okafor",
-      phone: "08033456789",
-      plan: "60D",
-      commission: "+₦1,500",
-      date: "Today, 1:30 PM",
-      status: "Completed",
-    },
-    {
-      id: "3",
-      group: "TODAY",
-      simNumber: "07081234567",
-      type: "Router SIM",
-      network: "Glo",
-      networkColor: "bg-[#ECFDF5] text-[#059669]",
-      customer: "Emeka Nwosu",
-      phone: "07061234567",
-      plan: "90D",
-      commission: "+₦2,000",
-      date: "Today, 11:15 AM",
-      status: "Completed",
-    },
-
-    // YESTERDAY
-    {
-      id: "4",
-      group: "YESTERDAY",
-      simNumber: "08051234567",
-      type: "GPS SIM",
-      network: "T2",
-      networkColor: "bg-[#F1F5F9] text-[#0F152A]",
-      customer: "Fatima Abdullahi",
-      phone: "08091234567",
-      plan: "30D",
-      commission: "+₦1,000",
-      date: "Yest, 4:20 PM",
-      status: "Completed",
-    },
-    {
-      id: "5",
-      group: "YESTERDAY",
-      simNumber: "09031234567",
-      type: "POS SIM",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      customer: "Oluwaseun Adeyemi",
-      phone: "08131234567",
-      plan: "30D",
-      commission: "+₦1,000",
-      date: "Yest, 3:00 PM",
-      status: "Completed",
-    },
-    {
-      id: "6",
-      group: "YESTERDAY",
-      simNumber: "08061234567",
-      type: "CCTV SIM",
-      network: "Airtel",
-      networkColor: "bg-[#FEF2F2] text-[#EF4444]",
-      customer: "Ibrahim Yusuf",
-      phone: "07031234567",
-      plan: "60D",
-      commission: "+₦1,500",
-      date: "Yest, 1:45 PM",
-      status: "Completed",
-    },
-
-    // THIS WEEK
-    {
-      id: "7",
-      group: "THIS WEEK",
-      simNumber: "08071234567",
-      type: "Router SIM",
-      network: "Glo",
-      networkColor: "bg-[#ECFDF5] text-[#059669]",
-      customer: "Chioma Eze",
-      phone: "08041234567",
-      plan: "90D",
-      commission: "+₦2,000",
-      date: "Mon, 9:30 AM",
-      status: "Completed",
-    },
-    {
-      id: "8",
-      group: "THIS WEEK",
-      simNumber: "09041234567",
-      type: "POS SIM",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      customer: "Musa Danladi",
-      phone: "08151234567",
-      plan: "30D",
-      commission: "+₦1,000",
-      date: "Mon, 8:15 AM",
-      status: "Completed",
-    },
-
-    // EARLIER THIS MONTH
-    {
-      id: "13",
-      group: "EARLIER THIS MONTH",
-      simNumber: "08101234567",
-      type: "CCTV SIM",
-      network: "Airtel",
-      networkColor: "bg-[#FEF2F2] text-[#EF4444]",
-      customer: "Blessing Adekunle",
-      phone: "08071234568",
-      plan: "60D",
-      commission: "—",
-      date: "Fri, 3:20 PM",
-      status: "Failed",
-      failedReason: "Network provider unavailable",
-    },
-    {
-      id: "14",
-      group: "EARLIER THIS MONTH",
-      simNumber: "07101234567",
-      type: "GPS SIM",
-      network: "Glo",
-      networkColor: "bg-[#ECFDF5] text-[#059669]",
-      customer: "Yusuf Garba",
-      phone: "09031234568",
-      plan: "30D",
-      commission: "—",
-      date: "Thu, 10:00 AM",
-      status: "Cancelled",
-    },
-    {
-      id: "15",
-      group: "EARLIER THIS MONTH",
-      simNumber: "08111234567",
-      type: "POS SIM",
-      network: "MTN",
-      networkColor: "bg-[#FFFBEB] text-[#D9990D]",
-      customer: "Amina Bello",
-      phone: "08081234588",
-      plan: "30D",
-      commission: "+₦1,000",
-      date: "Wed, 4:30 PM",
-      status: "Completed",
-    },
-  ];
-
-  // Pending Activations (Tab 2)
-  const pendingActivations = [
-    {
-      id: "p1",
-      simNumber: "07022222222",
-      simType: "POS SIM",
-      network: "MTN",
-      customerName: "Chidi Eze",
-      customerPhone: "08120600542",
-      plan: "30-day · ₦5,000",
-      submittedTime: "2 min ago",
-      status: "Pending",
-    },
-    {
-      id: "p2",
-      simNumber: "08033456789",
-      simType: "CCTV SIM",
-      network: "Airtel",
-      customerName: "Ngozi Okafor",
-      customerPhone: "08033456789",
-      plan: "60-day · ₦9,500",
-      submittedTime: "15 min ago",
-      status: "Pending",
-    },
-    {
-      id: "p3",
-      simNumber: "07061234567",
-      simType: "Router SIM",
-      network: "Glo",
-      customerName: "Emeka Nwosu",
-      customerPhone: "07061234567",
-      plan: "90-day · ₦13,500",
-      submittedTime: "1 hour ago",
-      status: "Pending",
-    },
-  ];
+  const resetCustomer = () => { setCustomer(null); verify.reset(); };
+  const handleVerify = () => {
+    if (!selectedSim || customerPhone.length !== 11) return;
+    verify.mutate({ phone: customerPhone, sim_type: selectedSimType, sim_number: selectedSim.sim_number }, {
+      onSuccess: response => setCustomer(response.data),
+      onError: () => setCustomer(null),
+    });
+  };
 
   const handleOpenPreview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!simNumber.trim() || !customerName.trim() || !customerPhone.trim()) {
-      alert("Please fill in SIM Number, Customer Name and Customer Phone.");
-      return;
-    }
+    if (!selectedSim || !customer?.can_afford) return;
 
     setPreviewData({
       simType: selectedSimType,
-      network: selectedNetwork,
-      simNumber,
-      customerName,
-      customerPhone,
-      address,
-      email,
-      planName: selectedPlan,
-      planPrice: planPrices[selectedPlan] || "₦5,000",
-      planExpiry: planExpiries[selectedPlan] || "24 Jul 2026",
-      notes,
-      currentStock: simTypeStocks[selectedSimType] || 18,
+      simTypeLabel: typeLabel(selectedSimType),
+      network: selectedSim.network,
+      simNumber: selectedSim.sim_number,
+      customerName: customer.fullname,
+      customerPhone: customer.phone,
+      customerEmail: customer.email,
+      customerWalletBalance: customer.wallet_balance,
+      customerHasPin: customer.has_pin,
+      simPrice: customer.sim_price,
+      commission: selectedSim.partner_commission,
+      typeStock,
+      totalStock,
     });
     setPreviewModalOpen(true);
   };
 
   const handleClearForm = () => {
     setSimNumber("");
-    setCustomerName("");
     setCustomerPhone("");
-    setAddress("");
-    setEmail("");
-    setNotes("");
+    resetCustomer();
   };
+
+  const handleActivated = (result: ActivateSimResponseData) => {
+    handleClearForm();
+    triggerSuccessModal(
+      "SIM Activation Successful!",
+      `SIM ${result.sim_number} has been activated for ${result.customer.fullname}. Commission of +${naira(result.partner_commission_earned)} credited to your wallet.`,
+      "SIM Activated ⚡",
+      "sparkles",
+      [
+        { label: "SIM Number", value: `${result.sim_number} · ${result.network}` },
+        { label: "Customer", value: `${result.customer.fullname} · ${result.customer.phone}` },
+        { label: "Amount Charged", value: naira(result.amount_debited) },
+        { label: "Commission Earned", value: `+${naira(result.partner_commission_earned)}` },
+        { label: "Expires", value: formatDay(result.expired_date) },
+        { label: "Reference", value: result.transaction_reference },
+      ]
+    );
+  };
+
+  const downloadReceipt = () => {
+    if (!selectedRecord) return;
+    const lines = ["Simkash — SIM Activation Receipt", "", `Reference: ${selectedRecord.reference}`, `SIM: ${selectedRecord.simNumber} (${selectedRecord.simType} · ${selectedRecord.network})`,
+      `Customer: ${selectedRecord.customerName} · ${selectedRecord.customerPhone}`, `Activated: ${selectedRecord.activatedDate}`, `Expires: ${selectedRecord.expiryDate}`, `Commission: ${selectedRecord.commission}`, `Status: ${selectedRecord.status}`];
+    const href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/plain" }));
+    const link = document.createElement("a"); link.href = href; link.download = `activation-${selectedRecord.id}.txt`;
+    document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000);
+  };
+
+  const showingFrom = historyTotal ? (historyPage - 1) * HISTORY_PAGE_SIZE + 1 : 0;
+  const showingTo = Math.min(historyPage * HISTORY_PAGE_SIZE, historyTotal);
+  const pageButtons = Array.from(new Set([1, historyPage - 1, historyPage, historyPage + 1, historyPages])).filter(page => page >= 1 && page <= historyPages).sort((a, b) => a - b);
 
   return (
     <div className="space-y-6">
@@ -364,7 +242,7 @@ export function SimActivationPage() {
             SIM Activation
           </h1>
           <p className="text-xs text-[#66738C] font-medium mt-0.5">
-            Activate SIMs for your customers and earn ₦1,000 per activation
+            Activate SIMs for your customers and earn commission on every activation
           </p>
         </div>
         <button
@@ -377,14 +255,14 @@ export function SimActivationPage() {
         </button>
       </div>
 
-      {/* TOP STAT CARDS STRIP (Matching Image 1 when Tab 1/2 or Image 2 when Tab 3) */}
+      {/* TOP STAT CARDS STRIP (Matching Image 1 when Tab 1 or Image 2 when Tab 3) */}
       {activeTab !== "history" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           {/* Card 1: Activated Today */}
           <AgentStatCard
             title="Activated Today"
-            value="12"
-            subtitle="+₦12,000 commission"
+            value={(summary?.today.activations ?? 0).toLocaleString()}
+            subtitle={`+${naira(summary?.today.commission)} commission`}
             subtitleColor="text-[#10B981]"
             action={
               <div className="flex size-9 items-center justify-center rounded-xl bg-[#EFF4F8] text-[#2563EB]">
@@ -396,8 +274,8 @@ export function SimActivationPage() {
           {/* Card 2: This Month */}
           <AgentStatCard
             title="This Month"
-            value="247"
-            subtitle="Target: 200 - Exceeded ✓"
+            value={(summary?.this_month.activations ?? 0).toLocaleString()}
+            subtitle={`${naira(summary?.this_month.commission)} commission`}
             subtitleColor="text-[#7C3AED]"
             action={
               <div className="flex size-9 items-center justify-center rounded-xl bg-[#F3E8FF] text-[#7C3AED]">
@@ -406,24 +284,13 @@ export function SimActivationPage() {
             }
           />
 
-          {/* Card 3: Pending Activations */}
-          <AgentStatCard
-            title="Pending Activations"
-            value="3"
-            subtitle="Awaiting completion"
-            subtitleColor="text-[#66738C]"
-            action={
-              <div className="flex size-9 items-center justify-center rounded-xl bg-[#FEF3C7] text-[#D9990D]">
-                <Hourglass className="size-4" />
-              </div>
-            }
-          />
+          {/* Card 3 (Pending Activations) is disabled: no pending-activation endpoint. */}
 
           {/* Card 4: All Time */}
           <AgentStatCard
             title="All Time"
-            value="847"
-            subtitle="₦847,000 total commission"
+            value={allTimeTotal === undefined ? "…" : allTimeTotal.toLocaleString()}
+            subtitle="Total activations"
             subtitleColor="text-[#2563EB]"
             action={
               <div className="flex size-9 items-center justify-center rounded-xl bg-[#EFF4F8] text-[#2563EB]">
@@ -434,36 +301,25 @@ export function SimActivationPage() {
         </div>
       ) : (
         /* Image 2 Top Stat Cards for Activation History */
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-3">
           <AgentStatCard
             title="Today"
-            value="12"
-            subtitle="+₦12,000"
+            value={(summary?.today.activations ?? 0).toLocaleString()}
+            subtitle={`+${naira(summary?.today.commission)}`}
             subtitleColor="text-[#10B981]"
           />
-          <AgentStatCard
-            title="This Week"
-            value="47"
-            subtitle="+₦47,000"
-            subtitleColor="text-[#10B981]"
-          />
+          {/* "This Week" and "Success Rate" cards are disabled: no weekly or failure-rate data in the API. */}
           <AgentStatCard
             title="This Month"
-            value="247"
-            subtitle="+₦247,000"
+            value={(summary?.this_month.activations ?? 0).toLocaleString()}
+            subtitle={`+${naira(summary?.this_month.commission)}`}
             subtitleColor="text-[#10B981]"
           />
           <AgentStatCard
             title="All Time"
-            value="847"
-            subtitle="+₦847,000"
+            value={allTimeTotal === undefined ? "…" : allTimeTotal.toLocaleString()}
+            subtitle="Total activations"
             subtitleColor="text-[#2563EB]"
-          />
-          <AgentStatCard
-            title="Success Rate"
-            value="99.2%"
-            subtitle="8 failed all time"
-            subtitleColor="text-[#66738C]"
           />
         </div>
       )}
@@ -482,26 +338,7 @@ export function SimActivationPage() {
           Activate New SIM
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("pending")}
-          className={`rounded-xl px-5 py-2.5 text-xs font-extrabold transition flex items-center gap-2 ${
-            activeTab === "pending"
-              ? "bg-[#2563EB] text-white shadow-xs"
-              : "text-[#66738C] hover:text-[#0F152A] hover:bg-[#F8FAFC]"
-          }`}
-        >
-          <span>Pending Activations</span>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-              activeTab === "pending"
-                ? "bg-white text-[#2563EB]"
-                : "bg-[#FEF3C7] text-[#D9990D]"
-            }`}
-          >
-            3
-          </span>
-        </button>
+        {/* "Pending Activations" tab is disabled: no pending-activation endpoint. */}
 
         <button
           type="button"
@@ -529,7 +366,7 @@ export function SimActivationPage() {
                 <Package className="size-4 text-[#2563EB]" />
                 <span>
                   Your stock:{" "}
-                  <strong className="text-[#0F152A]">42 SIMs</strong> (POS 18 · CCTV 12 · GPS 8 · Router 4)
+                  <strong className="text-[#0F152A]">{totalStock} SIMs</strong> ({SIM_TYPES.map(type => `${type.label.split(" ")[0]} ${stockSummary?.[type.key] ?? 0}`).join(" · ")})
                 </span>
               </div>
             </div>
@@ -541,17 +378,13 @@ export function SimActivationPage() {
                   SELECT SIM TYPE
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { id: "POS SIM", count: 18 },
-                    { id: "CCTV SIM", count: 12 },
-                    { id: "GPS SIM", count: 8 },
-                    { id: "Router SIM", count: 4 },
-                  ].map((type) => {
-                    const isSelected = selectedSimType === type.id;
+                  {SIM_TYPES.map((type) => {
+                    const isSelected = selectedSimType === type.key;
+                    const count = stockSummary?.[type.key] ?? 0;
                     return (
                       <div
-                        key={type.id}
-                        onClick={() => setSelectedSimType(type.id)}
+                        key={type.key}
+                        onClick={() => { setSelectedSimType(type.key); setSelectedNetwork(""); setSimNumber(""); resetCustomer(); }}
                         className={`rounded-2xl border p-3.5 cursor-pointer transition relative ${
                           isSelected
                             ? "border-2 border-[#2563EB] bg-[#EFF4F8]/60 shadow-xs"
@@ -565,10 +398,10 @@ export function SimActivationPage() {
                         )}
                         <Smartphone className="size-5 text-[#0F152A] mb-2" />
                         <h5 className="font-extrabold text-[#0F152A] text-xs">
-                          {type.id}
+                          {type.label}
                         </h5>
-                        <p className="text-[10px] text-[#10B981] font-bold mt-0.5">
-                          {type.count} in stock
+                        <p className={`text-[10px] font-bold mt-0.5 ${count > 0 ? "text-[#10B981]" : "text-[#EF4444]"}`}>
+                          {count} in stock
                         </p>
                       </div>
                     );
@@ -576,28 +409,25 @@ export function SimActivationPage() {
                 </div>
               </div>
 
-              {/* SELECT NETWORK */}
+              {/* SELECT NETWORK — networks you hold stock for in this SIM type */}
               <div className="space-y-2">
                 <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
                   SELECT NETWORK
                 </label>
                 <div className="flex flex-wrap gap-2.5">
-                  {[
-                    { id: "MTN", color: "bg-[#FFFBEB] text-[#D9990D] border-[#FCD34D]" },
-                    { id: "Airtel", color: "bg-[#FEF2F2] text-[#EF4444] border-[#FCA5A5]" },
-                    { id: "Glo", color: "bg-[#ECFDF5] text-[#059669] border-[#6EE7B7]" },
-                    { id: "T2", color: "bg-[#F1F5F9] text-[#0F152A] border-[#CBD5E1]" },
-                  ].map((net) => {
+                  {typeSimsQuery.isLoading ? <span className="flex items-center gap-2 text-[#8C909B]"><Loader2 className="size-3.5 animate-spin" /> Loading networks…</span>
+                    : networks.length === 0 ? <span className="text-[#8C909B]">No {typeLabel(selectedSimType)} stock available.</span>
+                      : networks.map((net) => {
                     const isSelected = selectedNetwork === net.id;
                     return (
                       <button
                         type="button"
                         key={net.id}
-                        onClick={() => setSelectedNetwork(net.id)}
+                        onClick={() => { setSelectedNetwork(isSelected ? "" : net.id); setSimNumber(""); resetCustomer(); }}
                         className={`rounded-full px-5 py-2 text-xs font-black transition flex items-center gap-2 border ${
                           isSelected
                             ? "bg-[#2563EB] text-white border-[#2563EB] shadow-xs"
-                            : `${net.color} hover:opacity-90`
+                            : `${NETWORK_CHIP[net.id.toLowerCase()] ?? NETWORK_CHIP.t2} hover:opacity-90`
                         }`}
                       >
                         <span
@@ -605,175 +435,110 @@ export function SimActivationPage() {
                             isSelected ? "bg-white" : "bg-current"
                           }`}
                         />
-                        <span>{net.id}</span>
+                        <span>{net.id} · {net.count}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* SIM NUMBER */}
+              {/* SIM NUMBER — choose one of your unactivated SIMs */}
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
                   SIM NUMBER
                 </label>
                 <div className="relative">
-                  <input
-                    type="text"
+                  <select
                     required
                     value={simNumber}
-                    onChange={(e) => setSimNumber(e.target.value)}
-                    placeholder="07022222222"
-                    className="w-full rounded-xl border border-[#10B981] bg-white px-3.5 py-2.5 font-mono text-xs font-black text-[#0F152A] focus:outline-hidden"
-                  />
-                  <Check className="absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />
+                    onChange={(e) => { setSimNumber(e.target.value); resetCustomer(); }}
+                    disabled={typeSimsQuery.isLoading || networkSims.length === 0}
+                    className={`w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 font-mono text-xs font-black text-[#0F152A] focus:outline-hidden disabled:opacity-60 ${selectedSim ? "border-[#10B981]" : "border-[#E2ECF6]"}`}
+                  >
+                    <option value="">{networkSims.length ? "Select an available SIM" : "No SIMs available"}</option>
+                    {networkSims.map(sim => <option key={sim.id} value={sim.sim_number}>{sim.sim_number} · {sim.network}</option>)}
+                  </select>
+                  {selectedSim && <Check className="pointer-events-none absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />}
                 </div>
-                <span className="text-[10px] font-bold text-[#10B981]">
-                  Valid SIM format
-                </span>
+                {selectedSim && (
+                  <span className="text-[10px] font-bold text-[#10B981]">
+                    In your stock · {naira(selectedSim.partner_commission)} commission
+                  </span>
+                )}
               </div>
 
-              {/* CUSTOMER INFORMATION */}
+              {/* CUSTOMER INFORMATION — the customer must be a Simkash user; details come from verification */}
               <div className="space-y-3 pt-2">
                 <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B] block">
                   CUSTOMER INFORMATION
                 </label>
-
-                {/* Full Name */}
-                <div className="space-y-1">
-                  <label className="font-extrabold text-[#0F152A]">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Chidi Eze"
-                      className="w-full rounded-xl border border-[#10B981] bg-white px-3.5 py-2.5 text-xs font-semibold text-[#0F152A] focus:outline-hidden"
-                    />
-                    <Check className="absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />
-                  </div>
-                </div>
 
                 {/* Phone Number */}
                 <div className="space-y-1">
                   <label className="font-extrabold text-[#0F152A]">
                     Phone Number <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <div className="flex items-center">
-                      <span className="absolute left-3 text-sm">🇳🇬</span>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-2.5 text-sm">🇳🇬</span>
                       <input
                         type="text"
+                        inputMode="numeric"
                         required
                         value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="08120600542"
-                        className="w-full rounded-xl border border-[#10B981] bg-white pl-9 pr-10 py-2.5 font-mono text-xs font-bold text-[#0F152A] focus:outline-hidden"
+                        onChange={(e) => { setCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 11)); resetCustomer(); }}
+                        placeholder="08012345678"
+                        className={`w-full rounded-xl border bg-white pl-9 pr-10 py-2.5 font-mono text-xs font-bold text-[#0F152A] focus:outline-hidden ${customer ? "border-[#10B981]" : "border-[#E2ECF6]"}`}
                       />
-                      <Check className="absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />
+                      {customer && <Check className="absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />}
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleVerify}
+                      disabled={!selectedSim || customerPhone.length !== 11 || verify.isPending}
+                      className="rounded-xl border border-[#2563EB] px-4 text-xs font-bold text-[#2563EB] hover:bg-[#EFF4F8] disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {verify.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+                      Verify
+                    </button>
                   </div>
                   <span className="text-[10px] text-[#8C909B]">
-                    Customer's contact number
+                    {selectedSim ? "Customer's Simkash phone number" : "Select a SIM first, then verify the customer"}
                   </span>
+                  {verify.error && <p className="text-[10px] font-bold text-[#EF4444]">{verify.error.message}</p>}
                 </div>
 
-                {/* Address (optional) */}
+                {/* Full Name (from verification) */}
                 <div className="space-y-1">
-                  <label className="font-semibold text-[#0F152A]">
-                    Address <span className="text-[#8C909B] font-normal">(optional)</span>
+                  <label className="font-extrabold text-[#0F152A]">
+                    Full Name
                   </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Customer delivery address"
-                    className="w-full rounded-xl border border-[#E2ECF6] bg-white px-3.5 py-2.5 text-xs font-semibold text-[#0F152A] placeholder:text-[#8C909B] focus:border-[#2563EB] focus:outline-hidden"
-                  />
-                  <span className="text-[10px] text-[#8C909B]">
-                    Useful for records and future renewals
-                  </span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      readOnly
+                      value={customer?.fullname ?? ""}
+                      placeholder="Filled after verification"
+                      className={`w-full rounded-xl border bg-[#F8FAFC] px-3.5 py-2.5 text-xs font-semibold text-[#0F152A] focus:outline-hidden ${customer ? "border-[#10B981]" : "border-[#E2ECF6]"}`}
+                    />
+                    {customer && <Check className="absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />}
+                  </div>
                 </div>
 
-                {/* Email (optional) */}
-                <div className="space-y-1">
-                  <label className="font-semibold text-[#0F152A]">
-                    Email <span className="text-[#8C909B] font-normal">(optional)</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Customer email address"
-                    className="w-full rounded-xl border border-[#E2ECF6] bg-white px-3.5 py-2.5 text-xs font-semibold text-[#0F152A] placeholder:text-[#8C909B] focus:border-[#2563EB] focus:outline-hidden"
-                  />
-                </div>
+                {customer && (
+                  <div className={`rounded-xl border p-3 text-xs ${customer.can_afford ? "border-[#10B981]/30 bg-[#EBFFF8]" : "border-[#F59E0B]/30 bg-[#FEF3C7]/60"}`}>
+                    <div className="flex justify-between"><span className="text-[#66738C]">Customer wallet</span><strong className="text-[#0F152A]">{naira(customer.wallet_balance)}</strong></div>
+                    <div className="mt-1 flex justify-between"><span className="text-[#66738C]">SIM price</span><strong className="text-[#0F152A]">{naira(customer.sim_price)}</strong></div>
+                    <p className={`mt-2 flex items-center gap-1.5 font-bold ${customer.can_afford ? "text-[#10B981]" : "text-[#B45309]"}`}>
+                      <ShieldCheck className="size-3.5" />
+                      {customer.can_afford ? "Eligible for activation" : `Insufficient balance — short by ${naira(customer.shortfall)}. The customer needs to top up.`}
+                    </p>
+                  </div>
+                )}
+                {/* Address, email and notes are not part of the activation API. */}
               </div>
 
-              {/* SELECT PLAN */}
-              <div className="space-y-2 pt-2">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
-                  SELECT PLAN
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { name: "30 Days", price: "₦5,000", expiry: "24 Jul 2026" },
-                    { name: "60 Days", price: "₦9,500", expiry: "23 Aug 2026" },
-                    {
-                      name: "90 Days",
-                      price: "₦13,500",
-                      expiry: "22 Sep 2026",
-                      badge: "BEST VALUE",
-                    },
-                  ].map((plan) => {
-                    const isSelected = selectedPlan === plan.name;
-                    return (
-                      <div
-                        key={plan.name}
-                        onClick={() => setSelectedPlan(plan.name)}
-                        className={`rounded-2xl border p-3.5 cursor-pointer transition relative ${
-                          isSelected
-                            ? "border-2 border-[#2563EB] bg-[#EFF4F8]/60 shadow-xs"
-                            : "border-[#E2ECF6] bg-white hover:border-slate-300"
-                        }`}
-                      >
-                        {plan.badge && (
-                          <span className="absolute right-3 top-3 rounded-full bg-[#EBFFF8] px-2 py-0.5 text-[9px] font-extrabold text-[#10B981]">
-                            {plan.badge}
-                          </span>
-                        )}
-                        <div className="flex items-center gap-1.5 font-extrabold text-[#0F152A]">
-                          <span>{plan.name}</span>
-                          {isSelected && <Check className="size-3.5 text-[#2563EB] stroke-[3]" />}
-                        </div>
-                        <h4 className="text-base font-black text-[#0F152A] mt-1">
-                          {plan.price}
-                        </h4>
-                        <p className="text-[10px] text-[#66738C] mt-1">
-                          New expiry: {plan.expiry}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* NOTES */}
-              <div className="space-y-1 pt-1">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
-                  NOTES
-                </label>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any additional notes about this..."
-                  className="w-full rounded-xl border border-[#E2ECF6] bg-white px-3.5 py-2 text-xs font-semibold text-[#0F152A] placeholder:text-[#8C909B] focus:border-[#2563EB] focus:outline-hidden resize-none"
-                />
-              </div>
+              {/* SELECT PLAN is disabled: the activation API has no plans; the price comes from customer verification. */}
 
               {/* FORM FOOTER BUTTONS */}
               <div className="pt-3 border-t border-[#E2ECF6] flex items-center justify-between">
@@ -786,7 +551,8 @@ export function SimActivationPage() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition flex items-center gap-2"
+                  disabled={!selectedSim || !customer?.can_afford}
+                  className="rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
                 >
                   <span>Preview Activation</span>
                   <span>→</span>
@@ -807,14 +573,14 @@ export function SimActivationPage() {
                 <div className="flex items-center justify-between py-1.5 first:pt-0">
                   <span className="text-[#66738C]">SIM Type</span>
                   <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-                    {selectedSimType}
+                    {typeLabel(selectedSimType)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-[#66738C]">Network</span>
                   <span className="font-extrabold text-[#0F152A]">
-                    {selectedNetwork}
+                    {selectedSim?.network || selectedNetwork || "—"}
                   </span>
                 </div>
 
@@ -828,7 +594,7 @@ export function SimActivationPage() {
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-[#66738C]">Customer</span>
                   <span className="font-bold text-[#0F152A]">
-                    {customerName || "—"}
+                    {customer?.fullname || "—"}
                   </span>
                 </div>
 
@@ -840,54 +606,29 @@ export function SimActivationPage() {
                 </div>
 
                 <div className="flex items-center justify-between py-1.5">
-                  <span className="text-[#66738C]">Plan</span>
+                  <span className="text-[#66738C]">Price</span>
                   <span className="font-bold text-[#0F152A]">
-                    {selectedPlan.toLowerCase()} · {planPrices[selectedPlan]}
+                    {customer ? naira(customer.sim_price) : "—"}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-[#66738C]">Commission</span>
                   <span className="font-black text-[#10B981]">
-                    +₦1,000
+                    {selectedSim ? `+${naira(selectedSim.partner_commission)}` : "—"}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-[#66738C]">Stock after</span>
                   <span className="font-bold text-[#0F152A]">
-                    41 SIMs ({simTypeStocks[selectedSimType] - 1} {selectedSimType.split(" ")[0]})
+                    {selectedSim ? `${Math.max(0, totalStock - 1)} SIMs (${Math.max(0, typeStock - 1)} ${typeLabel(selectedSimType).split(" ")[0]})` : "—"}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Card 2: Bonus Progress */}
-            <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-2.5">
-              <h4 className="font-black text-[#0F152A] text-sm flex items-center gap-2">
-                <Trophy className="size-4 text-[#D9990D]" />
-                <span>Bonus Progress</span>
-              </h4>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-[#2563EB] h-full rounded-full transition-all duration-300"
-                  style={{ width: "62%" }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs font-bold text-[#0F152A]">
-                <span>124 of 200 activations</span>
-              </div>
-
-              <p className="text-[10px] text-[#2563EB] font-bold">
-                This activation: 125 of 200
-              </p>
-              <p className="text-[10px] text-[#66738C]">
-                ₦5,000 bonus on hitting 200
-              </p>
-            </div>
+            {/* Card 2 (Bonus Progress) is disabled: no partner bonus-target endpoint. */}
 
             {/* Card 3: ACTIVATION TIPS */}
             <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3">
@@ -906,96 +647,10 @@ export function SimActivationPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="size-4 text-[#10B981] shrink-0 mt-0.5" />
-                  <span>Keep customer details accurate for renewals</span>
+                  <span>The customer must have enough wallet balance and a transaction PIN</span>
                 </li>
               </ul>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- TAB 2: PENDING ACTIVATIONS CONTENT --- */}
-      {activeTab === "pending" && (
-        <div className="rounded-3xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-[#E2ECF6] pb-4">
-            <div>
-              <h3 className="text-base font-black text-[#0F152A]">
-                Pending Activations
-              </h3>
-              <p className="text-xs text-[#66738C]">
-                SIM activations currently processing or awaiting provider confirmation
-              </p>
-            </div>
-            <span className="rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-black text-[#D9990D]">
-              3 Pending
-            </span>
-          </div>
-
-          {/* Pending Activations Cards / Table */}
-          <div className="space-y-3">
-            {pendingActivations.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#2563EB] transition"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-[#0F152A] text-sm">
-                      {item.simNumber}
-                    </span>
-                    <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-                      {item.simType}
-                    </span>
-                    <span className="rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[10px] font-bold text-[#D9990D]">
-                      {item.network}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-[#66738C]">
-                    Customer: <strong className="text-[#0F152A]">{item.customerName}</strong> ({item.customerPhone}) · Plan: {item.plan}
-                  </p>
-
-                  <p className="text-[10px] text-[#8C909B]">
-                    Submitted: {item.submittedTime}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 self-end sm:self-auto">
-                  <span className="rounded-md bg-[#FFFBEB] px-3 py-1 text-xs font-extrabold text-[#D9990D]">
-                    Pending
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerSuccessModal(
-                        "Pending Record",
-                        `Viewing details for ${item.simNumber} (${item.customerName}).`,
-                        "Pending"
-                      );
-                    }}
-                    className="text-xs font-extrabold text-[#2563EB] hover:underline"
-                  >
-                    View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCancelData({
-                        simNumber: item.simNumber,
-                        simType: item.simType,
-                        network: item.network,
-                        customerName: item.customerName,
-                        submittedTime: item.submittedTime,
-                      });
-                      setCancelModalOpen(true);
-                    }}
-                    className="text-xs font-extrabold text-[#EF4444] hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -1007,91 +662,71 @@ export function SimActivationPage() {
           <div className="p-5 border-b border-[#E2ECF6] space-y-3">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                {/* Search input */}
-                <div className="relative min-w-50">
+                {/* Search input (searches SIM number, customer phone, name or network) */}
+                <form className="relative min-w-50" onSubmit={(e) => { e.preventDefault(); changeHistoryFilter(() => setSearchQuery(searchInput.trim())); }}>
                   <Search className="absolute left-3 top-2.5 size-4 text-[#8C909B]" />
                   <input
                     type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search SIM..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onBlur={() => searchInput.trim() !== searchQuery && changeHistoryFilter(() => setSearchQuery(searchInput.trim()))}
+                    placeholder="Search SIM, customer..."
                     className="w-full rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] pl-9 pr-3 py-2 text-xs font-semibold text-[#0F152A] focus:border-[#2563EB] focus:outline-hidden"
                   />
-                </div>
+                </form>
 
                 {/* Dropdowns */}
                 <select
                   value={filterSimType}
-                  onChange={(e) => setFilterSimType(e.target.value)}
+                  onChange={(e) => changeHistoryFilter(() => setFilterSimType(e.target.value as "all" | SimTypeKey))}
                   className="rounded-xl border border-[#E2ECF6] bg-white px-3 py-2 text-xs font-semibold text-[#0F152A] focus:outline-hidden"
                 >
-                  <option value="All">SIM Type ▾</option>
-                  <option value="POS SIM">POS SIM</option>
-                  <option value="CCTV SIM">CCTV SIM</option>
-                  <option value="GPS SIM">GPS SIM</option>
-                  <option value="Router SIM">Router SIM</option>
+                  <option value="all">SIM Type ▾</option>
+                  {SIM_TYPES.map(type => <option key={type.key} value={type.key}>{type.label}</option>)}
                 </select>
-
-                <select
-                  value={filterNetwork}
-                  onChange={(e) => setFilterNetwork(e.target.value)}
-                  className="rounded-xl border border-[#E2ECF6] bg-white px-3 py-2 text-xs font-semibold text-[#0F152A] focus:outline-hidden"
-                >
-                  <option value="All">Network ▾</option>
-                  <option value="MTN">MTN</option>
-                  <option value="Airtel">Airtel</option>
-                  <option value="Glo">Glo</option>
-                  <option value="T2">T2</option>
-                </select>
-
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="rounded-xl border border-[#E2ECF6] bg-white px-3 py-2 text-xs font-semibold text-[#0F152A] focus:outline-hidden"
-                >
-                  <option value="All">Status ▾</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Failed">Failed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-
-                <button
-                  type="button"
-                  className="rounded-xl border border-[#E2ECF6] bg-white px-3 py-2 text-xs font-semibold text-[#0F152A] flex items-center gap-1.5"
-                >
-                  <Calendar className="size-3.5 text-[#8C909B]" />
-                  <span>Date Range ▾</span>
-                </button>
+                {/* Network, Status and Date Range filters are disabled: /partner/device-sim/activated filters by type and search only. */}
               </div>
 
               <span className="text-xs text-[#8C909B] font-semibold shrink-0">
-                Showing 1–15 of 847 activations
+                {historyTotal ? `Showing ${showingFrom}–${showingTo} of ${historyTotal.toLocaleString()} activations` : ""}
               </span>
             </div>
 
             {/* Applied Filter Tags Strip */}
-            <div className="flex items-center gap-2 pt-1 text-xs">
-              <span className="rounded-lg bg-[#EFF4F8] px-2.5 py-1 text-xs font-extrabold text-[#2563EB] flex items-center gap-1.5">
-                <span>This Month</span>
-                <X className="size-3 cursor-pointer" />
-              </span>
-
-              <span className="rounded-lg bg-[#EFF4F8] px-2.5 py-1 text-xs font-extrabold text-[#2563EB] flex items-center gap-1.5">
-                <span>MTN</span>
-                <X className="size-3 cursor-pointer" />
-              </span>
-
-              <button
-                type="button"
-                className="text-xs font-bold text-[#EF4444] hover:underline ml-1"
-              >
-                Clear all
-              </button>
-            </div>
+            {(filterSimType !== "all" || searchQuery) && (
+              <div className="flex items-center gap-2 pt-1 text-xs">
+                {filterSimType !== "all" && (
+                  <span className="rounded-lg bg-[#EFF4F8] px-2.5 py-1 text-xs font-extrabold text-[#2563EB] flex items-center gap-1.5">
+                    <span>{typeLabel(filterSimType)}</span>
+                    <X className="size-3 cursor-pointer" onClick={() => changeHistoryFilter(() => setFilterSimType("all"))} />
+                  </span>
+                )}
+                {searchQuery && (
+                  <span className="rounded-lg bg-[#EFF4F8] px-2.5 py-1 text-xs font-extrabold text-[#2563EB] flex items-center gap-1.5">
+                    <span>“{searchQuery}”</span>
+                    <X className="size-3 cursor-pointer" onClick={() => changeHistoryFilter(() => { setSearchQuery(""); setSearchInput(""); })} />
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => changeHistoryFilter(() => { setFilterSimType("all"); setSearchQuery(""); setSearchInput(""); })}
+                  className="text-xs font-bold text-[#EF4444] hover:underline ml-1"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ACTIVATIONS TABLE (Matching Image 2) */}
-          <div className="overflow-x-auto">
+          {history.isLoading ? (
+            <div className="space-y-2 p-5">{Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-10 animate-pulse rounded-xl bg-slate-100" />)}</div>
+          ) : history.error ? (
+            <div className="p-5"><AppEmptyState title="Couldn't load activation history" description={history.error.message} actionText="Retry" onAction={() => void history.refetch()} /></div>
+          ) : history.sims.length === 0 ? (
+            <div className="p-5"><AppEmptyState title="No activations found" description={filterSimType !== "all" || searchQuery ? "Try a different SIM type or search." : "SIMs you activate will appear here."} /></div>
+          ) : (
+          <div className={`overflow-x-auto ${history.isFetching ? "opacity-60" : ""}`}>
             <table className="w-full min-w-245 text-left text-xs">
               <thead className="bg-[#F8FAFC] border-b border-[#E2ECF6] text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
                 <tr>
@@ -1100,7 +735,7 @@ export function SimActivationPage() {
                   <th className="p-3.5">Type</th>
                   <th className="p-3.5">Network</th>
                   <th className="p-3.5">Customer</th>
-                  <th className="p-3.5">Plan</th>
+                  <th className="p-3.5">Expires</th>
                   <th className="p-3.5">Commission</th>
                   <th className="p-3.5">Date</th>
                   <th className="p-3.5">Status</th>
@@ -1108,366 +743,115 @@ export function SimActivationPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2ECF6]">
-                {/* Group 1: TODAY */}
-                <tr className="bg-[#F8FAFC]">
-                  <td colSpan={10} className="p-2.5 pl-5 font-black text-[10px] uppercase tracking-wider text-[#8C909B]">
-                    TODAY
-                  </td>
-                </tr>
-                {historyRecords
-                  .filter((r) => r.group === "TODAY")
-                  .map((rec) => (
-                    <tr key={rec.id} className="hover:bg-[#F8FAFC]/80 transition">
-                      <td className="p-3.5 pl-5 font-semibold text-[#8C909B]">{rec.id}</td>
-                      <td className="p-3.5 font-mono font-bold text-[#0F152A]">{rec.simNumber}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-                          {rec.type}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${rec.networkColor}`}>
-                          {rec.network}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-[#0F152A]">{rec.customer}</div>
-                        <div className="text-[10px] text-[#8C909B] font-mono">{rec.phone}</div>
-                      </td>
-                      <td className="p-3.5 font-bold text-[#0F152A]">{rec.plan}</td>
-                      <td className="p-3.5 font-black text-[#10B981]">{rec.commission}</td>
-                      <td className="p-3.5 text-[#66738C]">{rec.date}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EBFFF8] px-2 py-0.5 text-[10px] font-extrabold text-[#10B981]">
-                          Completed
-                        </span>
-                      </td>
-                      <td className="p-3.5 pr-5">
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetails(rec)}
-                          className="font-extrabold text-[#2563EB] hover:underline"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                {/* Group 2: YESTERDAY */}
-                <tr className="bg-[#F8FAFC]">
-                  <td colSpan={10} className="p-2.5 pl-5 font-black text-[10px] uppercase tracking-wider text-[#8C909B]">
-                    YESTERDAY
-                  </td>
-                </tr>
-                {historyRecords
-                  .filter((r) => r.group === "YESTERDAY")
-                  .map((rec) => (
-                    <tr key={rec.id} className="hover:bg-[#F8FAFC]/80 transition">
-                      <td className="p-3.5 pl-5 font-semibold text-[#8C909B]">{rec.id}</td>
-                      <td className="p-3.5 font-mono font-bold text-[#0F152A]">{rec.simNumber}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-                          {rec.type}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${rec.networkColor}`}>
-                          {rec.network}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-[#0F152A]">{rec.customer}</div>
-                        <div className="text-[10px] text-[#8C909B] font-mono">{rec.phone}</div>
-                      </td>
-                      <td className="p-3.5 font-bold text-[#0F152A]">{rec.plan}</td>
-                      <td className="p-3.5 font-black text-[#10B981]">{rec.commission}</td>
-                      <td className="p-3.5 text-[#66738C]">{rec.date}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EBFFF8] px-2 py-0.5 text-[10px] font-extrabold text-[#10B981]">
-                          Completed
-                        </span>
-                      </td>
-                      <td className="p-3.5 pr-5">
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetails(rec)}
-                          className="font-extrabold text-[#2563EB] hover:underline"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                {/* Group 3: THIS WEEK */}
-                <tr className="bg-[#F8FAFC]">
-                  <td colSpan={10} className="p-2.5 pl-5 font-black text-[10px] uppercase tracking-wider text-[#8C909B]">
-                    THIS WEEK
-                  </td>
-                </tr>
-                {historyRecords
-                  .filter((r) => r.group === "THIS WEEK")
-                  .map((rec) => (
-                    <tr key={rec.id} className="hover:bg-[#F8FAFC]/80 transition">
-                      <td className="p-3.5 pl-5 font-semibold text-[#8C909B]">{rec.id}</td>
-                      <td className="p-3.5 font-mono font-bold text-[#0F152A]">{rec.simNumber}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-                          {rec.type}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${rec.networkColor}`}>
-                          {rec.network}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-[#0F152A]">{rec.customer}</div>
-                        <div className="text-[10px] text-[#8C909B] font-mono">{rec.phone}</div>
-                      </td>
-                      <td className="p-3.5 font-bold text-[#0F152A]">{rec.plan}</td>
-                      <td className="p-3.5 font-black text-[#10B981]">{rec.commission}</td>
-                      <td className="p-3.5 text-[#66738C]">{rec.date}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EBFFF8] px-2 py-0.5 text-[10px] font-extrabold text-[#10B981]">
-                          Completed
-                        </span>
-                      </td>
-                      <td className="p-3.5 pr-5">
-                        <button
-                          type="button"
-                          onClick={() => handleViewDetails(rec)}
-                          className="font-extrabold text-[#2563EB] hover:underline"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                {/* Group 4: EARLIER THIS MONTH */}
-                <tr className="bg-[#F8FAFC]">
-                  <td colSpan={10} className="p-2.5 pl-5 font-black text-[10px] uppercase tracking-wider text-[#8C909B]">
-                    EARLIER THIS MONTH
-                  </td>
-                </tr>
-                {historyRecords
-                  .filter((r) => r.group === "EARLIER THIS MONTH")
-                  .map((rec) => (
-                    <tr key={rec.id} className="hover:bg-[#F8FAFC]/80 transition">
-                      <td className="p-3.5 pl-5 font-semibold text-[#8C909B]">{rec.id}</td>
-                      <td className="p-3.5 font-mono font-bold text-[#0F152A]">{rec.simNumber}</td>
-                      <td className="p-3.5">
-                        <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-                          {rec.type}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${rec.networkColor}`}>
-                          {rec.network}
-                        </span>
-                      </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-[#0F152A]">{rec.customer}</div>
-                        <div className="text-[10px] text-[#8C909B] font-mono">{rec.phone}</div>
-                      </td>
-                      <td className="p-3.5 font-bold text-[#0F152A]">{rec.plan}</td>
-                      <td className="p-3.5 font-black text-[#10B981]">{rec.commission}</td>
-                      <td className="p-3.5 text-[#66738C]">{rec.date}</td>
-                      <td className="p-3.5">
-                        <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold ${
-                            rec.status === "Failed"
-                              ? "bg-[#FEF2F2] text-[#EF4444]"
-                              : rec.status === "Cancelled"
-                              ? "bg-[#F1F5F9] text-[#66738C]"
-                              : "bg-[#EBFFF8] text-[#10B981]"
-                          }`}
-                        >
-                          {rec.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 pr-5">
-                        <div className="flex items-center gap-2">
+                {historyGroups.map(group => [
+                  <tr key={`group-${group.label}`} className="bg-[#F8FAFC]">
+                    <td colSpan={10} className="p-2.5 pl-5 font-black text-[10px] uppercase tracking-wider text-[#8C909B]">
+                      {group.label}
+                    </td>
+                  </tr>,
+                  ...group.items.map((rec) => {
+                    const active = /active|complet|success/i.test(rec.status);
+                    return (
+                      <tr key={rec.id} className="hover:bg-[#F8FAFC]/80 transition">
+                        <td className="p-3.5 pl-5 font-semibold text-[#8C909B]">{rec.id}</td>
+                        <td className="p-3.5 font-mono font-bold text-[#0F152A]">{rec.sim_number}</td>
+                        <td className="p-3.5">
+                          <span className="rounded-md bg-[#EFF4F8] px-2 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
+                            {rec.type_label}
+                          </span>
+                        </td>
+                        <td className="p-3.5">
+                          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${NETWORK_PILL[rec.network.toLowerCase()] ?? "bg-[#F1F5F9] text-[#0F152A]"}`}>
+                            {rec.network}
+                          </span>
+                        </td>
+                        <td className="p-3.5">
+                          <div className="font-bold text-[#0F152A]">{rec.customer.fullname}</div>
+                          <div className="text-[10px] text-[#8C909B] font-mono">{rec.customer.phone}</div>
+                        </td>
+                        <td className="p-3.5 font-bold text-[#0F152A]">{formatDay(rec.expired_date)}</td>
+                        <td className="p-3.5 font-black text-[#10B981]">+{naira(rec.commission)}</td>
+                        <td className="p-3.5 text-[#66738C]" title={formatDate(rec.activated_at)}>{rec.time_ago}</td>
+                        <td className="p-3.5">
+                          <span className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold capitalize ${active ? "bg-[#EBFFF8] text-[#10B981]" : "bg-[#FEF3C7] text-[#D9990D]"}`}>
+                            {rec.status}
+                          </span>
+                        </td>
+                        <td className="p-3.5 pr-5">
                           <button
                             type="button"
-                            onClick={() => {
-                              triggerSuccessModal(
-                                "Activation Details",
-                                `Viewing details for ${rec.simNumber} (${rec.customer}).`,
-                                rec.status
-                              );
-                            }}
+                            onClick={() => handleViewDetails(rec)}
                             className="font-extrabold text-[#2563EB] hover:underline"
                           >
                             View
                           </button>
-                          {rec.status === "Failed" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRetryData({
-                                  simNumber: rec.simNumber,
-                                  simType: rec.type,
-                                  network: rec.network,
-                                  customerName: rec.customer,
-                                  planName: "60-day",
-                                  planPrice: "₦9,500",
-                                  failureReason: rec.failedReason || "Network provider unavailable",
-                                  failedTime: "1 hour ago",
-                                });
-                                setRetryModalOpen(true);
-                              }}
-                              className="font-extrabold text-[#EF4444] hover:underline"
-                            >
-                              Retry
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  }),
+                ])}
               </tbody>
             </table>
           </div>
+          )}
 
           {/* Pagination Bar at bottom (Matching Image 2) */}
-          <div className="p-4 border-t border-[#E2ECF6] flex items-center justify-between text-xs text-[#66738C]">
-            <button
-              type="button"
-              className="rounded-lg border border-[#E2ECF6] px-3 py-1.5 font-bold hover:bg-[#F8FAFC]"
-            >
-              ← Prev
-            </button>
-            <div className="flex items-center gap-1">
+          {historyPages > 1 && (
+            <div className="p-4 border-t border-[#E2ECF6] flex items-center justify-between text-xs text-[#66738C]">
               <button
                 type="button"
-                className="size-7 rounded-lg bg-[#2563EB] text-white font-black"
+                disabled={historyPage <= 1 || history.isFetching}
+                onClick={() => setHistoryPage(page => page - 1)}
+                className="rounded-lg border border-[#E2ECF6] px-3 py-1.5 font-bold hover:bg-[#F8FAFC] disabled:opacity-40"
               >
-                1
+                ← Prev
               </button>
+              <div className="flex items-center gap-1">
+                {pageButtons.map((page, index) => (
+                  <span key={page} className="flex items-center gap-1">
+                    {index > 0 && page - pageButtons[index - 1] > 1 && <span>...</span>}
+                    <button
+                      type="button"
+                      onClick={() => setHistoryPage(page)}
+                      className={page === historyPage ? "size-7 rounded-lg bg-[#2563EB] text-white font-black" : "size-7 rounded-lg border border-[#E2ECF6] font-semibold hover:bg-[#F8FAFC]"}
+                    >
+                      {page}
+                    </button>
+                  </span>
+                ))}
+              </div>
               <button
                 type="button"
-                className="size-7 rounded-lg border border-[#E2ECF6] font-semibold hover:bg-[#F8FAFC]"
+                disabled={historyPage >= historyPages || history.isFetching}
+                onClick={() => setHistoryPage(page => page + 1)}
+                className="rounded-lg border border-[#E2ECF6] px-3 py-1.5 font-bold hover:bg-[#F8FAFC] text-[#2563EB] disabled:opacity-40"
               >
-                2
-              </button>
-              <button
-                type="button"
-                className="size-7 rounded-lg border border-[#E2ECF6] font-semibold hover:bg-[#F8FAFC]"
-              >
-                3
-              </button>
-              <span>...</span>
-              <button
-                type="button"
-                className="size-7 rounded-lg border border-[#E2ECF6] font-semibold hover:bg-[#F8FAFC]"
-              >
-                57
+                Next →
               </button>
             </div>
-            <button
-              type="button"
-              className="rounded-lg border border-[#E2ECF6] px-3 py-1.5 font-bold hover:bg-[#F8FAFC] text-[#2563EB]"
-            >
-              Next →
-            </button>
-          </div>
+          )}
         </div>
       )}
 
       {/* --- MOUNTED MODALS --- */}
-      {/* 1. Preview Activation Modal (Image 3) */}
+      {/* 1. Preview Activation Modal — confirms and activates via POST /partner/device-sim/activate */}
       <PreviewActivationModal
         open={previewModalOpen}
         onOpenChange={setPreviewModalOpen}
         data={previewData}
-        onConfirmSuccess={() => {
-          triggerSuccessModal(
-            "SIM Activation Successful!",
-            `SIM ${previewData?.simNumber} has been activated for ${previewData?.customerName}. Commission of +₦1,000 credited to your wallet.`,
-            "SIM Activated ⚡",
-            "sparkles",
-            [
-              { label: "SIM Number", value: previewData?.simNumber || "07022222222" },
-              { label: "Customer", value: previewData?.customerName || "Chidi Eze" },
-              { label: "Plan", value: `${previewData?.planName} (${previewData?.planPrice})` },
-              { label: "Commission Earned", value: "+₦1,000" },
-            ]
-          );
-        }}
+        onConfirmSuccess={handleActivated}
       />
 
-      {/* 2. Cancel Activation Modal (Image 4) */}
-      <CancelActivationModal
-        open={cancelModalOpen}
-        onOpenChange={setCancelModalOpen}
-        data={cancelData}
-        onConfirmCancel={(reason) => {
-          triggerSuccessModal(
-            "Activation Cancelled",
-            `Activation for ${cancelData?.simNumber} (${cancelData?.customerName}) has been cancelled. Reason: ${reason}`,
-            "Cancelled ❌"
-          );
-        }}
-      />
-
-      {/* 3. Retry Activation Modal (Image 5) */}
-      <RetryActivationModal
-        open={retryModalOpen}
-        onOpenChange={setRetryModalOpen}
-        data={retryData}
-        onConfirmRetry={() => {
-          triggerSuccessModal(
-            "Activation Retried Successfully!",
-            `Retried SIM activation for ${retryData?.simNumber} (${retryData?.customerName}).`,
-            "Retried ⚡",
-            "check"
-          );
-        }}
-      />
-
-      {/* 4. Activation Details Modal (New Upload Images 1 & 2) */}
+      {/* 2. Activation Details Modal */}
       <ActivationDetailsModal
         open={detailsModalOpen}
         onOpenChange={setDetailsModalOpen}
         activation={selectedRecord}
-        onDownloadReceipt={() => {
-          triggerSuccessModal("Receipt Downloaded", "Downloaded PDF receipt for activation.", "Receipt 📄");
-        }}
-        onContactSupport={() => {
-          triggerSuccessModal("Support Contacted", "Connecting to support desk for assistance...", "Support 🎧");
-        }}
-        onRetryActivation={() => {
-          setRetryData({
-            simNumber: selectedRecord?.simNumber || "07022222222",
-            simType: selectedRecord?.simType || "POS SIM",
-            network: selectedRecord?.network || "MTN",
-            customerName: selectedRecord?.customerName || "Chidi Eze",
-            planName: "30 Days",
-            planPrice: "₦5,000",
-            failureReason: selectedRecord?.failureReason || "Network unavailable",
-            failedTime: "1 hour ago",
-          });
-          setRetryModalOpen(true);
-        }}
+        onDownloadReceipt={downloadReceipt}
+        onContactSupport={() => navigate(appPaths.support)}
       />
 
-      {/* 5. Target Achieved Bonus Modal (New Upload Image 3) */}
-      <TargetAchievedModal
-        open={targetAchievedModalOpen}
-        onOpenChange={setTargetAchievedModalOpen}
-        targetCount={200}
-        bonusAmount="₦5,000"
-        previousWallet="₦44,000"
-        newWallet="₦49,000"
-        onContinue={() => {
-          triggerSuccessModal("Bonus Claimed!", "₦5,000 credited to your wallet.", "Bonus 🎉");
-        }}
-      />
-
-      {/* 6. Action Success Modal */}
+      {/* 3. Action Success Modal */}
       <ActionSuccessModal
         open={successModalOpen}
         onOpenChange={setSuccessModalOpen}

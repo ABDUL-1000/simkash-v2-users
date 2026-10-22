@@ -1,118 +1,32 @@
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
-
-export interface PayoutRecord {
-  id: string;
-  date: string;
-  amount: number;
-  bank: string;
-  approval: "Auto" | "Admin" | "Failed";
-  status: "Paid" | "Failed" | "Pending";
-  ref: string;
-}
+import { useScPayouts } from "../api/queries";
 
 interface ScPayoutHistoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** stats_cards.total_paid_out from the wallet overview. */
+  totalPaidOut?: { formatted: string; amount: number; payouts_count: number };
   onRequestPayoutClick?: () => void;
   onExportHistoryClick?: () => void;
 }
 
+const PAGE_SIZE = 10;
+const STATUS_BADGE: Record<string, string> = { paid: "bg-[#EBFFF8] text-[#10B981]", completed: "bg-[#EBFFF8] text-[#10B981]", pending: "bg-[#FFFBEB] text-[#D9990D]", processing: "bg-[#FFFBEB] text-[#D9990D]" };
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+
 export function ScPayoutHistoryModal({
   open,
   onOpenChange,
+  totalPaidOut,
   onRequestPayoutClick,
   onExportHistoryClick,
 }: ScPayoutHistoryModalProps) {
-  const [periodFilter, setPeriodFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-
-  const payoutsData: PayoutRecord[] = [
-    {
-      id: "1",
-      date: "Yesterday",
-      amount: 30000,
-      bank: "****0476",
-      approval: "Auto",
-      status: "Paid",
-      ref: "PAY-008469",
-    },
-    {
-      id: "2",
-      date: "14 Jun",
-      amount: 20000,
-      bank: "****0476",
-      approval: "Auto",
-      status: "Paid",
-      ref: "PAY-008465",
-    },
-    {
-      id: "3",
-      date: "1 Jun",
-      amount: 15000,
-      bank: "****0476",
-      approval: "Auto",
-      status: "Paid",
-      ref: "PAY-008462",
-    },
-    {
-      id: "4",
-      date: "1 Jun",
-      amount: 10000,
-      bank: "****0476",
-      approval: "Failed",
-      status: "Failed",
-      ref: "PAY-008461",
-    },
-    {
-      id: "5",
-      date: "14 May",
-      amount: 12000,
-      bank: "****0476",
-      approval: "Auto",
-      status: "Paid",
-      ref: "PAY-008458",
-    },
-    {
-      id: "6",
-      date: "1 May",
-      amount: 10000,
-      bank: "****0476",
-      approval: "Auto",
-      status: "Paid",
-      ref: "PAY-008455",
-    },
-    {
-      id: "7",
-      date: "14 Apr",
-      amount: 25000,
-      bank: "****0476",
-      approval: "Admin",
-      status: "Paid",
-      ref: "PAY-008450",
-    },
-    {
-      id: "8",
-      date: "1 Apr",
-      amount: 15000,
-      bank: "****0476",
-      approval: "Auto",
-      status: "Paid",
-      ref: "PAY-008445",
-    },
-  ];
-
-  // Filtering
-  const filteredPayouts = payoutsData.filter((p) => {
-    if (statusFilter !== "All" && p.status !== statusFilter) return false;
-    return true;
-  });
-
-  const totalPayoutsCount = payoutsData.length;
-  const successfulTotal = payoutsData
-    .filter((p) => p.status === "Paid")
-    .reduce((acc, curr) => acc + curr.amount, 0);
-  const avgPayout = Math.round(successfulTotal / (totalPayoutsCount || 1));
+  const [page, setPage] = useState(1);
+  const { data, isLoading, isFetching, error, refetch } = useScPayouts({ page, limit: PAGE_SIZE }, open);
+  const payouts = data?.payouts ?? [];
+  const totalPages = data?.total_pages ?? 1;
+  const avgPayout = totalPaidOut && totalPaidOut.payouts_count ? Math.round(totalPaidOut.amount / totalPaidOut.payouts_count) : 0;
 
   return (
     <AppModal
@@ -130,16 +44,16 @@ export function ScPayoutHistoryModal({
               Total Payouts
             </span>
             <h3 className="text-xl font-black text-[#0F152A]">
-              {totalPayoutsCount}
+              {data?.total ?? "—"}
             </h3>
           </div>
 
           <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3.5 space-y-1">
             <span className="text-[10px] font-bold text-[#8C909B]">
-              Total Amount
+              Total Paid Out
             </span>
             <h3 className="text-xl font-black text-[#10B981]">
-              ₦{successfulTotal.toLocaleString()}
+              {totalPaidOut?.formatted ?? "—"}
             </h3>
           </div>
 
@@ -153,34 +67,7 @@ export function ScPayoutHistoryModal({
           </div>
         </div>
 
-        {/* Filter Dropdowns */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] px-3 py-1.5 font-bold text-[#0F152A]">
-            <span className="text-[11px] text-[#66738C]">Period:</span>
-            <select
-              value={periodFilter}
-              onChange={(e) => setPeriodFilter(e.target.value)}
-              className="bg-transparent text-xs font-extrabold outline-none cursor-pointer"
-            >
-              <option value="All">All</option>
-              <option value="This Month">This Month</option>
-              <option value="Last 3 Months">Last 3 Months</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] px-3 py-1.5 font-bold text-[#0F152A]">
-            <span className="text-[11px] text-[#66738C]">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent text-xs font-extrabold outline-none cursor-pointer"
-            >
-              <option value="All">All</option>
-              <option value="Paid">Paid</option>
-              <option value="Failed">Failed</option>
-            </select>
-          </div>
-        </div>
+        {/* Period / status filters are omitted: GET /state-coordinator/wallet/payouts only takes page and limit. */}
 
         {/* Payout Data Table */}
         <div className="overflow-x-auto rounded-2xl border border-[#E2ECF6]">
@@ -190,39 +77,38 @@ export function ScPayoutHistoryModal({
                 <th className="py-3 px-4">DATE</th>
                 <th className="py-3 px-4">AMOUNT</th>
                 <th className="py-3 px-4">BANK</th>
-                <th className="py-3 px-4">APPROVAL</th>
+                <th className="py-3 px-4">PROCESSED</th>
                 <th className="py-3 px-4">STATUS</th>
                 <th className="py-3 px-4 text-right">REF</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2ECF6] font-medium text-[#0F152A]">
-              {filteredPayouts.map((row) => (
+              {isLoading && <tr><td colSpan={6} className="py-6 text-center text-[#8C909B]">Loading payouts…</td></tr>}
+              {error && <tr><td colSpan={6} className="py-6 text-center text-[#EF4444]">{error.message} <button type="button" onClick={() => void refetch()} className="font-bold text-[#2563EB] hover:underline">Retry</button></td></tr>}
+              {!isLoading && !error && payouts.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-[#8C909B]">No payouts yet.</td></tr>}
+              {payouts.map((row) => (
                 <tr key={row.id} className="hover:bg-[#F8FAFC] transition">
                   <td className="py-3 px-4 font-semibold text-[#0F152A]">
-                    {row.date}
+                    {formatDate(row.requested_at)}
                   </td>
                   <td className="py-3 px-4 font-extrabold text-[#0F152A]">
-                    ₦{row.amount.toLocaleString()}
+                    {row.amount_formatted}
                   </td>
                   <td className="py-3 px-4 font-mono text-[#66738C]">
-                    {row.bank}
+                    {row.bank_name} · {row.account_number_masked}
                   </td>
                   <td className="py-3 px-4 text-[#66738C] font-semibold">
-                    {row.approval}
+                    {row.processed_at ? formatDate(row.processed_at) : "—"}
                   </td>
                   <td className="py-3 px-4">
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
-                        row.status === "Paid"
-                          ? "bg-[#EBFFF8] text-[#10B981]"
-                          : "bg-[#FFF7F8] text-[#EF4444]"
-                      }`}
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${STATUS_BADGE[row.status.toLowerCase()] ?? "bg-[#FFF7F8] text-[#EF4444]"}`}
                     >
-                      {row.status}
+                      {row.status_badge}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-[#8C909B]">
-                    {row.ref}
+                    {row.reference}
                   </td>
                 </tr>
               ))}
@@ -230,12 +116,12 @@ export function ScPayoutHistoryModal({
           </table>
         </div>
 
-        {/* Bottom Successful Total Bar */}
-        <div className="rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] p-3 text-right text-xs">
-          <span className="font-extrabold text-[#0F152A]">
-            Successful: ₦{successfulTotal.toLocaleString()}
-          </span>
-        </div>
+        {/* Pagination */}
+        {totalPages > 1 && <div className="flex items-center justify-between rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] p-3 text-xs">
+          <button type="button" disabled={page <= 1 || isFetching} onClick={() => setPage((value) => value - 1)} className="font-bold text-[#2563EB] disabled:opacity-40">Prev</button>
+          <span className="font-extrabold text-[#0F152A]">Page {page} of {totalPages}</span>
+          <button type="button" disabled={page >= totalPages || isFetching} onClick={() => setPage((value) => value + 1)} className="font-bold text-[#2563EB] disabled:opacity-40">Next</button>
+        </div>}
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-[#E2ECF6]">

@@ -5,7 +5,17 @@ import type { PartnerStockOverviewResponse, PartnerAvailableSimsResponse, Partne
 
 function usePartnerQuery<T>(key: readonly unknown[], url: string, enabled = true) {
   const token = useAuthStore((state) => state.accessToken);
-  return useQuery({ queryKey: key, queryFn: async () => (await authedHttpClient.get<T>(url)).data, enabled: Boolean(token) && enabled, staleTime: 60_000 });
+  return useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data } = await authedHttpClient.get<T>(url);
+      const envelope = data as { success?: boolean; message?: string };
+      if (envelope.success === false) throw new Error(envelope.message || "Request failed");
+      return data;
+    },
+    enabled: Boolean(token) && enabled,
+    staleTime: 60_000,
+  });
 }
 export const useGetPartnerStockOverview = () => { const query = usePartnerQuery<PartnerStockOverviewResponse>(["partner-stock-overview"], "/partner/stock"); return { ...query, overview: query.data?.data }; };
 export interface StockListParams { type?: string; network?: string; search?: string; page?: number; limit?: number }
@@ -30,4 +40,4 @@ export const useGetPartnerTransactions = (params: PartnerTransactionParams = {})
   return { ...query, result: query.data?.data, transactions: query.data?.data?.transactions ?? [] };
 };
 export const useGetPartnerTransactionDetail = (id?: string) => { const query = usePartnerQuery<PartnerTransactionDetailResponse>(["partner-transaction-detail", id], `/partner/wallet/transactions/${id}`, Boolean(id)); return { ...query, transaction: query.data?.data }; };
-export const useGetPartnerPayoutAccount = () => { const query = usePartnerQuery<PartnerPayoutAccountResponse>(["partner-payout-account"], "/partner/wallet/payout-account"); return { ...query, payoutAccount: query.data?.data }; };
+export const useGetPartnerPayoutAccount = () => { const query = usePartnerQuery<PartnerPayoutAccountResponse>(["partner-payout-account"], "/partner/wallet/payout-account"); return { ...query, payoutAccount: query.data?.data?.default_account ?? null, accounts: query.data?.data?.accounts ?? [] }; };

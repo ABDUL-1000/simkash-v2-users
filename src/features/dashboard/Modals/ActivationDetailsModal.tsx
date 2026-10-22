@@ -57,7 +57,7 @@ export function ActivationDetailsModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Activation Details"
-      description={`${activation.reference || "ACT-2026-008470"} · ${activation.status}`}
+      description={`${activation.reference || "—"} · ${activation.status}`}
       size="md"
       showCloseButton={true}
     >
@@ -70,7 +70,7 @@ export function ActivationDetailsModal({
               <span>Activated Successfully</span>
             </div>
             <span className="text-[11px] text-[#66738C] font-semibold">
-              {activation.activatedDate || "24 Jun 2026 · 03:47 PM"}
+              {activation.activatedDate || "—"}
             </span>
           </div>
         ) : (
@@ -80,7 +80,7 @@ export function ActivationDetailsModal({
               <span>Activation Failed</span>
             </div>
             <span className="text-[11px] text-[#66738C] font-semibold">
-              {activation.activatedDate || "24 Jun 2026 · 03:47 PM"}
+              {activation.activatedDate || "—"}
             </span>
           </div>
         )}
@@ -90,28 +90,28 @@ export function ActivationDetailsModal({
           <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">Ref</span>
             <span className="font-mono font-black text-[#0F152A]">
-              {activation.reference || "ACT-2026-008470"}
+              {activation.reference || "—"}
             </span>
           </div>
 
           <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">SIM Number</span>
             <span className="font-mono font-black text-[#0F152A]">
-              {activation.simNumber || "07022222222"}
+              {activation.simNumber || "—"}
             </span>
           </div>
 
           <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">SIM Type</span>
             <span className="rounded-md bg-[#EFF4F8] px-2.5 py-0.5 text-[10px] font-extrabold text-[#2563EB]">
-              {activation.simType || "POS SIM"}
+              {activation.simType || "—"}
             </span>
           </div>
 
           <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">Network</span>
             <span className="rounded-full bg-[#FFFBEB] px-3 py-0.5 text-[10px] font-black text-[#D9990D]">
-              {activation.network || "MTN"}
+              {activation.network || "—"}
             </span>
           </div>
 
@@ -135,37 +135,37 @@ export function ActivationDetailsModal({
           <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">Customer</span>
             <span className="font-extrabold text-[#0F152A]">
-              {activation.customerName || "Chidi Eze"}
+              {activation.customerName || "—"}
             </span>
           </div>
 
           <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">Phone</span>
             <span className="font-mono font-semibold text-[#0F152A]">
-              {activation.customerPhone || "08120600542"}
+              {activation.customerPhone || "—"}
             </span>
           </div>
 
-          <div className="p-3 flex items-start justify-between gap-4">
+          {activation.planName && <div className="p-3 flex items-start justify-between gap-4">
             <span className="text-[#8C909B] font-semibold">Plan</span>
             <span className="font-extrabold text-[#0F152A]">
-              {activation.planName || "30 Days"}
+              {activation.planName}
             </span>
-          </div>
+          </div>}
 
           {isCompleted && (
             <>
               <div className="p-3 flex items-start justify-between gap-4">
                 <span className="text-[#8C909B] font-semibold">Activated</span>
                 <span className="font-semibold text-[#0F152A]">
-                  {activation.activatedDate || "24 Jun 2026 · 03:47 PM"}
+                  {activation.activatedDate || "—"}
                 </span>
               </div>
 
               <div className="p-3 flex items-start justify-between gap-4">
                 <span className="text-[#8C909B] font-semibold">Expires</span>
                 <span className="font-semibold text-[#0F152A]">
-                  {activation.expiryDate || "24 Jul 2026"}
+                  {activation.expiryDate || "—"}
                 </span>
               </div>
             </>
@@ -177,33 +177,33 @@ export function ActivationDetailsModal({
               className={`font-black ${isCompleted ? "text-[#10B981]" : "text-[#8C909B]"
                 }`}
             >
-              {isCompleted ? activation.commission || "+₦1,000" : "—"}
+              {isCompleted ? activation.commission || "—" : "—"}
             </span>
           </div>
 
-          {isCompleted && (
+          {isCompleted && activation.walletAfter && (
             <div className="p-3 flex items-start justify-between gap-4">
               <span className="text-[#8C909B] font-semibold">Wallet After</span>
               <span className="font-black text-[#0F152A]">
-                {activation.walletAfter || "₦45,000"}
+                {activation.walletAfter || "—"}
               </span>
             </div>
           )}
 
-          <div className="p-3 flex items-start justify-between gap-4">
-            <span className="text-[#8C909B] font-semibold">Stock Used</span>
-            <span className="font-extrabold text-[#0F152A]">
-              {isCompleted
-                ? activation.stockUsed || "1 POS SIM (17 remaining)"
-                : "0 (unchanged)"}
-            </span>
-          </div>
+          {activation.stockUsed && (
+            <div className="p-3 flex items-start justify-between gap-4">
+              <span className="text-[#8C909B] font-semibold">Stock Used</span>
+              <span className="font-extrabold text-[#0F152A]">
+                {isCompleted ? activation.stockUsed : "0 (unchanged)"}
+              </span>
+            </div>
+          )}
 
           {isFailed && (
             <div className="p-3 flex items-start justify-between gap-4">
               <span className="text-[#8C909B] font-semibold">Failure Reason</span>
               <span className="font-extrabold text-[#EF4444]">
-                {activation.failureReason || "Network unavailable"}
+                {activation.failureReason || "—"}
               </span>
             </div>
           )}
@@ -251,16 +251,16 @@ export function ActivationDetailsModal({
                   Contact Support
                 </button>
               )}
-              <button
+              {onRetryActivation && <button
                 type="button"
                 onClick={() => {
                   onOpenChange(false);
-                  onRetryActivation?.();
+                  onRetryActivation();
                 }}
                 className="flex-1 rounded-xl bg-[#2563EB] py-2.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition"
               >
                 Retry Activation
-              </button>
+              </button>}
             </div>
             <div className="text-center">
               <button

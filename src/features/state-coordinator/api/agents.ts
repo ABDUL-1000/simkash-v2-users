@@ -6,7 +6,7 @@ import type { AgentCustomersData, AgentOverviewParams, AgentProfilePayload, Agen
 
 const base = "/state-coordinator/my-agent";
 export const useGetScAgencyPartnersOverview = ({ bonusStatus = "all", ...params }: AgentOverviewParams) =>
-  useScResource<ScAgencyPartnersOverviewData>("sc-agency-partners-overview", base, { ...params, bonus_status: bonusStatus });
+  useScResource<ScAgencyPartnersOverviewData>("sc-agency-partners-overview", `${base}/overview`, { ...params, bonus_status: bonusStatus });
 export const useGetScAgentDetail = (agentId?: number) => useScResource<ScAgentDetailData>("sc-agent-detail", `${base}/${agentId}`, undefined, Boolean(agentId));
 export const useGetAgentCustomers = (agentId: number, params: CustomerParams) => useScResource<AgentCustomersData>("sc-agent-customers", `${base}/${agentId}/customers`, params, Boolean(agentId));
 export const useGetAgentStockHistory = (agentId: number) => useScResource<AgentStockHistoryData>("sc-agent-stock-history", `${base}/${agentId}/stock-history`, undefined, Boolean(agentId));

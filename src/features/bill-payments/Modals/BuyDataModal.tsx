@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import type { PayLaterMode } from "@/features/paylater/types/api";
+import { usePayLaterBillMode } from "@/features/paylater/hooks/usePayLaterBillMode";
 import { ArrowRight, BookUser, Check, Loader2, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
@@ -15,6 +17,8 @@ import { detectNetworkFromPhone, isValidNgPhone, matchNetworkService, normalizeN
 interface BuyDataModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Charge PayLater credit instead of the wallet. */
+  payLater?: PayLaterMode;
 }
 
 interface DataBundle {
@@ -26,9 +30,10 @@ interface DataBundle {
   badge?: string;
 }
 
-export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
+export function BuyDataModal({ open, onOpenChange, payLater }: BuyDataModalProps) {
   const { wallet } = useGetAuthUser();
-  const currentBalance = wallet?.balance ?? 0;
+  const credit = usePayLaterBillMode("data", payLater);
+  const currentBalance = credit.active ? credit.availableCredit : wallet?.balance ?? 0;
   const { networks, isLoading: isNetworksLoading } = useGetAirtimeNetworks();
 
   const [network, setNetwork] = useState<string>("");
@@ -87,6 +92,10 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
 
   const handleConfirmPay = () => {
     if (!currentBundle) return;
+    if (credit.active) {
+      credit.submit({ serviceID: selectedServiceId, billersCode: phoneNumber, variation_code: currentBundle.variation_code, amount: currentBundle.price, phone: phoneNumber, pin }, { onSuccess: r => { setTxnRef(r.bill_reference); setStep("success"); }, onError: msg => { setFailureReason(msg); setStep("failure"); } });
+      return;
+    }
     purchaseDataMutation.mutate(
       {
         serviceID: selectedServiceId,
@@ -139,7 +148,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
     { label: "Phone", value: phoneNumber },
     { label: "Bundle", value: currentBundle ? `${currentBundle.size} · ${currentBundle.duration}` : "No plan selected" },
     { label: "Amount", value: `₦${bundlePrice.toLocaleString()}` },
-    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "Pay from", value: `${credit.source} (₦${currentBalance.toLocaleString()})` },
     { label: "Balance after", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
@@ -150,6 +159,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
     { label: "Bundle", value: bundleName },
     { label: "Amount", value: `₦${bundlePrice.toLocaleString()}` },
     { label: "Ref", value: txnRef },
+    ...credit.successRows,
   ];
 
   return (
@@ -166,7 +176,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
           {/* Wallet Balance Banner */}
           <div className="flex items-center gap-2 rounded-2xl bg-[#EFF4F8] p-3 text-xs font-bold text-[#2563EB]">
             <span>💰</span>
-            <span>Wallet Balance · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span>{credit.balanceLabel} · ₦{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
 
           {/* Select Network */}
@@ -310,7 +320,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
             <span className="flex items-center gap-2 text-[#8C909B]">
               <Wallet className="size-4 text-[#8C909B]" /> Pay from
             </span>
-            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
+            <span className="font-bold text-[#0F152A]">{credit.source} · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
           {/* Footer Actions */}
@@ -325,7 +335,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!network || !isValidNgPhone(phoneNumber) || !currentBundle?.price}
+              disabled={!network || !isValidNgPhone(phoneNumber) || !currentBundle?.price || (credit.active && bundlePrice > currentBalance)}
               className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue <ArrowRight className="size-3.5" />
@@ -346,7 +356,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
         confirmButtonText={`Buy Data ₦${bundlePrice.toLocaleString()}`}
-        isLoading={purchaseDataMutation.isPending}
+        isLoading={purchaseDataMutation.isPending || credit.isPending}
       />
 
       {/* 3. Reusable Success Modal */}
@@ -356,7 +366,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
         title="Data Purchase Successful!"
         subtitle={`${bundleName} ${network} data bundle sent to ${phoneNumber}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
+        walletBalanceText={credit.successFooter(`Wallet: ₦${balanceAfter.toLocaleString()}`)}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -366,7 +376,7 @@ export function BuyDataModal({ open, onOpenChange }: BuyDataModalProps) {
         open={open && step === "failure"}
         onOpenChange={handleClose}
         title="Purchase Failed"
-        subtitle="We couldn't complete this data purchase. Your wallet was not debited."
+        subtitle={`We couldn't complete this data purchase. ${credit.notDebitedText}`}
         reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"

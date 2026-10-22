@@ -16,12 +16,16 @@ import { AgencyPartnerRoutes } from "@/features/corporate-agent/my-partner/agenc
 import { enterpriseProRoutes } from "@/features/enterprise-pro/enterprise-pro.routes";
 import { enterpriseBasicRoutes } from "@/features/enterprise-basic/enterprise-basic.routes";
 import { deviceSimRoutes } from "@/features/device-sim/device-sim.routes";
+import { posRequestRoutes } from "@/features/pos-request/pos-request.routes";
+import { partnerApplicationRoutes } from "@/features/partner-application/partner-application.routes";
 
 export const appRouteConfig: TRouteData[] = [
   ...enterpriseBasicRoutes,
   ...enterpriseProRoutes,
   ...dashboardRoutes,
   ...deviceSimRoutes,
+  ...posRequestRoutes,
+  ...partnerApplicationRoutes,
   ...billPaymentsRoutes,
   ...ZeroLimitSimRoutes,
   ...payLaterRoutes,

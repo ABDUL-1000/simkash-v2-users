@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, LogOut, ArrowRight, Loader2 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { appPaths } from "@/app/router/paths";
+import { normalizeRole } from "@/utils/auth/roleRouting";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sidebar,
@@ -169,6 +171,7 @@ function NavigationRow({
 
 export function AppSidebar() {
   const { collapsed, setMobileOpen } = useSidebar();
+  const navigate = useNavigate();
   const { user, profile } = useGetAuthUser();
   const role = useAuthStore(state => state.user?.role);
   const navigation = getNavigationByRole(role);
@@ -260,7 +263,7 @@ export function AppSidebar() {
         </nav>
 
         {/* Partner Upgrade Banner at bottom */}
-        {!collapsed && (
+        {!collapsed && normalizeRole(role) === "USER" && (
           <div className="mt-8 overflow-hidden rounded-2xl bg-[#0D1B2E] p-4 text-white shadow-lg">
             <h4 className="text-sm font-bold text-white">Become a Partner</h4>
             <p className="mt-1 text-xs text-slate-300">
@@ -268,6 +271,7 @@ export function AppSidebar() {
             </p>
             <button
               type="button"
+              onClick={() => { setMobileOpen(false); navigate(appPaths.becomePartner); }}
               className="mt-3 flex items-center gap-1.5 rounded-full bg-[#2563EB] px-4 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700"
             >
               Upgrade <ArrowRight className="size-3.5" />

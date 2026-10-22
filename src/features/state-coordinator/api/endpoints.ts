@@ -10,4 +10,5 @@ export const scEndpoints = {
   exportStatement: "/state-coordinator/wallet/transactions/export",
   payoutAccount: "/state-coordinator/wallet/payout-account",
   walletPayout: "/state-coordinator/wallet/request-payout",
+  payouts: "/state-coordinator/wallet/payouts",
 } as const;

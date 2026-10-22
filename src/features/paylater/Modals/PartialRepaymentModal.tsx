@@ -3,63 +3,58 @@ import { AppModal } from "@/components/common/AppModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { useRepayPayLater } from "../api/usePayLater";
+import type { PayLaterRepayResult } from "../types/api";
 
 interface PartialRepaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  outstandingTotal?: number;
-  dueDate?: string;
+  outstandingTotal: number;
+  dueDate?: string | null;
+  /** When set, the repayment goes to this one PayLater bill instead of the overall balance. */
+  creditTransactionId?: number;
+  billLabel?: string;
 }
 
-export function PartialRepaymentModal({
-  open,
-  onOpenChange,
-  outstandingTotal = 11900,
-  dueDate = "30 Jun",
-}: PartialRepaymentModalProps) {
-  const [amountStr, setAmountStr] = useState("2000");
+const pinSlot = "size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20";
+
+export function PartialRepaymentModal({ open, onOpenChange, outstandingTotal, dueDate, creditTransactionId, billLabel }: PartialRepaymentModalProps) {
+  const [amountStr, setAmountStr] = useState("");
   const [pin, setPin] = useState("");
   const [step, setStep] = useState<"form" | "success" | "failure">("form");
-  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<PayLaterRepayResult | null>(null);
+  const [failureReason, setFailureReason] = useState("");
+  const { wallet } = useGetAuthUser();
+  const repay = useRepayPayLater();
 
   const parsedAmount = parseInt(amountStr || "0", 10);
-  const walletBalance = 50000;
+  const walletBalance = wallet?.balance ?? 0;
   const remainingOutstanding = Math.max(0, outstandingTotal - parsedAmount);
+  const validAmount = parsedAmount > 0 && parsedAmount <= outstandingTotal && parsedAmount <= walletBalance;
 
-  const presetAmounts = [
-    { label: "₦500", val: 500 },
-    { label: "₦1,000", val: 1000 },
-    { label: "₦2,000", val: 2000 },
-    { label: "₦5,000", val: 5000 },
-    { label: `Pay in Full ₦${outstandingTotal.toLocaleString()}`, val: outstandingTotal },
-  ];
+  const presetAmounts = [500, 1000, 2000, 5000].filter(value => value < outstandingTotal).map(val => ({ label: `₦${val.toLocaleString()}`, val }))
+    .concat({ label: `Pay in Full ₦${outstandingTotal.toLocaleString()}`, val: outstandingTotal });
 
   const handleConfirmPay = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (pin === "0000") {
-        setStep("failure");
-      } else {
-        setStep("success");
-      }
-    }, 1000);
-  };
-
-  const resetAll = () => {
-    setStep("form");
-    setPin("");
+    repay.mutate({ amount: parsedAmount, method: "wallet", pin, ...(creditTransactionId ? { creditTransactionId } : {}) }, {
+      onSuccess: data => { setResult(data); setStep("success"); },
+      onError: error => { setFailureReason(error.message); setStep("failure"); },
+    });
   };
 
   const handleClose = () => {
-    resetAll();
+    setStep("form");
+    setPin("");
+    setAmountStr("");
     onOpenChange(false);
   };
 
   const successDetails: SuccessDetailItem[] = [
-    { label: "Repayment Type", value: "Partial Repayment" },
-    { label: "Amount Repaid", value: `₦${parsedAmount.toLocaleString()}` },
+    { label: "Repayment Type", value: billLabel ? `Bill repayment · ${billLabel}` : "Partial Repayment" },
+    { label: "Amount Repaid", value: result?.repaid_amount_formatted ?? `₦${parsedAmount.toLocaleString()}` },
     { label: "Remaining Balance", value: `₦${remainingOutstanding.toLocaleString()}` },
+    { label: "Available Credit", value: result?.available_credit_formatted ?? "—" },
     { label: "Payment Source", value: "SimKash Wallet" },
   ];
 
@@ -69,13 +64,13 @@ export function PartialRepaymentModal({
         open={open && step === "form"}
         onOpenChange={handleClose}
         title="Partial Repayment"
-        description="Pay any amount towards your balance"
+        description={billLabel ? `Pay towards ${billLabel}` : "Pay any amount towards your balance"}
         size="md"
       >
         <div className="space-y-4 pt-1">
           {/* Outstanding Notice */}
           <div className="rounded-2xl border border-[#F7D2D7] bg-[#FFF7F8] p-3 text-center text-xs font-bold text-[#EF4444]">
-            ● ₦{outstandingTotal.toLocaleString()} outstanding · Due {dueDate}
+            ● ₦{outstandingTotal.toLocaleString()} outstanding{dueDate ? ` · Due ${dueDate}` : ""}
           </div>
 
           {/* Amount Input */}
@@ -90,12 +85,12 @@ export function PartialRepaymentModal({
               <input
                 type="number"
                 value={amountStr}
-                onChange={(e) => setAmountStr(e.target.value)}
+                onChange={(e) => setAmountStr(e.target.value.replace(/\D/g, ""))}
                 className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 pl-9 pr-4 text-sm font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
               />
             </div>
-            <p className="text-[10px] text-[#8C909B]">
-              Minimum ₦100 · Maximum ₦{outstandingTotal.toLocaleString()} (full balance)
+            <p className={`text-[10px] ${parsedAmount > walletBalance ? "text-[#EF4444]" : "text-[#8C909B]"}`}>
+              {parsedAmount > walletBalance ? `Exceeds your wallet balance of ₦${walletBalance.toLocaleString()}` : `Maximum ₦${outstandingTotal.toLocaleString()} (full balance)`}
             </p>
           </div>
 
@@ -105,7 +100,7 @@ export function PartialRepaymentModal({
               const isSelected = parsedAmount === item.val;
               return (
                 <button
-                  key={item.val}
+                  key={item.label}
                   type="button"
                   onClick={() => setAmountStr(item.val.toString())}
                   className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
@@ -129,8 +124,8 @@ export function PartialRepaymentModal({
               </span>
             </div>
             <div className="flex justify-between py-2">
-              <span className="text-[#66738C]">Credit limit restored after verification:</span>
-              <span className="font-bold text-[#0F152A]">₦2,000</span>
+              <span className="text-[#66738C]">Credit restored:</span>
+              <span className="font-bold text-[#0F152A]">₦{Math.min(parsedAmount, outstandingTotal).toLocaleString()}</span>
             </div>
             <div className="flex justify-between py-2 last:pb-0">
               <span className="text-[#66738C]">Pay from:</span>
@@ -144,29 +139,9 @@ export function PartialRepaymentModal({
               ENTER PIN TO REPAY
             </label>
             <div className="flex justify-center">
-              <InputOTP
-                maxLength={4}
-                value={pin}
-                onChange={setPin}
-                containerClassName="gap-3"
-              >
+              <InputOTP maxLength={4} value={pin} onChange={setPin} containerClassName="gap-3">
                 <InputOTPGroup className="gap-3">
-                  <InputOTPSlot
-                    index={0}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
-                  <InputOTPSlot
-                    index={1}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
-                  <InputOTPSlot
-                    index={2}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
-                  <InputOTPSlot
-                    index={3}
-                    className="size-12 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-lg font-bold text-[#0F152A] data-[active=true]:border-[#2563EB] data-[active=true]:ring-2 data-[active=true]:ring-[#2563EB]/20"
-                  />
+                  {[0, 1, 2, 3].map(index => <InputOTPSlot key={index} index={index} className={pinSlot} />)}
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -184,10 +159,10 @@ export function PartialRepaymentModal({
             <button
               type="button"
               onClick={handleConfirmPay}
-              disabled={pin.length < 4 || parsedAmount < 100 || isLoading}
+              disabled={pin.length < 4 || !validAmount || repay.isPending}
               className="rounded-xl bg-[#0F152A] px-8 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-slate-800 disabled:opacity-50"
             >
-              {isLoading ? "Processing..." : `Repay ₦${parsedAmount.toLocaleString()}`}
+              {repay.isPending ? "Processing..." : `Repay ₦${parsedAmount.toLocaleString()}`}
             </button>
           </div>
         </div>
@@ -198,7 +173,7 @@ export function PartialRepaymentModal({
         open={open && step === "success"}
         onOpenChange={handleClose}
         title="Partial Repayment Successful!"
-        subtitle={`Repaid ₦${parsedAmount.toLocaleString()} towards balance`}
+        subtitle={`Repaid ${result?.repaid_amount_formatted ?? `₦${parsedAmount.toLocaleString()}`} towards balance`}
         details={successDetails}
         walletBalanceText={`Wallet Balance: ₦${(walletBalance - parsedAmount).toLocaleString()}`}
         doneButtonText="Done"
@@ -211,10 +186,10 @@ export function PartialRepaymentModal({
         onOpenChange={handleClose}
         title="Repayment Failed"
         subtitle="We couldn't process your repayment. Your wallet was not debited."
-        reason="Invalid PIN or server communication error. Please try again."
+        reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"
-        onTryAgain={() => setStep("form")}
+        onTryAgain={() => { setPin(""); setStep("form"); }}
         onCancel={handleClose}
       />
     </>

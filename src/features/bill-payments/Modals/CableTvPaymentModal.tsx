@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { PayLaterMode } from "@/features/paylater/types/api";
+import { usePayLaterBillMode } from "@/features/paylater/hooks/usePayLaterBillMode";
 import { Check, CheckCircle2, Loader2, Wallet } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionConfirmModal, type ConfirmDetailItem } from "@/components/common/TransactionConfirmModal";
@@ -13,11 +15,14 @@ import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 interface CableTvPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Charge PayLater credit instead of the wallet. */
+  payLater?: PayLaterMode;
 }
 
-export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalProps) {
+export function CableTvPaymentModal({ open, onOpenChange, payLater }: CableTvPaymentModalProps) {
   const { wallet, user } = useGetAuthUser();
-  const currentBalance = wallet?.balance ?? 0;
+  const credit = usePayLaterBillMode("cable", payLater);
+  const currentBalance = credit.active ? credit.availableCredit : wallet?.balance ?? 0;
   const userPhone = user?.phone || "";
 
   const [provider, setProvider] = useState<string>("");
@@ -79,6 +84,10 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
 
   const handleConfirmPay = () => {
     if (!currentPlan) return;
+    if (credit.active) {
+      credit.submit({ serviceID: provider, billersCode: smartCardNumber, variation_code: currentPlan.variation_code, amount: planAmount, phone: userPhone, pin, subscription_type: "change" }, { onSuccess: r => { setTxnRef(r.bill_reference); setStep("success"); }, onError: msg => { setFailureReason(msg); setStep("failure"); } });
+      return;
+    }
     purchaseCableMutation.mutate(
       {
         serviceID: provider,
@@ -123,7 +132,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
     { label: "Subscriber", value: subscriberName },
     { label: "Plan", value: currentPlan?.name || "Selected Package" },
     { label: "Amount", value: `₦${planAmount.toLocaleString()}` },
-    { label: "Pay from", value: `Wallet (₦${currentBalance.toLocaleString()})` },
+    { label: "Pay from", value: `${credit.source} (₦${currentBalance.toLocaleString()})` },
     { label: "After", value: `₦${balanceAfter.toLocaleString()}` },
   ];
 
@@ -135,6 +144,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
     { label: "Plan", value: currentPlan?.name || "Selected Package" },
     { label: "Amount", value: `₦${planAmount.toLocaleString()}` },
     { label: "Ref", value: txnRef },
+    ...credit.successRows,
   ];
 
   return (
@@ -261,7 +271,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
             <span className="flex items-center gap-2 text-[#8C909B]">
               <Wallet className="size-4 text-[#8C909B]" /> Pay from
             </span>
-            <span className="font-bold text-[#0F152A]">Wallet · ₦{currentBalance.toLocaleString()}</span>
+            <span className="font-bold text-[#0F152A]">{credit.source} · ₦{currentBalance.toLocaleString()}</span>
           </div>
 
           {/* Actions */}
@@ -276,7 +286,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!smartCardNumber || !currentPlan || !planAmount}
+              disabled={!smartCardNumber || !currentPlan || !planAmount || (credit.active && planAmount > currentBalance)}
               className="rounded-xl bg-[#2563EB] px-8 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-50"
             >
               Continue to Pay
@@ -297,7 +307,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
         onBack={() => setStep("form")}
         onConfirm={handleConfirmPay}
         confirmButtonText={`Pay ₦${planAmount.toLocaleString()}`}
-        isLoading={purchaseCableMutation.isPending}
+        isLoading={purchaseCableMutation.isPending || credit.isPending}
       />
 
       {/* 3. Reusable Success Modal */}
@@ -307,7 +317,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
         title="Cable TV Activated!"
         subtitle={`${provider.toUpperCase()} subscription recharged successfully for ${subscriberName}`}
         details={successDetails}
-        walletBalanceText={`Wallet: ₦${balanceAfter.toLocaleString()}`}
+        walletBalanceText={credit.successFooter(`Wallet: ₦${balanceAfter.toLocaleString()}`)}
         doneButtonText="Done"
         onDone={handleClose}
       />
@@ -317,7 +327,7 @@ export function CableTvPaymentModal({ open, onOpenChange }: CableTvPaymentModalP
         open={open && step === "failure"}
         onOpenChange={handleClose}
         title="Payment Failed"
-        subtitle="We couldn't complete this cable TV payment. Your wallet was not debited."
+        subtitle={`We couldn't complete this cable TV payment. ${credit.notDebitedText}`}
         reason={failureReason}
         tryAgainButtonText="Try Again"
         cancelButtonText="Cancel"

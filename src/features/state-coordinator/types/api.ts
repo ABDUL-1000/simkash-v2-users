@@ -150,7 +150,7 @@ export interface ScWalletOverviewData {
     account_name: string;
     status: string;
     is_verified: boolean;
-  };
+  } | null;
   recent_payouts: {
     total_paid_out: number;
     total_paid_out_formatted: string;

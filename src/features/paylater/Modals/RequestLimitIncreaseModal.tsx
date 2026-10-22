@@ -1,68 +1,71 @@
 import { useState } from "react";
-import { Info } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionSuccessModal, type SuccessDetailItem } from "@/components/common/TransactionSuccessModal";
+import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
+import { useApplyPayLater } from "../api/usePayLater";
+import type { PayLaterAccount, PayLaterEligibilityResult } from "../types/api";
 
 interface RequestLimitIncreaseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentLimit?: number;
+  account?: PayLaterAccount;
+  onTimeRatioText?: string;
 }
 
-export function RequestLimitIncreaseModal({
-  open,
-  onOpenChange,
-  currentLimit = 2000,
-}: RequestLimitIncreaseModalProps) {
-  const [requestedLimitStr, setRequestedLimitStr] = useState("5000");
-  const [reason, setReason] = useState("Higher bill payments");
-  const [income, setIncome] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
+export function RequestLimitIncreaseModal({ open, onOpenChange, account, onTimeRatioText }: RequestLimitIncreaseModalProps) {
+  const currentLimit = account?.credit_limit ?? 0;
+  const [requestedLimitStr, setRequestedLimitStr] = useState("");
+  const [result, setResult] = useState<PayLaterEligibilityResult | null>(null);
+  const [failureReason, setFailureReason] = useState("");
+  const apply = useApplyPayLater();
 
   const parsedLimit = parseInt(requestedLimitStr || "0", 10);
+  const usedPercent = currentLimit > 0 ? Math.round((account?.used_credit ?? 0) / currentLimit * 100) : 0;
+  const memberSince = account?.createdAt ? new Date(account.createdAt).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : null;
 
-  const presetLimits = [
-    { label: "₦5,000", val: 5000 },
-    { label: "₦10,000", val: 10000 },
-    { label: "₦20,000", val: 20000 },
-  ];
+  // Presets step up from the current limit.
+  const presetLimits = [5000, 10000, 20000, 50000, 100000].filter(value => value > currentLimit).slice(0, 3).map(val => ({ label: `₦${val.toLocaleString()}`, val }));
 
   const handleSubmit = () => {
-    setIsSuccess(true);
+    apply.mutate(parsedLimit, {
+      onSuccess: data => data.eligible ? setResult(data) : setFailureReason(data.message),
+      onError: error => setFailureReason(error.message),
+    });
   };
 
   const handleClose = () => {
-    setIsSuccess(false);
+    setResult(null);
+    setFailureReason("");
+    setRequestedLimitStr("");
     onOpenChange(false);
   };
 
   const successDetails: SuccessDetailItem[] = [
-    { label: "Current Limit", value: `₦${currentLimit.toLocaleString()}` },
+    { label: "Previous Limit", value: `₦${currentLimit.toLocaleString()}` },
     { label: "Requested Limit", value: `₦${parsedLimit.toLocaleString()}` },
-    { label: "Reason", value: reason },
-    { label: "Review Window", value: "24 – 48 Hours" },
-    { label: "Notification", value: "SMS & Push Notification" },
+    { label: "Approved Limit", value: result?.credit_limit_formatted ?? "—" },
+    ...(result?.account ? [{ label: "Available Credit", value: result.account.available_credit_formatted }] : []),
   ];
 
   return (
     <>
       <AppModal
-        open={open && !isSuccess}
+        open={open && !result && !failureReason}
         onOpenChange={handleClose}
         title="Request Credit Limit Increase"
-        description={`Current limit: ₦${currentLimit.toLocaleString()}`}
+        description={`Current limit: ${account?.credit_limit_formatted ?? "—"}`}
         size="md"
       >
         <div className="space-y-4 pt-1">
           {/* Current Limit Summary Box */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 text-xs space-y-2">
             <h4 className="font-extrabold text-sm text-[#0F152A]">
-              Current Limit: ₦{currentLimit.toLocaleString()}
+              Current Limit: {account?.credit_limit_formatted ?? "—"}
             </h4>
             <div className="grid grid-cols-2 gap-2 text-[#66738C]">
-              <div>Used: <span className="font-bold text-[#0F152A]">₦1,000 (50%)</span></div>
-              <div>On-time repayments: <span className="font-bold text-[#0F152A]">8 of 9</span></div>
-              <div>Member since: <span className="font-bold text-[#0F152A]">Jan 2026</span></div>
+              <div>Used: <span className="font-bold text-[#0F152A]">{account?.used_credit_formatted ?? "—"} ({usedPercent}%)</span></div>
+              {onTimeRatioText && <div>On-time repayments: <span className="font-bold text-[#0F152A]">{onTimeRatioText}</span></div>}
+              {memberSince && <div>Member since: <span className="font-bold text-[#0F152A]">{memberSince}</span></div>}
             </div>
           </div>
 
@@ -78,10 +81,11 @@ export function RequestLimitIncreaseModal({
               <input
                 type="number"
                 value={requestedLimitStr}
-                onChange={(e) => setRequestedLimitStr(e.target.value)}
+                onChange={(e) => setRequestedLimitStr(e.target.value.replace(/\D/g, ""))}
                 className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 pl-9 pr-4 text-sm font-bold text-[#0F152A] outline-none focus:border-[#2563EB]"
               />
             </div>
+            {parsedLimit > 0 && parsedLimit <= currentLimit && <p className="text-[10px] text-[#EF4444]">Enter an amount above your current limit.</p>}
           </div>
 
           {/* Preset Chips */}
@@ -105,45 +109,8 @@ export function RequestLimitIncreaseModal({
             })}
           </div>
 
-          {/* Reason Select */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-[#0F152A]">
-              Reason for increase
-            </label>
-            <select
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 px-4 text-xs font-bold text-[#0F152A] outline-none"
-            >
-              <option value="Higher bill payments">Higher bill payments</option>
-              <option value="Increased monthly usage">Increased monthly usage</option>
-              <option value="Business expenses">Business expenses</option>
-              <option value="Emergency buffer">Emergency buffer</option>
-            </select>
-          </div>
-
-          {/* Monthly Income Input */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">
-              MONTHLY INCOME (OPTIONAL)
-            </label>
-            <input
-              type="text"
-              placeholder="₦ Enter amount"
-              value={income}
-              onChange={(e) => setIncome(e.target.value)}
-              className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 px-4 text-xs font-bold text-[#0F152A] outline-none"
-            />
-            <p className="text-[10px] text-[#8C909B]">Helps us assess your request</p>
-          </div>
-
-          {/* Processing Note */}
-          <div className="flex items-start gap-2.5 rounded-2xl border border-[#D0DFF0] bg-[#EFF4F8] p-3 text-xs text-[#2563EB]">
-            <Info className="size-4 shrink-0 mt-0.5" />
-            <p>
-              Limit increase requests are reviewed within 24-48 hours. You'll be notified of the decision by SMS and push notification.
-            </p>
-          </div>
+          {/* "Reason for increase", "Monthly income" and the 24–48h review note are disabled:
+              POST /paylater/apply only accepts requestedLimit and returns its decision immediately. */}
 
           {/* Footer Actions */}
           <div className="flex items-center justify-between border-t border-[#E2ECF6] pt-4">
@@ -157,9 +124,10 @@ export function RequestLimitIncreaseModal({
             <button
               type="button"
               onClick={handleSubmit}
-              className="rounded-xl bg-[#0F152A] px-8 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800"
+              disabled={parsedLimit <= currentLimit || apply.isPending}
+              className="rounded-xl bg-[#0F152A] px-8 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 disabled:opacity-50"
             >
-              Submit Request
+              {apply.isPending ? "Submitting..." : "Submit Request"}
             </button>
           </div>
         </div>
@@ -167,14 +135,27 @@ export function RequestLimitIncreaseModal({
 
       {/* Success Modal */}
       <TransactionSuccessModal
-        open={open && isSuccess}
+        open={open && Boolean(result)}
         onOpenChange={handleClose}
-        title="Limit Increase Requested!"
-        subtitle="Your application has been received"
+        title="Credit Limit Updated!"
+        subtitle={result?.message ?? ""}
         details={successDetails}
-        walletBalanceText="SimKash Credit Bureau"
+        walletBalanceText={`New limit: ${result?.credit_limit_formatted ?? "—"}`}
         doneButtonText="Done"
         onDone={handleClose}
+      />
+
+      {/* Declined / error */}
+      <TransactionFailureModal
+        open={open && Boolean(failureReason)}
+        onOpenChange={handleClose}
+        title="Limit Increase Not Approved"
+        subtitle="Your current credit limit is unchanged."
+        reason={failureReason}
+        tryAgainButtonText="Try Again"
+        cancelButtonText="Close"
+        onTryAgain={() => setFailureReason("")}
+        onCancel={handleClose}
       />
     </>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { useGetActivatedSims } from "../api";
 
 interface ActivationCustomerItem {
   id: string;
@@ -11,6 +12,9 @@ interface ActivationCustomerItem {
   time: string;
   avatarBg: string;
 }
+
+const AVATAR_BY_NETWORK: Record<string, string> = { mtn: "bg-[#D9990D] text-white", airtel: "bg-[#EF4444] text-white", glo: "bg-[#10B981] text-white" };
+const PAGE = 15;
 
 interface AllActivationsModalProps {
   open: boolean;
@@ -24,70 +28,19 @@ export function AllActivationsModal({
   onSelectCustomer,
 }: AllActivationsModalProps) {
   const [search, setSearch] = useState("");
-  const [filterPeriod, setFilterPeriod] = useState<"Today" | "This Week" | "This Month" | "All Time">("This Week");
-
-  const activations: ActivationCustomerItem[] = [
-    {
-      id: "1",
-      name: "Chidi Eze",
-      phone: "0801 234 5678",
-      simType: "POS SIM",
-      commission: "+₦1,000",
-      time: "2 min ago",
-      avatarBg: "bg-[#D9990D] text-white",
-    },
-    {
-      id: "2",
-      name: "Ada Obi",
-      phone: "0802 111 2222",
-      simType: "CCTV SIM",
-      commission: "+₦1,000",
-      time: "45 min ago",
-      avatarBg: "bg-[#EF4444] text-white",
-    },
-    {
-      id: "3",
-      name: "Bola Akin",
-      phone: "0803 444 5555",
-      simType: "GPS SIM",
-      commission: "+₦1,000",
-      time: "1 hr ago",
-      avatarBg: "bg-[#10B981] text-white",
-    },
-    {
-      id: "4",
-      name: "Yemi Bello",
-      phone: "0801 888 9999",
-      simType: "Router SIM",
-      commission: "+₦1,000",
-      time: "3 hrs ago",
-      avatarBg: "bg-[#D9990D] text-white",
-    },
-    {
-      id: "5",
-      name: "Kemi Alade",
-      phone: "0807 222 3333",
-      simType: "POS SIM",
-      commission: "+₦1,000",
-      time: "5 hrs ago",
-      avatarBg: "bg-[#EF4444] text-white",
-    },
-    {
-      id: "6",
-      name: "Ike Sali",
-      phone: "0809 555 1212",
-      simType: "POS SIM",
-      commission: "+₦1,000",
-      time: "Yesterday",
-      avatarBg: "bg-[#D9990D] text-white",
-    },
-  ];
-
-  const filtered = activations.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.phone.includes(search)
-  );
+  const [limit, setLimit] = useState(PAGE);
+  // Period pills (Today / This Week / This Month / All Time) are disabled: /activated has no date filter.
+  const query = useGetActivatedSims({ search: search.trim(), page: 1, limit }, );
+  const total = query.result?.total ?? 0;
+  const filtered: ActivationCustomerItem[] = query.sims.map(sim => ({
+    id: String(sim.id),
+    name: sim.customer.fullname,
+    phone: sim.customer.phone,
+    simType: sim.type_label,
+    commission: `+₦${Number(sim.commission || 0).toLocaleString()}`,
+    time: sim.time_ago,
+    avatarBg: AVATAR_BY_NETWORK[sim.network.toLowerCase()] ?? "bg-[#2563EB] text-white",
+  }));
 
   return (
     <AppModal
@@ -97,7 +50,7 @@ export function AllActivationsModal({
         <div className="flex items-center gap-2">
           <span className="text-xl font-extrabold text-[#0F152A]">All Activations</span>
           <span className="rounded-full bg-[#EFF4F8] px-2.5 py-0.5 text-xs font-bold text-[#2563EB]">
-            47
+            {total.toLocaleString()}
           </span>
         </div>
       }
@@ -112,31 +65,12 @@ export function AllActivationsModal({
             type="text"
             placeholder="Search by name, phone or SIM..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setLimit(PAGE); }}
             className="w-full rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] pl-10 pr-4 py-3 text-xs text-[#0F152A] outline-none focus:border-[#2563EB]"
           />
         </div>
 
-        {/* Period Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          {(["Today", "This Week", "This Month", "All Time"] as const).map((period) => {
-            const isSelected = filterPeriod === period;
-            return (
-              <button
-                key={period}
-                type="button"
-                onClick={() => setFilterPeriod(period)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold shrink-0 transition ${
-                  isSelected
-                    ? "bg-[#0F152A] text-white shadow-xs"
-                    : "bg-[#F8FAFC] border border-[#E2ECF6] text-[#66738C] hover:bg-[#EFF4F8]"
-                }`}
-              >
-                {period}
-              </button>
-            );
-          })}
-        </div>
+        {/* Period Filter Pills are disabled: no date filter on /partner/device-sim/activated. */}
 
         {/* Customer List Container */}
         <div className="rounded-2xl border border-[#E2ECF6] bg-white overflow-hidden">
@@ -144,6 +78,8 @@ export function AllActivationsModal({
             CUSTOMER
           </div>
           <div className="divide-y divide-[#E2ECF6]">
+            {query.isLoading && Array.from({ length: 4 }).map((_, index) => <div key={index} className="m-3 h-10 animate-pulse rounded-xl bg-slate-100" />)}
+            {!query.isLoading && filtered.length === 0 && <p className="p-4 text-center text-[11px] text-[#8C909B]">{query.error ? query.error.message : search ? "No activations match your search." : "No activations yet."}</p>}
             {filtered.map((item) => (
               <div
                 key={item.id}
@@ -184,15 +120,16 @@ export function AllActivationsModal({
         {/* Footer Bar */}
         <div className="flex items-center justify-between pt-2 border-t border-[#E2ECF6]">
           <span className="text-xs text-[#8C909B] font-medium">
-            Showing {filtered.length} of 47 activations
+            Showing {filtered.length} of {total.toLocaleString()} activations
           </span>
-          <button
+          {filtered.length < total && <button
             type="button"
-            onClick={() => alert("Loading more activations...")}
+            disabled={query.isFetching}
+            onClick={() => setLimit(current => current + PAGE)}
             className="rounded-xl bg-[#EFF4F8] px-4 py-2 text-xs font-bold text-[#2563EB] hover:bg-[#E2ECF6] transition"
           >
-            Load More
-          </button>
+            {query.isFetching ? "Loading..." : "Load More"}
+          </button>}
         </div>
       </div>
     </AppModal>

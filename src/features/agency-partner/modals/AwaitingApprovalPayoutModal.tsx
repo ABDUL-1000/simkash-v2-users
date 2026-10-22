@@ -8,6 +8,8 @@ interface AwaitingApprovalPayoutModalProps {
   bankName?: string;
   accountNumber?: string;
   requestedDate?: string;
+  reference?: string;
+  statusLabel?: string;
   onContactSupport?: () => void;
   onDone?: () => void;
 }
@@ -15,10 +17,12 @@ interface AwaitingApprovalPayoutModalProps {
 export function AwaitingApprovalPayoutModal({
   open,
   onOpenChange,
-  amount = "₦8,200",
-  bankName = "Access Bank",
-  accountNumber = "****0476",
-  requestedDate = "22 Jan 2026, 2:45 PM",
+  amount = "—",
+  bankName = "",
+  accountNumber = "",
+  requestedDate = "—",
+  reference,
+  statusLabel,
   onContactSupport,
   onDone,
 }: AwaitingApprovalPayoutModalProps) {
@@ -66,7 +70,7 @@ export function AwaitingApprovalPayoutModal({
           <div className="flex items-center justify-between py-1">
             <span className="text-[#8C909B] font-medium">Requested</span>
             <span className="font-bold text-[#0F152A] font-mono">
-              {requestedDate}
+              {requestedDate}{reference ? ` · ${reference}` : ""}{statusLabel ? ` · ${statusLabel}` : ""}
             </span>
           </div>
           <div className="flex items-center justify-between py-1 last:pb-0">

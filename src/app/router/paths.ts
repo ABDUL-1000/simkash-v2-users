@@ -92,6 +92,12 @@ export const appPaths = {
   }),
   billPayments: "/bill-payments",
   deviceSim: "/dashboard/device-sim",
+  posRequest: "/dashboard/pos-request",
+  becomePartner: "/become-partner",
+  becomePartnerApply: (role?: string) => ({
+    format: "/become-partner/apply/:role",
+    path: `/become-partner/apply/${role ?? ""}`,
+  }),
   deviceSimDetail: (type?: string, id?: string) => ({
     format: "/dashboard/device-sim/:type/:id",
     path: `/dashboard/device-sim/${encodeURIComponent(type || "sim")}/${encodeURIComponent(id || "")}`,

@@ -17,6 +17,9 @@ export const useActivateDeviceSim = () => {
       void client.invalidateQueries({ queryKey: ["ap-dashboard-summary"] });
       void client.invalidateQueries({ queryKey: ["ap-recent-activations"] });
       void client.invalidateQueries({ queryKey: ["ap-sim-stock"] });
+      void client.invalidateQueries({ queryKey: ["ap-commission-month"] });
+      void client.invalidateQueries({ queryKey: ["ap-recent-customers"] });
+      void client.invalidateQueries({ queryKey: ["ap-recent-activity"] });
       void client.invalidateQueries({ queryKey: ["ap-activated-sims"] });
       void client.invalidateQueries({ queryKey: ["ap-unactivated-sims"] });
       void client.invalidateQueries({ queryKey: ["user-wallet"] });

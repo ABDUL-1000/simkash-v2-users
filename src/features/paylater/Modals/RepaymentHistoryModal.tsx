@@ -1,32 +1,39 @@
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { useGetPayLaterTransactions } from "../api/usePayLater";
+import type { PayLaterTransactionStatus } from "../types/api";
+import { payLaterStatusTone } from "../utils/payLaterStatus";
 
 interface RepaymentHistoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onRepayAllClick: () => void;
+  onTransactionClick: (id: number) => void;
+  /** Summary header values from the dashboard / account endpoints. */
+  pendingFormatted?: string;
+  paidFormatted?: string;
+  overdueFormatted?: string | null;
+  canRepay?: boolean;
 }
+
+const PAGE = 10;
 
 export function RepaymentHistoryModal({
   open,
   onOpenChange,
   onRepayAllClick,
+  onTransactionClick,
+  pendingFormatted,
+  paidFormatted,
+  overdueFormatted,
+  canRepay = true,
 }: RepaymentHistoryModalProps) {
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [timeFilter, setTimeFilter] = useState("this_month");
-
-  const transactions = [
-    { name: "Airtime (MTN)", date: "15 Jun 2026", amount: "₦500", status: "Pending" },
-    { name: "Electricity", date: "10 Jun 2026", amount: "₦3,000", status: "Pending" },
-    { name: "Cable TV", date: "05 Jun 2026", amount: "₦7,900", status: "Pending" },
-    { name: "Data (MTN)", date: "01 Jun 2026", amount: "₦500", status: "Pending" },
-    { name: "Airtime", date: "31 May 2026", amount: "₦200", status: "Paid" },
-    { name: "Electricity", date: "31 May 2026", amount: "₦3,000", status: "Paid" },
-    { name: "Data", date: "31 May 2026", amount: "₦500", status: "Paid" },
-    { name: "Cable TV", date: "30 Apr 2026", amount: "₦7,900", status: "Paid" },
-    { name: "Airtime", date: "30 Apr 2026", amount: "₦300", status: "Paid" },
-    { name: "Electricity", date: "31 Mar 2026", amount: "₦5,000", status: "Paid" },
-  ];
+  const [statusFilter, setStatusFilter] = useState<PayLaterTransactionStatus>("all");
+  const [limit, setLimit] = useState(PAGE);
+  const query = useGetPayLaterTransactions({ status: statusFilter, page: 1, limit }, open);
+  const transactions = query.data?.items ?? [];
+  const total = query.data?.pagination.total ?? 0;
 
   return (
     <AppModal
@@ -39,16 +46,17 @@ export function RepaymentHistoryModal({
       <div className="space-y-4 pt-1">
         {/* Status Filter Row */}
         <div className="flex flex-wrap gap-2">
-          {[
+          {([
             { id: "all", label: "All" },
             { id: "pending", label: "Pending" },
             { id: "paid", label: "Paid" },
             { id: "overdue", label: "Overdue" },
-          ].map((st) => (
+            { id: "defaulted", label: "Defaulted" },
+          ] as const).map((st) => (
             <button
               key={st.id}
               type="button"
-              onClick={() => setStatusFilter(st.id)}
+              onClick={() => { setStatusFilter(st.id); setLimit(PAGE); }}
               className={`rounded-full px-4 py-1 text-xs font-bold transition ${
                 statusFilter === st.id
                   ? "bg-[#0F152A] text-white"
@@ -60,84 +68,69 @@ export function RepaymentHistoryModal({
           ))}
         </div>
 
-        {/* Timeframe Filter Row */}
-        <div className="flex flex-wrap gap-2">
-          {[
-            { id: "this_month", label: "This Month" },
-            { id: "last_month", label: "Last Month" },
-            { id: "3_months", label: "Last 3 Months" },
-            { id: "all_time", label: "All Time" },
-          ].map((tf) => (
-            <button
-              key={tf.id}
-              type="button"
-              onClick={() => setTimeFilter(tf.id)}
-              className={`rounded-full px-3 py-1 text-[11px] font-bold transition ${
-                timeFilter === tf.id
-                  ? "border border-[#2563EB] bg-[#EFF4F8] text-[#2563EB]"
-                  : "border border-[#E2ECF6] bg-white text-[#8C909B] hover:bg-slate-50"
-              }`}
-            >
-              {tf.label}
-            </button>
-          ))}
-        </div>
+        {/* Timeframe filter (This Month / Last Month / 3 Months / All Time) is disabled:
+            GET /paylater/transactions only accepts status, billType, page and limit. */}
 
         {/* Metric Summary Header */}
         <div className="flex items-center justify-between rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3.5 text-xs font-extrabold">
           <div>
             <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">PENDING</span>
-            <span className="text-[#F59E0B]">₦11,900</span>
+            <span className="text-[#F59E0B]">{pendingFormatted ?? "—"}</span>
           </div>
           <div>
             <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">PAID</span>
-            <span className="text-[#10B981]">₦33,100</span>
+            <span className="text-[#10B981]">{paidFormatted ?? "—"}</span>
           </div>
           <div>
             <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">OVERDUE</span>
-            <span className="text-[#0F152A]">NO</span>
+            <span className={overdueFormatted ? "text-[#EF4444]" : "text-[#0F152A]"}>{overdueFormatted ?? "NO"}</span>
           </div>
         </div>
 
         {/* Transactions List */}
-        <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-white p-3.5 text-xs">
-          {transactions.map((tx, idx) => (
-            <div key={idx} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-              <div className="flex items-center gap-3">
-                <span className={`flex size-8 items-center justify-center rounded-xl text-white font-bold text-xs ${
-                  tx.status === "Pending" ? "bg-[#F59E0B]" : "bg-[#10B981]"
-                }`}>
-                  💳
-                </span>
-                <div>
-                  <h4 className="font-bold text-[#0F152A]">{tx.name}</h4>
-                  <p className="text-[11px] text-[#8C909B]">{tx.date}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="font-extrabold text-[#EF4444]">{tx.amount}</span>
-                <div className="mt-0.5">
-                  {tx.status === "Pending" ? (
-                    <span className="rounded-md bg-[#FFFBEB] px-2 py-0.5 text-[10px] font-bold text-[#F59E0B]">
-                      Pending
+        {query.isLoading ? (
+          <div className="space-y-2">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-12 animate-pulse rounded-xl bg-slate-100" />)}</div>
+        ) : query.error ? (
+          <AppEmptyState title="Couldn't load PayLater transactions" description={query.error.message} actionText="Retry" onAction={() => void query.refetch()} />
+        ) : transactions.length === 0 ? (
+          <AppEmptyState title="No PayLater transactions" description={statusFilter === "all" ? "Bills you pay on credit will appear here." : "No transactions with this status."} />
+        ) : (
+          <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-white p-3.5 text-xs">
+            {transactions.map((tx) => {
+              const tone = payLaterStatusTone(tx.status_color);
+              return (
+                <button key={tx.id} type="button" onClick={() => onTransactionClick(tx.id)} className="flex w-full items-center justify-between py-2.5 text-left first:pt-0 last:pb-0 hover:bg-[#F8FAFC]">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-8 items-center justify-center rounded-xl text-xs font-bold text-white" style={{ background: tone.solid }}>
+                      💳
                     </span>
-                  ) : (
-                    <span className="rounded-md bg-[#EBFFF8] px-2 py-0.5 text-[10px] font-bold text-[#10B981]">
-                      Paid
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                    <div>
+                      <h4 className="font-bold text-[#0F152A]">{tx.service}</h4>
+                      <p className="text-[11px] text-[#8C909B]">{tx.date_formatted ?? tx.date} · Due {tx.due_date_formatted ?? tx.due_date}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-extrabold text-[#EF4444]">{tx.amount_formatted}</span>
+                    <div className="mt-0.5">
+                      <span className="rounded-md px-2 py-0.5 text-[10px] font-bold" style={{ background: tone.bg, color: tone.color }}>
+                        {tx.status_label}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Load More Link */}
-        <div className="text-center pt-1">
-          <button type="button" className="text-xs font-bold text-[#2563EB] hover:underline">
-            Load more transactions
-          </button>
-        </div>
+        {transactions.length < total && (
+          <div className="text-center pt-1">
+            <button type="button" disabled={query.isFetching} onClick={() => setLimit(current => current + PAGE)} className="text-xs font-bold text-[#2563EB] hover:underline disabled:opacity-50">
+              {query.isFetching ? "Loading…" : `Load more transactions (${total - transactions.length} more)`}
+            </button>
+          </div>
+        )}
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between border-t border-[#E2ECF6] pt-4 gap-3">
@@ -150,11 +143,12 @@ export function RepaymentHistoryModal({
           </button>
           <button
             type="button"
+            disabled={!canRepay}
             onClick={() => {
               onOpenChange(false);
               onRepayAllClick();
             }}
-            className="flex-1 rounded-xl bg-[#F59E0B] py-2.5 text-xs font-bold text-white shadow-md hover:bg-amber-600"
+            className="flex-1 rounded-xl bg-[#F59E0B] py-2.5 text-xs font-bold text-white shadow-md hover:bg-amber-600 disabled:opacity-50"
           >
             Repay All Pending
           </button>

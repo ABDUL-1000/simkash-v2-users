@@ -15,6 +15,7 @@ export function QuickServicesSection({
     { id: "airtime", label: "Buy Airtime", icon: "📱" },
     { id: "data", label: "Buy Data", icon: "📊" },
     { id: "jamb", label: "JAMB", icon: "🎓" },
+    { id: "pos-request", label: "POS Request", icon: "🏧" },
   ];
 
   return (
