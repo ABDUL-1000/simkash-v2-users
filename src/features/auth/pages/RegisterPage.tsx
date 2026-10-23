@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { AuthLayout } from "../components/AuthLayout";
 import { PasswordInputField } from "../components/PasswordInputField";
@@ -8,8 +8,9 @@ import { useRegisterUser } from "../api/useRegisterUser";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState((location.state as { email?: string } | null)?.email ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { AuthLayout } from "../components/AuthLayout";
 import { useForgotPassword } from "../api/useForgotPassword";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const [email, setEmail] = useState((location.state as { email?: string } | null)?.email ?? "");
   const [error, setError] = useState<string | null>(null);
 
   const { mutate: forgotPassword, isPending } = useForgotPassword({

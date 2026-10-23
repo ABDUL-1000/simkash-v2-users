@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { appPaths } from "@/app/router/paths";
 import { AuthLayout } from "../components/AuthLayout";
@@ -10,6 +10,7 @@ import { useForgotPassword } from "../api/useForgotPassword";
 
 export default function VerifyEmailOtpPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const state = (location.state as { email?: string; from?: string; mode?: "register" | "forgot-password" }) || {};
   const userEmail = state.email || "user@simkash.ng";
   const isForgotPasswordMode = state.mode === "forgot-password" || state.from === "forgot-password";
@@ -55,6 +56,9 @@ export default function VerifyEmailOtpPage() {
     },
   });
 
+  const goBackToEmail = () =>
+    navigate(isForgotPasswordMode ? appPaths.forgotPassword : appPaths.register, { state: { email: state.email } });
+
   const isPending = isVerifyingRegister || isVerifyingForgot || isResendingRegister || isResendingForgot;
 
   const handleResend = () => {
@@ -81,7 +85,7 @@ export default function VerifyEmailOtpPage() {
   };
 
   return (
-    <AuthLayout showBack backTo={isForgotPasswordMode ? appPaths.forgotPassword : appPaths.register}>
+    <AuthLayout showBack onBack={goBackToEmail}>
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight text-[#0F172A]">
           {isForgotPasswordMode ? "Verify Reset Code" : "Verify Your Email"}
@@ -91,6 +95,13 @@ export default function VerifyEmailOtpPage() {
           <strong className="font-semibold text-[#0F172A]">{userEmail}</strong>
           {isForgotPasswordMode ? " to reset your password." : "."}
         </p>
+        <button
+          type="button"
+          onClick={goBackToEmail}
+          className="mt-1 text-xs font-semibold text-[#2563EB] transition-colors hover:text-blue-700 hover:underline"
+        >
+          Wrong email? Change it
+        </button>
       </div>
 
       {error ? (
