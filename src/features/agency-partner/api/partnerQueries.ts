@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { authedHttpClient } from "@/utils/http/auth";
-import type { PartnerStockOverviewResponse, PartnerAvailableSimsResponse, PartnerCustomerOverviewResponse, PartnerCustomersResponse, PartnerCustomerDetailResponse, PartnerWalletResponse, PartnerTransactionsResponse, PartnerTransactionDetailResponse, PartnerPayoutAccountResponse } from "../types/api";
+import type { PartnerStockOverviewResponse, PartnerAvailableSimsResponse, PartnerCustomerOverviewResponse, PartnerCustomersResponse, PartnerCustomerDetailResponse, PartnerWalletResponse, PartnerTransactionsResponse, PartnerTransactionDetailResponse, PartnerPayoutAccountResponse, PartnerStockHistoryResponse, PartnerStockHistoryDetailResponse } from "../types/api";
 
 function usePartnerQuery<T>(key: readonly unknown[], url: string, enabled = true) {
   const token = useAuthStore((state) => state.accessToken);
@@ -41,3 +41,15 @@ export const useGetPartnerTransactions = (params: PartnerTransactionParams = {})
 };
 export const useGetPartnerTransactionDetail = (id?: string) => { const query = usePartnerQuery<PartnerTransactionDetailResponse>(["partner-transaction-detail", id], `/partner/wallet/transactions/${id}`, Boolean(id)); return { ...query, transaction: query.data?.data }; };
 export const useGetPartnerPayoutAccount = () => { const query = usePartnerQuery<PartnerPayoutAccountResponse>(["partner-payout-account"], "/partner/wallet/payout-account"); return { ...query, payoutAccount: query.data?.data?.default_account ?? null, accounts: query.data?.data?.accounts ?? [] }; };
+
+export interface PartnerStockHistoryParams { search?: string; eventType?: string; simType?: string; page: number; limit: number }
+export const useGetPartnerStockHistory = ({ search = "", eventType = "all", simType = "all", page, limit }: PartnerStockHistoryParams) => {
+  const params = new URLSearchParams({ event_type: eventType, sim_type: simType, page: String(page), limit: String(limit), sortBy: "newest" });
+  if (search) params.set("search", search);
+  const query = usePartnerQuery<PartnerStockHistoryResponse>(["partner-stock-history", { search, eventType, simType, page, limit }], `/partner/stock/history?${params}`);
+  return { ...query, result: query.data?.data };
+};
+export const useGetPartnerStockHistoryDetail = (id: string | undefined, page: number) => {
+  const query = usePartnerQuery<PartnerStockHistoryDetailResponse>(["partner-stock-history-detail", id, page], `/partner/stock/history/${encodeURIComponent(id ?? "")}?page=${page}&limit=100`, Boolean(id));
+  return { ...query, detail: query.data?.data };
+};

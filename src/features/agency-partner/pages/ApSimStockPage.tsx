@@ -10,6 +10,7 @@ import { getNetworkColor } from "@/features/bill-payment/utils/networkColors";
 import { useGetPartnerAvailableSims, useGetPartnerStockOverview } from "../api";
 import type { AvailableSimItem } from "../types/api";
 import { ApActivateSimFlow } from "../modals/ApActivateSimFlow";
+import { ApStockHistory } from "../components/ApStockHistory";
 
 // health_color from the API → palette.
 const HEALTH_TONES: Record<string, string> = { green: colors.success, yellow: colors.warning, orange: colors.warning, red: colors.danger };
@@ -72,6 +73,7 @@ export function ApSimStockPage() {
       <Select value={network} onChange={(value) => { setNetwork(value); pagination.resetPage(); }} options={[{ value: "", label: "All networks" }, ...["MTN", "Airtel", "Glo", "T2"].map((value) => ({ value, label: value }))]} className="min-w-36" />
     </div>
     <DataTable columns={columns} dataSource={query.sims} rowKey="id" loading={query.isLoading || query.isFetching} pagination={paginationConfig} onSearch={setSearchText} searchPlaceholder="Search SIM number" emptyTitle="No Available SIMs Found" emptyDescription="You have no available SIM cards matching your filter criteria." />
+    <ApStockHistory />
     <ApActivateSimFlow open={activateOpen} onOpenChange={setActivateOpen} onActivated={() => { void query.refetch(); }} initialSim={selectedSim} />
   </main>;
 }

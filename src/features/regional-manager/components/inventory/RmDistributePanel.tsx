@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Input } from "antd";
 import { AlertTriangle, ArrowLeftRight, Archive, CheckSquare, Eye, History, Info, Minus, Plus, X } from "lucide-react";
 import { useGetRmCoordinatorStockHistory } from "../../api/dashboard";
-import { rmSimTypes, emptyRmQuantities } from "../../api/inventory";
+import { rmSimTypes, emptyRmSims, simsToQuantities } from "../../api/inventory";
 import type { RmStateCoordinatorItem } from "../../types/api";
 import { RmCoordinatorPicker, RmDesignedDistribute } from "../../Modals/dashboard/RmDesignedDistribute";
 import { RmAvatar, RmBadge, RmFlowModal } from "../../Modals/flow/RmFlow";
 import { rmFlow } from "../../Modals/flow/rmFlowTokens";
-import { activeTypes, firstName, rmSimMeta, sumQuantities, useRmCoordinatorStock, useRmOwnStock } from "../../Modals/flow/rmStock";
+import { RmSimNumberSelect } from "../../Modals/flow/RmSimPicker";
+import { activeTypes, firstName, resizeSims, rmSimMeta, sumQuantities, useRmCoordinatorStock, useRmOwnStock, useRmSimOptions } from "../../Modals/flow/rmStock";
+import type { RmSimType } from "../../types/dashboard";
 import { RmStatus } from "../dashboard/RmDashboardPrimitives";
 
 const card = "overflow-hidden rounded-xl border bg-white";
@@ -22,10 +24,21 @@ function Stepper({ value, max, onChange }: { value: number; max: number; onChang
   </div>;
 }
 
+/** Stepper + SIM-number select for one type, fed by GET /sim-inventory/undistributed. */
+function SimStepper({ type, enabled, value, onChange }: { type: RmSimType; enabled: boolean; value: string[]; onChange: (sims: string[]) => void }) {
+  const [search, setSearch] = useState("");
+  const { options, loading } = useRmSimOptions({ kind: "own" }, type, search, enabled);
+  return <div className="space-y-2">
+    <Stepper value={value.length} max={enabled ? Math.max(value.length, options.length) : 0} onChange={count => onChange(resizeSims(value, count, options))} />
+    {enabled && options.length > 0 && <div className="w-64 max-w-full"><RmSimNumberSelect type={type} source={{ kind: "own" }} value={value} onChange={onChange} options={options} loading={loading} onSearch={setSearch} /></div>}
+  </div>;
+}
+
 export function RmDistributePanel({ onViewHistory }: { onViewHistory: () => void }) {
   const [sc, setSc] = useState<RmStateCoordinatorItem>();
   const [picking, setPicking] = useState(false);
-  const [quantities, setQuantities] = useState(emptyRmQuantities);
+  const [sims, setSims] = useState(emptyRmSims);
+  const quantities = simsToQuantities(sims);
   const [notes, setNotes] = useState("");
   const [confirming, setConfirming] = useState(false);
   const own = useRmOwnStock();
@@ -36,7 +49,7 @@ export function RmDistributePanel({ onViewHistory }: { onViewHistory: () => void
   const name = sc?.name ?? "";
   const last = history.data?.items[0];
   const lowAfter = rmSimTypes.filter(type => own.byType && own.byType[type] > 0 && own.byType[type] - quantities[type] < SAFETY_THRESHOLD);
-  const clear = () => { setQuantities(emptyRmQuantities()); setNotes(""); };
+  const clear = () => { setSims(emptyRmSims()); setNotes(""); };
 
   return <div className="grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)]">
     <section className={card} style={{ borderColor: rmFlow.border }}>
@@ -58,11 +71,11 @@ export function RmDistributePanel({ onViewHistory }: { onViewHistory: () => void
       <div className="flex justify-between px-5 pt-4 text-xs font-semibold" style={{ color: rmFlow.slate }}><span>SIM Type</span><span>Quantity to Distribute</span></div>
       <div className="divide-y px-5" style={{ borderColor: rmFlow.border }}>{rmSimTypes.map(type => {
         const meta = rmSimMeta[type]; const available = own.byType?.[type] ?? 0; const before = scStock.byType?.[type]; const Icon = meta.icon;
-        return <div key={type} className="flex flex-wrap items-center gap-3 py-3.5" style={{ borderColor: rmFlow.border, opacity: available ? 1 : 0.55 }}>
+        return <div key={type} className="flex flex-wrap items-start gap-3 py-3.5" style={{ borderColor: rmFlow.border, opacity: available ? 1 : 0.55 }}>
           <span className="flex size-10 items-center justify-center rounded-lg" style={{ background: rmFlow.base, color: rmFlow.navy }}><Icon className="size-4.5" /></span>
           <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{meta.device}</p><p className="text-xs" style={{ color: rmFlow.muted }}>Available: {available}</p></div>
           {sc && quantities[type] > 0 && before !== undefined && <div className="text-right text-[11px] leading-tight"><p style={{ color: rmFlow.muted }}>After distribution</p><p className="font-semibold" style={{ color: rmFlow.green }}>{firstName(name)}: {before} → {before + quantities[type]}</p></div>}
-          <Stepper value={quantities[type]} max={sc ? available : 0} onChange={value => setQuantities(current => ({ ...current, [type]: value }))} />
+          <SimStepper type={type} enabled={Boolean(sc) && available > 0} value={sims[type]} onChange={next => setSims(current => ({ ...current, [type]: next }))} />
         </div>;
       })}</div>
       <div className="flex items-center justify-between border-y px-5 py-3.5" style={{ borderColor: rmFlow.border, background: rmFlow.base }}><strong className="text-sm">Distribution Total</strong><span className="text-sm"><strong style={{ color: rmFlow.navy }}>{total} SIMs</strong> <span className="text-xs" style={{ color: rmFlow.muted }}>across {types.length} type{types.length === 1 ? "" : "s"}</span></span></div>
@@ -101,8 +114,8 @@ export function RmDistributePanel({ onViewHistory }: { onViewHistory: () => void
     </aside>
 
     {picking && <RmFlowModal title="Change State Coordinator" subtitle="Select who receives this distribution" onClose={() => setPicking(false)}>
-      <RmCoordinatorPicker selected={sc} onSelect={row => { setSc(row); setQuantities(emptyRmQuantities()); setPicking(false); }} />
+      <RmCoordinatorPicker selected={sc} onSelect={row => { setSc(row); setSims(emptyRmSims()); setPicking(false); }} />
     </RmFlowModal>}
-    {confirming && sc && <RmDesignedDistribute target={sc} initialQuantities={quantities} initialNotes={notes} onClose={() => setConfirming(false)} onEdit={() => setConfirming(false)} onDone={clear} />}
+    {confirming && sc && <RmDesignedDistribute target={sc} initialSims={sims} initialNotes={notes} onClose={() => setConfirming(false)} onEdit={() => setConfirming(false)} onDone={clear} />}
   </div>;
 }

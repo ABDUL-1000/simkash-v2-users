@@ -11,7 +11,7 @@ import { firstName, stockTone } from "../../Modals/flow/rmStock";
 export type RedistributeMode = "sc-to-sc" | "recall" | "quick";
 const modes: Array<{ key: RedistributeMode; title: string; hint: string; icon: LucideIcon; color: string; bg: string }> = [
   { key: "sc-to-sc", title: "SC to SC Transfer", hint: "Move stock from one SC to another", icon: ArrowLeftRight, color: rmFlow.blue, bg: rmFlow.blueBg },
-  { key: "recall", title: "Recall from SC", hint: "Bring stock back to your inventory", icon: Undo2, color: rmFlow.amber, bg: rmFlow.amberBg },
+  { key: "recall", title: "Recall from SC", hint: "Coming soon", icon: Undo2, color: rmFlow.amber, bg: rmFlow.amberBg },
   { key: "quick", title: "Quick Distribute", hint: "Send from your stock to an SC", icon: Zap, color: rmFlow.green, bg: rmFlow.greenBg },
 ];
 

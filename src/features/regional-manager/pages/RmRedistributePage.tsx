@@ -2,22 +2,30 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input, Skeleton } from "antd";
 import { History, Info, X } from "lucide-react";
-import { rmSimTypes, useRmBatchTransfer, emptyRmQuantities, type RmTypeQuantities } from "../api/inventory";
+import { rmSimTypes, useRmBatchTransfer, emptyRmSims, simsToQuantities, type RmTypeQuantities, type RmTypeSims } from "../api/inventory";
 import type { RmStateCoordinatorItem } from "../types/api";
 import { RmFormCard, RmModeSelector, RmReasonPicker, RmRedistributeSidebar, RmScSelect, type RedistributeMode } from "../components/redistribute/RmRedistributeParts";
 import { reasonOptions } from "../components/redistribute/redistributeOptions";
 import { RmConfirmRecallModal, RmConfirmTransferModal, RmForceRecallModal, RmRedistributionHistoryModal, RmTransferResultModal, RECALL_UNAVAILABLE } from "../Modals/redistribute/RmRedistributeModals";
 import { RmDesignedDistribute } from "../Modals/dashboard/RmDesignedDistribute";
 import { RmLabel, RmNote, RmPills, RmProcessingModal, RmStepperRow, RmStockBox, RmTotalBar } from "../Modals/flow/RmFlow";
+import { RmSimPickerRow } from "../Modals/flow/RmSimPicker";
 import { rmFlow } from "../Modals/flow/rmFlowTokens";
-import { breakdownText, firstName, rmSimMeta, sumQuantities, useRmCoordinatorStock, useRmOwnStock } from "../Modals/flow/rmStock";
+import { breakdownText, firstName, rmSimMeta, sumQuantities, useRmCoordinatorStock, useRmOwnStock, useRmRedistributableStock, type RmSimSource } from "../Modals/flow/rmStock";
 
 type Modal = "confirm-transfer" | "confirm-recall" | "force-recall" | "quick" | "history" | null;
 const isMode = (value: string | null): value is RedistributeMode => value === "sc-to-sc" || value === "recall" || value === "quick";
 
+// Recall has no endpoint yet, so its list stays as plain (disabled) steppers.
 function QuantityList({ stock, quantities, onChange, label }: { stock?: RmTypeQuantities; quantities: RmTypeQuantities; onChange: (next: RmTypeQuantities) => void; label: string }) {
   return <div><RmLabel>{label}</RmLabel>{rmSimTypes.map(type => <RmStepperRow key={type} icon={rmSimMeta[type].icon} iconBg={rmSimMeta[type].bg} iconColor={rmSimMeta[type].color} label={rmSimMeta[type].label}
-    hint={stock ? `${stock[type]} available` : "Select a source first"} max={stock?.[type] ?? 0} value={quantities[type]} onChange={value => onChange({ ...quantities, [type]: value })} />)}</div>;
+    hint={stock ? `${stock[type]} available` : "Select a source first"} max={stock?.[type] ?? 0} value={quantities[type]} onChange={value => onChange({ ...quantities, [type]: value })} disabled />)}</div>;
+}
+
+/** Steppers that pick exact SIM numbers from the given source. */
+function SimList({ stock, source, sims, onChange, label, disabled }: { stock?: RmTypeQuantities; source: RmSimSource; sims: RmTypeSims; onChange: (next: RmTypeSims) => void; label: string; disabled?: boolean }) {
+  return <div><RmLabel>{label}</RmLabel>{rmSimTypes.map(type => <RmSimPickerRow key={type} type={type} source={source} value={sims[type]}
+    hint={stock ? `${stock[type]} available` : "Select a source first"} disabled={disabled || !stock?.[type]} onChange={next => onChange({ ...sims, [type]: next })} />)}</div>;
 }
 
 export function RmRedistributePage() {
@@ -25,27 +33,29 @@ export function RmRedistributePage() {
   const mode: RedistributeMode = isMode(params.get("mode")) ? params.get("mode") as RedistributeMode : "sc-to-sc";
   const [from, setFrom] = useState<RmStateCoordinatorItem>();
   const [to, setTo] = useState<RmStateCoordinatorItem>();
-  const [quantities, setQuantities] = useState(emptyRmQuantities);
+  const [sims, setSims] = useState(emptyRmSims);
+  const quantities = simsToQuantities(sims);
   const [reason, setReason] = useState<string>(reasonOptions[0]);
   const [recallType, setRecallType] = useState<"voluntary" | "force">("voluntary");
   const [notes, setNotes] = useState("");
   const [modal, setModal] = useState<Modal>(null);
   const own = useRmOwnStock();
-  const fromStock = useRmCoordinatorStock(from?.id);
+  // Source SC stock = its unactivated SIMs (GET /redistributable).
+  const fromStock = useRmRedistributableStock(from?.id);
   const toStock = useRmCoordinatorStock(to?.id);
   const batch = useRmBatchTransfer();
   const total = sumQuantities(quantities);
   const fullReason = [reason, notes.trim()].filter(Boolean).join(": ");
 
-  const clear = () => { setQuantities(emptyRmQuantities()); setNotes(""); setReason(reasonOptions[0]); };
+  const clear = () => { setSims(emptyRmSims()); setNotes(""); setReason(reasonOptions[0]); };
   const switchMode = (next: RedistributeMode) => { setParams(next === "sc-to-sc" ? {} : { mode: next }, { replace: true }); clear(); setModal(null); };
-  const pickFrom = (row?: RmStateCoordinatorItem) => { setFrom(row); setQuantities(emptyRmQuantities()); if (row && row.id === to?.id) setTo(undefined); };
+  const pickFrom = (row?: RmStateCoordinatorItem) => { setFrom(row); setSims(emptyRmSims()); if (row && row.id === to?.id) setTo(undefined); };
   // Stock counts refetch after success, so the receipt uses the counts captured when the transfer was submitted.
   const [snapshot, setSnapshot] = useState<{ from?: number; to?: number }>({});
   const submitTransfer = () => {
     if (!from || !to) return;
     setSnapshot({ from: fromStock.total, to: toStock.total });
-    batch.mutate({ kind: "redistribute", from_coordinator_id: from.id, to_coordinator_id: to.id, quantities, reason: fullReason }, { onSettled: () => setModal(null) });
+    batch.mutate({ kind: "redistribute", from_coordinator_id: from.id, from_phone: from.phone, to_coordinator_id: to.id, phone: to.phone, sims, reason: fullReason }, { onSettled: () => setModal(null) });
   };
 
   // Sidebar preview reflects the active mode.
@@ -55,8 +65,8 @@ export function RmRedistributePage() {
       ? { from: { name: from?.name, before: fromStock.total, after: fromStock.total !== undefined ? fromStock.total - total : undefined }, to: { name: "Your inventory", before: own.total, after: own.total !== undefined ? own.total + total : undefined } }
       : { from: { name: "Your inventory", before: own.total, after: own.total !== undefined ? own.total - total : undefined }, to: { name: to?.name, before: toStock.total, after: toStock.total !== undefined ? toStock.total + total : undefined } };
 
-  const sourceBox = (row: RmStateCoordinatorItem | undefined, stock: ReturnType<typeof useRmCoordinatorStock>) => row && (stock.query.isLoading ? <Skeleton active paragraph={{ rows: 1 }} />
-    : <RmStockBox tone="info" title={`${row.name} has ${stock.total ?? "—"} SIMs`}>{breakdownText(stock.byType)}</RmStockBox>);
+  const sourceBox = (row: RmStateCoordinatorItem | undefined, stock: ReturnType<typeof useRmRedistributableStock>) => row && (stock.query.isLoading ? <Skeleton active paragraph={{ rows: 1 }} />
+    : <RmStockBox tone="info" title={`${row.name} has ${stock.total ?? "—"} unactivated SIMs`}>{breakdownText(stock.byType)}</RmStockBox>);
   const notesField = <label className="block space-y-2"><RmLabel>Notes (optional)</RmLabel><Input.TextArea rows={2} value={notes} onChange={event => setNotes(event.target.value)} placeholder="Add context for this movement..." /></label>;
   const footer = (label: string, disabled: boolean, onClick: () => void) => <>
     <button type="button" onClick={clear} className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold" style={{ borderColor: rmFlow.border, color: rmFlow.slate }}><X className="size-3.5" /> Clear Form</button>
@@ -76,17 +86,17 @@ export function RmRedistributePage() {
         footer={footer("Preview Transfer →", !from || !to || total <= 0, () => setModal("confirm-transfer"))}>
         <div className="space-y-2"><RmLabel>Transfer from</RmLabel><RmScSelect value={from} onChange={pickFrom} exclude={to?.id} placeholder="Choose the source SC" />{sourceBox(from, fromStock)}</div>
         <div className="space-y-2"><RmLabel>Transfer to</RmLabel><RmScSelect value={to} onChange={setTo} exclude={from?.id} placeholder="Choose the receiving SC" />{to && toStock.total !== undefined && <p className="text-xs" style={{ color: rmFlow.muted }}>{to.name} currently has {toStock.total} SIMs · {breakdownText(toStock.byType)}</p>}</div>
-        <QuantityList label="Quantities to transfer" stock={fromStock.byType} quantities={quantities} onChange={setQuantities} />
+        <SimList label="SIMs to transfer" stock={fromStock.byType} source={{ kind: "redistributable", coordinatorId: from?.id }} sims={sims} onChange={setSims} disabled={!from} />
         <RmTotalBar left={`Transferring: ${total} SIMs`} right={fromStock.total !== undefined && from ? `${firstName(from.name)} after: ${fromStock.total - total} SIMs` : undefined} />
         <div className="space-y-2"><RmLabel>Select reason</RmLabel><RmReasonPicker value={reason} onChange={setReason} /></div>
         {notesField}
       </RmFormCard>
 
         : mode === "recall" ? <RmFormCard title="Recall from SC" subtitle="Bring stock back from a State Coordinator to your inventory"
-          footer={footer("Preview Recall →", !from || total <= 0, () => setModal("confirm-recall"))}>
+          footer={footer("Coming Soon", true, () => setModal("confirm-recall"))}>
           <RmNote tone="warning">{RECALL_UNAVAILABLE}</RmNote>
           <div className="space-y-2"><RmLabel>Recall from</RmLabel><RmScSelect value={from} onChange={pickFrom} placeholder="Choose the SC to recall from" />{sourceBox(from, fromStock)}</div>
-          <QuantityList label="Quantities to recall" stock={fromStock.byType} quantities={quantities} onChange={setQuantities} />
+          <QuantityList label="Quantities to recall" stock={fromStock.byType} quantities={quantities} onChange={() => undefined} />
           <RmTotalBar left={`Recalling: ${total} SIMs`} right={own.total !== undefined ? `Your stock after: ${own.total + total} SIMs` : undefined} />
           <div className="space-y-2"><RmLabel>Recall type</RmLabel><RmPills value={recallType} onChange={setRecallType} options={[{ value: "voluntary", label: "Voluntary (SC confirms)" }, { value: "force", label: "Force recall" }]} /></div>
           <div className="space-y-2"><RmLabel>Select reason</RmLabel><RmReasonPicker value={reason} onChange={setReason} /></div>
@@ -97,7 +107,7 @@ export function RmRedistributePage() {
             footer={footer("Preview Distribution →", !to || total <= 0, () => setModal("quick"))}>
             {own.query.isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : <RmStockBox tone="success" title={`Your inventory: ${own.total?.toLocaleString() ?? "—"} SIMs`}>{breakdownText(own.byType)}</RmStockBox>}
             <div className="space-y-2"><RmLabel>Distribute to</RmLabel><RmScSelect value={to} onChange={setTo} placeholder="Choose the receiving SC" />{to && toStock.total !== undefined && <p className="text-xs" style={{ color: rmFlow.muted }}>{to.name} currently has {toStock.total} SIMs · {breakdownText(toStock.byType)}</p>}</div>
-            <QuantityList label="Quantities to send" stock={own.byType} quantities={quantities} onChange={setQuantities} />
+            <SimList label="SIMs to send" stock={own.byType} source={{ kind: "own" }} sims={sims} onChange={setSims} />
             <RmTotalBar left={`Distributing: ${total} SIMs`} right={own.total !== undefined ? `Your stock after: ${own.total - total} SIMs` : undefined} />
             {notesField}
           </RmFormCard>}
@@ -112,7 +122,7 @@ export function RmRedistributePage() {
       onDistributeTo={() => { const source = from; batch.reset(); clear(); setTo(source); switchMode("quick"); }} />}
     {modal === "confirm-recall" && from && <RmConfirmRecallModal sc={{ name: from.name, state: from.state, stock: fromStock.total }} rmStock={own.total} quantities={quantities} mode={recallType} onEdit={() => setModal(null)} onForce={() => setModal("force-recall")} />}
     {modal === "force-recall" && from && <RmForceRecallModal sc={{ name: from.name, state: from.state }} quantities={quantities} onClose={() => setModal(null)} />}
-    {modal === "quick" && to && <RmDesignedDistribute target={to} initialQuantities={quantities} initialNotes={notes} onClose={() => setModal(null)} onEdit={() => setModal(null)} onDone={clear} />}
+    {modal === "quick" && to && <RmDesignedDistribute target={to} initialSims={sims} initialNotes={notes} onClose={() => setModal(null)} onEdit={() => setModal(null)} onDone={clear} />}
     {modal === "history" && <RmRedistributionHistoryModal onClose={() => setModal(null)} />}
   </main>;
 }

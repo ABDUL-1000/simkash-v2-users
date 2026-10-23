@@ -1,18 +1,10 @@
-import { Checkbox, Form, Input, InputNumber } from "antd";
-import { useOnboardStateCoordinator, useSendScBonusReminder, useSuspendScAccount } from "../../api/coordinators";
-import type { RmNewCoordinatorPayload, RmScReminderPayload } from "../../types/territory";
+import { Checkbox, Form, Input } from "antd";
+import { useSendScBonusReminder, useSuspendScAccount } from "../../api/coordinators";
+import type { RmScReminderPayload } from "../../types/territory";
 import type { RmSuspendPayload, RmTarget } from "../../types/dashboard";
 import { RmActionModal } from "../dashboard/RmActionModal";
-import { RmCoordinatorSelect, RmProfileFields } from "../dashboard/RmFormFields";
+import { RmCoordinatorSelect } from "../dashboard/RmFormFields";
 
-export function RmOnboardCoordinatorModal({ onClose }: { onClose: () => void }) {
-  const [form] = Form.useForm<RmNewCoordinatorPayload>();
-  const mutation = useOnboardStateCoordinator();
-  return <RmActionModal title="Onboard state coordinator" form={form} pending={mutation.isPending} error={mutation.error} onClose={onClose} onSubmit={values => mutation.mutate(values, { onSuccess: onClose })}>
-    <RmProfileFields />
-    <Form.Item name="initial_stock" label="Initial stock" initialValue={0} rules={[{ required: true, type: "integer", min: 0 }]}><InputNumber min={0} precision={0} className="w-full" /></Form.Item>
-  </RmActionModal>;
-}
 export function RmCoordinatorReminderModal({ target, onClose }: { target?: RmTarget; onClose: () => void }) {
   const [form] = Form.useForm<RmScReminderPayload>();
   const all = Form.useWatch("remind_all_at_risk", form);

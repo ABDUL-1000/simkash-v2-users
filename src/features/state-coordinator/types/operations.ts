@@ -33,7 +33,10 @@ export interface InventoryDistributionResult {
   message: string;
 }
 export type AgentProfilePayload = Pick<ScAgentDetailData["profile_details"], "fullname" | "email" | "phone" | "state" | "lga" | "address">;
-export interface OnboardAgentPayload extends AgentProfilePayload { password?: string; initial_sim_type?: SimType; initial_sim_quantity: number }
+/** POST /my-agent/onboard */
+export interface OnboardAgentPayload extends AgentProfilePayload { password?: string; dob?: string; country: string; reason?: string }
+/** POST /my-agent/verify-partner → data */
+export interface VerifiedPartner { fullname: string; email: string; phone: string; gender?: string; country?: string; isRegistered: boolean }
 export interface AgentReminderPayload { partner_id: number; type: "low_stock" | "bonus_target"; title: string; message: string }
 export interface BulkReminderPayload { target_at_risk_only: boolean; message: string }
 export interface SuspendAgentPayload { suspend: boolean; reason: string }
@@ -67,4 +70,16 @@ export interface RedistributionResult {
   summary: Partial<Record<RedistType, number>>;
   distributions: Partial<Record<RedistType, string[]>>;
   redistributed_at: string; message: string;
+}
+
+/** GET /state-coordinator/sim-inventory/history/{id} */
+export interface ScHistoryDetailData {
+  id: string; reference: string; event_type: string; event_label: string; event_badge_color: string;
+  quantity: number; quantity_delta: number; quantity_formatted: string;
+  party_name: string; party_role: string; party_info: string;
+  recipient?: { id: number; name: string; role: string; phone?: string };
+  sender?: { id: number; name: string; role: string; phone?: string };
+  date: string; time: string; created_at: string; sim_type: string; sim_type_label: string; network: string;
+  breakdown: Record<string, number>; total_sims: number; page: number; limit: number; total_pages: number;
+  sims: Array<{ id: number; sim_number: string; serial_no?: string; network: string; status: string; sim_type: string; sim_type_label: string; date?: string }>;
 }

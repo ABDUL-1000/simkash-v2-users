@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Clock, Download, Package, Send } from "lucide-react";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
-import { useGetScInventoryHistory } from "../../api/inventory";
+import { StockHistoryDetailModal } from "@/components/common/StockHistoryDetail";
+import { useGetScInventoryHistory, useGetScInventoryHistoryDetail } from "../../api/inventory";
 import type { ScSimInventoryOverviewData } from "../../types/inventory";
 import type { InventoryHistoryItem } from "../../types/inventory";
 
@@ -22,6 +23,7 @@ function dayGroup(iso: string) {
 export function ScHistoryTab({ overview }: { overview?: ScSimInventoryOverviewData }) {
   const [eventFilter, setEventFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string>();
   const { data, isLoading, isFetching, error, refetch } = useGetScInventoryHistory({ eventType: eventFilter, page, limit: PAGE_SIZE });
   const history = data?.history ?? [];
   const totalPages = data?.total_pages ?? 1;
@@ -97,6 +99,7 @@ export function ScHistoryTab({ overview }: { overview?: ScSimInventoryOverviewDa
                       <th className="py-2.5 px-4">QTY</th>
                       <th className="py-2.5 px-4">FROM / TO</th>
                       <th className="py-2.5 px-4">REF</th>
+                      <th className="py-2.5 px-4 text-right">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E2ECF6] font-medium text-[#0F152A]">
@@ -126,6 +129,9 @@ export function ScHistoryTab({ overview }: { overview?: ScSimInventoryOverviewDa
                           </td>
                           <td className="py-2.5 px-4 font-mono text-[#8C909B]">
                             {item.reference}
+                          </td>
+                          <td className="py-2.5 px-4 text-right">
+                            <button type="button" onClick={() => setSelectedId(String(item.id ?? item.reference))} className="text-xs font-bold text-[#2563EB] hover:underline">View</button>
                           </td>
                         </tr>
                       );
@@ -165,6 +171,21 @@ export function ScHistoryTab({ overview }: { overview?: ScSimInventoryOverviewDa
           </span>
         </div>}
       </div>
+      {selectedId && <ScHistoryDetail id={selectedId} onClose={() => setSelectedId(undefined)} />}
     </div>
   );
+}
+
+/** GET /state-coordinator/sim-inventory/history/{id}: parties, breakdown and the full SIM list. */
+function ScHistoryDetail({ id, onClose }: { id: string; onClose: () => void }) {
+  const [page, setPage] = useState(1);
+  const query = useGetScInventoryHistoryDetail(id, page);
+  const data = query.data;
+  return <StockHistoryDetailModal open onOpenChange={(open) => !open && onClose()} loading={query.isLoading} fetching={query.isFetching} error={query.error} onRetry={() => void query.refetch()} onPageChange={setPage}
+    detail={data && {
+      reference: data.reference, eventLabel: data.event_label, quantityText: data.quantity_formatted, incoming: data.quantity_delta >= 0,
+      simTypeLabel: data.sim_type_label || data.sim_type, network: data.network, date: data.created_at || data.date, timeText: data.time,
+      sender: data.sender, recipient: data.recipient, breakdown: data.breakdown, totalSims: data.total_sims, page: data.page, totalPages: data.total_pages,
+      sims: data.sims.map((sim) => ({ ...sim, type_label: sim.sim_type_label })),
+    }} />;
 }

@@ -19,5 +19,8 @@ export interface RmHistoryData extends RmPage {
 export interface RmInventoryDistribution extends RmDistributePayload { network?: string; notes?: string }
 export interface RmBulkStockPayload { pos_quantity: number; cctv_quantity: number; gps_quantity: number; router_quantity: number; urgency: "normal" | "urgent"; notes: string }
 export interface RmMyScParams extends RmPage { tab: string; search: string; sortBy: string }
-export interface RmNewCoordinatorPayload extends RmProfilePayload { initial_stock: number }
+/** POST /my-state-coordinator/onboard */
+export interface RmNewCoordinatorPayload extends RmProfilePayload { dob?: string; country: string; reason?: string }
+/** POST /my-state-coordinator/verify-coordinator → data */
+export interface RmVerifiedPerson { fullname: string; email: string; phone: string; gender?: string; country?: string; isRegistered: boolean }
 export interface RmScReminderPayload { coordinator_id?: number; coordinator_ids?: number[]; remind_all_at_risk?: boolean; message: string }

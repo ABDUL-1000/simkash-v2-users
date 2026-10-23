@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useSearchParams } from "react-router-dom";
 import {
   Wallet,
@@ -155,6 +156,9 @@ export function ScWalletPage() {
           <span>Request Payout</span>
         </button>
       </div>
+
+      {/* Main wallet balance (GET /user/auth/me) */}
+      <WalletBalanceCards role="state-coordinator" show="balance" />
 
       {/* Main Hero Card */}
       <div className="rounded-3xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-6">

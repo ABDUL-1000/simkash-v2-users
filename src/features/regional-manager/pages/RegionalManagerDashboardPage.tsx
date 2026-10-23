@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -23,6 +24,8 @@ export function RegionalManagerDashboardPage() {
   const distribute = (target?: RmTarget) => { setSelected(target); setModal("distribute"); };
   return <main className="rm-design mx-auto w-full min-w-0 max-w-[1440px] space-y-5 p-4 sm:p-6" style={rmDesignTokens}>
     <PageHeader title="Regional Manager Dashboard" description="Your territory at a glance" />
+    {/* Wallet + commission balances (GET /user/auth/me) with "Move to Wallet" */}
+    <WalletBalanceCards role="regional-manager" />
     <RmQueryState loading={query.isLoading} error={query.error} empty={!query.data} retry={() => void query.refetch()}>{query.data && <RmDashboardMetrics data={query.data} onPayout={() => navigate(appPaths.rmWallet)} />}</RmQueryState>
     <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
       <div className="min-w-0 space-y-4">

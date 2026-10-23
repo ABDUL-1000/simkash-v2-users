@@ -1,51 +1,70 @@
 import { useState } from "react";
 import { Checkbox, Form, Input, Select, Skeleton } from "antd";
 import { AlertTriangle, Ban, Check, FileWarning, MoreHorizontal, ShieldAlert, TrendingDown, Users } from "lucide-react";
-import { useOnboardStateCoordinator, useSendScBonusReminder, useSuspendScAccount } from "../../api/coordinators";
+import { useAddExistingCoordinator, useOnboardStateCoordinator, useSendScBonusReminder, useSuspendScAccount, useVerifyCoordinator } from "../../api/coordinators";
 import { useGetRmStateCoordinators } from "../../api/dashboard";
-import { rmSimTypes, useRmBatchTransfer, emptyRmQuantities, type RmBatchLine } from "../../api/inventory";
+import { rmSimTypes, useRmBatchTransfer, emptyRmSims, simsToQuantities, type RmBatchLine } from "../../api/inventory";
 import type { RmProfilePayload, RmTarget } from "../../types/dashboard";
 import { RmProfileFields } from "./RmFormFields";
-import { RmAvatar, RmBadge, RmFlowModal, RmLabel, RmNote, RmPills, RmProcessingModal, RmReceipt, RmResultModal, RmStepperRow, RmStockBox, RmTotalBar, type RmReceiptRow } from "../flow/RmFlow";
+import { RmAvatar, RmBadge, RmFlowModal, RmLabel, RmNote, RmPills, RmProcessingModal, RmReceipt, RmResultModal, RmStockBox, RmTotalBar, type RmReceiptRow } from "../flow/RmFlow";
 import { rmFlow } from "../flow/rmFlowTokens";
+import { RmSimPickerRow } from "../flow/RmSimPicker";
 import { breakdownText, firstName, rmSimMeta, sumQuantities, useRmOwnStock } from "../flow/rmStock";
 
 const initialsOf = (name = "") => name.split(" ").map(part => part[0]).join("").slice(0, 2).toUpperCase();
 
-function OnboardSteps({ step }: { step: 0 | 1 }) {
-  const item = (index: 0 | 1, label: string) => {
+function OnboardSteps({ step }: { step: 0 | 1 | 2 }) {
+  const item = (index: 0 | 1 | 2, label: string) => {
     const done = step > index; const active = step === index;
     return <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: done ? rmFlow.green : active ? rmFlow.blue : rmFlow.muted }}>
       <span className="flex size-5 items-center justify-center rounded-full text-[10px] text-white" style={{ background: done ? rmFlow.green : active ? rmFlow.blue : rmFlow.border }}>{done ? <Check className="size-3" /> : index + 1}</span>{label}
     </span>;
   };
-  return <div className="flex items-center gap-4">{item(0, "SC Details")}<span className="h-px w-6" style={{ background: rmFlow.border }} />{item(1, "Stock & Target")}</div>;
+  const line = <span className="h-px w-6" style={{ background: rmFlow.border }} />;
+  return <div className="flex flex-wrap items-center gap-3">{item(0, "Verify Phone")}{line}{item(1, "SC Details")}{line}{item(2, "Stock & Target")}</div>;
 }
 
-interface OnboardResult { message: string; status?: string; coordinatorId?: number; lines: RmBatchLine[]; skipped?: string }
+type OnboardForm = RmProfilePayload & { dob?: string; country: string; reason?: string };
+interface OnboardResult { message: string; status?: string; coordinatorId?: number; lines: RmBatchLine[]; skipped?: string; added?: boolean }
 export function RmDesignedOnboard({ onClose, onViewAll }: { onClose: () => void; onViewAll?: () => void }) {
-  const [form] = Form.useForm<RmProfilePayload>();
-  const [profile, setProfile] = useState<RmProfilePayload>();
-  const [step, setStep] = useState<0 | 1>(0);
-  const [quantities, setQuantities] = useState(emptyRmQuantities);
+  const [form] = Form.useForm<OnboardForm>();
+  const [profile, setProfile] = useState<OnboardForm>();
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [phone, setPhone] = useState("");
+  const [sims, setSims] = useState(emptyRmSims);
+  const quantities = simsToQuantities(sims);
   const [result, setResult] = useState<OnboardResult>();
   const own = useRmOwnStock();
+  const verify = useVerifyCoordinator();
+  const addExisting = useAddExistingCoordinator();
   const onboard = useOnboardStateCoordinator();
   const batch = useRmBatchTransfer();
   const total = sumQuantities(quantities);
-  const pending = onboard.isPending || batch.isPending;
-  const restart = () => { form.resetFields(); setProfile(undefined); setQuantities(emptyRmQuantities()); setResult(undefined); setStep(0); onboard.reset(); batch.reset(); };
+  const pending = onboard.isPending || batch.isPending || addExisting.isPending;
+  const person = verify.data && verify.variables?.phone === phone ? verify.data : undefined;
+  // isRegistered=true → already a State Coordinator: add them to this network. false → onboard as new.
+  const canAdd = person?.isRegistered === true;
+  const restart = () => { form.resetFields(); setProfile(undefined); setPhone(""); setSims(emptyRmSims()); setResult(undefined); setStep(0); verify.reset(); addExisting.reset(); onboard.reset(); batch.reset(); };
 
-  // The onboard endpoint takes one `initial_stock` number with no SIM type, so the SC is created first and the
-  // per-type quantities are then sent through the regular distribute endpoint using the returned coordinator_id.
+  // Not yet an SC (isRegistered=false), or not found: onboard as a new SC, prefilled with whatever verification returned.
+  const startOnboarding = () => {
+    form.setFieldsValue({ phone, fullname: person?.fullname, email: person?.email, country: person?.country || "Nigeria", reason: "State Coordinator onboarding" });
+    setStep(1);
+  };
+  const addToNetwork = () => addExisting.mutate({ phone }, {
+    onSuccess: response => setResult({ message: response.message, lines: [], added: true }),
+  });
+
+  // The onboard endpoint takes no stock, so the SC is created first and the picked SIMs are then sent
+  // through the regular distribute endpoint using the returned coordinator_id.
   const submit = async () => {
     if (!profile) return;
-    const response = await onboard.mutateAsync({ ...profile, initial_stock: 0 }).catch(() => undefined);
+    const response = await onboard.mutateAsync({ ...profile, phone }).catch(() => undefined);
     if (!response) return;
     const data = (response.data ?? {}) as { coordinator_id?: number; status?: string };
     const active = !data.status || /active/i.test(data.status);
     let lines: RmBatchLine[] = []; let skipped: string | undefined;
-    if (total > 0 && data.coordinator_id && active) lines = await batch.mutateAsync({ kind: "distribute", coordinator_id: data.coordinator_id, quantities, notes: "Initial stock allocation" });
+    if (total > 0 && data.coordinator_id && active) lines = await batch.mutateAsync({ kind: "distribute", coordinator_id: data.coordinator_id, phone, sims, notes: "Initial stock allocation" });
     else if (total > 0) skipped = active ? "The response did not include a coordinator ID." : "Stock can be distributed once the SC account is approved.";
     setResult({ message: response.message, status: data.status, coordinatorId: data.coordinator_id, lines, skipped });
   };
@@ -54,28 +73,60 @@ export function RmDesignedOnboard({ onClose, onViewAll }: { onClose: () => void;
     const approval = Boolean(result.status && /pending|review|approval/i.test(result.status));
     const sent = result.lines.filter(line => line.ok); const failed = result.lines.find(line => !line.ok);
     const sentTotal = sent.reduce((sum, line) => sum + line.quantity, 0);
-    return <RmResultModal status={approval ? "pending" : "success"} iconColor={approval ? undefined : rmFlow.green} title={approval ? "Submitted for Approval!" : "SC Onboarded!"} subtitle={result.message} onClose={onClose}
+    const name = result.added ? person?.fullname : profile?.fullname;
+    return <RmResultModal status={approval ? "pending" : "success"} iconColor={approval ? undefined : rmFlow.green} title={result.added ? "SC Added to Your Network!" : approval ? "Submitted for Approval!" : "SC Onboarded!"} subtitle={result.message} onClose={onClose}
       actions={[{ label: "Done", onClick: onClose }, ...(onViewAll ? [{ label: "View All SCs", variant: "secondary" as const, onClick: onViewAll }] : []), { label: "Onboard Another", variant: "secondary", onClick: restart }]}>
-      <RmReceipt rows={[["Name", profile?.fullname], ["Phone", profile?.phone], ["State", profile?.state],
-        ["Stock", sentTotal ? `${sentTotal} SIMs sent` : total ? "Not sent" : "None"], ...(result.status ? [["Status", <RmBadge tone={approval ? "warning" : "success"}>{result.status}</RmBadge>] as RmReceiptRow] : [])]} />
+      <RmReceipt rows={[["Name", name], ["Phone", phone], ...(result.added ? [["Email", person?.email] as RmReceiptRow] : [["State", profile?.state] as RmReceiptRow,
+        ["Stock", sentTotal ? `${sentTotal} SIMs sent` : total ? "Not sent" : "None"] as RmReceiptRow]), ...(result.status ? [["Status", <RmBadge tone={approval ? "warning" : "success"}>{result.status}</RmBadge>] as RmReceiptRow] : [])]} />
       {approval && <div className="space-y-2 text-left text-xs">{[["Submitted", true], ["Admin reviewing", false], ["SC account created", false]].map(([label, done], index) =>
         <p key={String(label)} className="flex items-center gap-2" style={{ color: done ? rmFlow.green : index === 1 ? rmFlow.blue : rmFlow.muted }}><span className="flex size-4 items-center justify-center rounded-full border" style={{ borderColor: "currentColor" }}>{done ? <Check className="size-2.5" /> : <span className="size-1.5 rounded-full" style={{ background: "currentColor" }} />}</span>{label}</p>)}
         <p className="text-center text-[11px]" style={{ color: rmFlow.muted }}>You'll be notified when approved</p></div>}
+      {result.added && <RmNote>Distribute stock to them from SIM Inventory → Distribute to SC.</RmNote>}
       {failed && <RmNote tone="warning">{rmSimMeta[failed.sim_type].label} stock was not sent: {failed.message}</RmNote>}
       {result.skipped && <RmNote tone="warning">{result.skipped}</RmNote>}
     </RmResultModal>;
   }
 
-  return <RmFlowModal title="Onboard State Coordinator" subtitle={step ? "Step 2 — Initial Stock Allocation" : "Step 1 — SC Details"} onClose={onClose} pending={pending}
-    secondary={step ? { label: "← Back", onClick: () => setStep(0), disabled: pending } : { label: "Cancel", onClick: onClose }}
-    primary={step ? { label: "Submit Onboarding", color: rmFlow.blue, loading: pending, disabled: rmSimTypes.some(type => quantities[type] > (own.byType?.[type] ?? 0)), onClick: () => void submit() } : { label: "Continue →", color: rmFlow.blue, onClick: () => form.submit() }}>
+  // Step 0 — verify phone (POST /verify-coordinator)
+  if (step === 0) return <RmFlowModal title="Onboard State Coordinator" subtitle="Step 1 — Verify Phone" onClose={onClose} pending={pending}
+    secondary={{ label: "Cancel", onClick: onClose, disabled: pending }}
+    primary={canAdd ? { label: "Add to My Network", color: rmFlow.green, loading: addExisting.isPending, onClick: addToNetwork }
+      : person || verify.isError ? { label: "Continue to Onboarding →", color: rmFlow.blue, onClick: startOnboarding }
+        : { label: "Verify", color: rmFlow.blue, loading: verify.isPending, disabled: phone.length !== 11, onClick: () => verify.mutate({ phone }) }}>
+    <OnboardSteps step={0} />
+    <label className="block space-y-2"><RmLabel>Phone number</RmLabel>
+      <div className="flex gap-2">
+        <Input size="large" inputMode="numeric" placeholder="e.g. 08065942373" value={phone} disabled={pending} onChange={event => { setPhone(event.target.value.replace(/\D/g, "").slice(0, 11)); verify.reset(); addExisting.reset(); }} />
+        <button type="button" disabled={phone.length !== 11 || verify.isPending || pending} onClick={() => verify.mutate({ phone })} className="shrink-0 rounded-lg border px-4 text-xs font-semibold disabled:opacity-50" style={{ borderColor: rmFlow.blue, color: rmFlow.blue }}>{verify.isPending ? "Checking…" : "Verify"}</button>
+      </div>
+    </label>
+    {person && <div className="flex items-center gap-3 rounded-xl border p-3" style={{ borderColor: canAdd ? rmFlow.green : rmFlow.border, background: canAdd ? rmFlow.greenBg : rmFlow.base }}>
+      <RmAvatar initials={initialsOf(person.fullname)} />
+      <div className="min-w-0 flex-1 text-xs"><strong className="block truncate text-sm">{person.fullname}</strong><span style={{ color: rmFlow.muted }}>{[person.email, person.gender, person.country].filter(Boolean).join(" · ")}</span></div>
+    </div>}
+    {canAdd && <RmNote tone="success" icon={Check}>This person is already a State Coordinator. Add them to your network.</RmNote>}
+    {person && !canAdd && <RmNote>This account isn't a State Coordinator yet. Continue to onboard them; their details are prefilled.</RmNote>}
+    {verify.isError && <RmNote tone="warning">{verify.error.message} You can onboard them as a new State Coordinator.</RmNote>}
+    {addExisting.error && <RmNote tone="danger">{addExisting.error.message}</RmNote>}
+  </RmFlowModal>;
+
+  return <RmFlowModal title="Onboard State Coordinator" subtitle={step === 2 ? "Step 3 — Initial Stock Allocation" : "Step 2 — SC Details"} onClose={onClose} pending={pending}
+    secondary={step === 2 ? { label: "← Back", onClick: () => setStep(1), disabled: pending } : { label: "← Back", onClick: () => setStep(0) }}
+    primary={step === 2 ? { label: "Submit Onboarding", color: rmFlow.blue, loading: pending, disabled: rmSimTypes.some(type => quantities[type] > (own.byType?.[type] ?? 0)), onClick: () => void submit() } : { label: "Continue →", color: rmFlow.blue, onClick: () => form.submit() }}>
     <OnboardSteps step={step} />
-    <Form form={form} layout="vertical" disabled={pending} initialValues={profile} onFinish={values => { setProfile(values); setStep(1); }} style={{ display: step ? "none" : undefined }}><RmProfileFields /></Form>
-    {step === 1 && <>
-      <div className="flex items-center gap-3 rounded-xl border p-3" style={{ borderColor: rmFlow.border }}><RmAvatar initials={initialsOf(profile?.fullname)} /><div className="min-w-0 flex-1"><strong className="block truncate text-sm">{profile?.fullname}</strong><span className="text-xs" style={{ color: rmFlow.muted }}>{profile?.state} · {profile?.phone}</span></div><span className="text-[11px] font-semibold" style={{ color: rmFlow.blue }}>Will become SC in your network</span></div>
+    <Form form={form} layout="vertical" disabled={pending} initialValues={profile} onFinish={values => { setProfile({ ...values, phone }); setStep(2); }} style={{ display: step === 2 ? "none" : undefined }}>
+      <RmProfileFields lockPhone />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Form.Item name="dob" label="Date of birth" rules={[{ required: true, message: "Enter a date of birth." }]}><Input type="date" max={new Date().toISOString().slice(0, 10)} /></Form.Item>
+        <Form.Item name="country" label="Country" initialValue="Nigeria" rules={[{ required: true, whitespace: true }]}><Input /></Form.Item>
+      </div>
+      <Form.Item name="reason" label="Reason (optional)"><Input placeholder="State Coordinator onboarding" /></Form.Item>
+    </Form>
+    {step === 2 && <>
+      <div className="flex items-center gap-3 rounded-xl border p-3" style={{ borderColor: rmFlow.border }}><RmAvatar initials={initialsOf(profile?.fullname)} /><div className="min-w-0 flex-1"><strong className="block truncate text-sm">{profile?.fullname}</strong><span className="text-xs" style={{ color: rmFlow.muted }}>{profile?.state} · {phone}</span></div><span className="text-[11px] font-semibold" style={{ color: rmFlow.blue }}>Will become SC in your network</span></div>
       {own.query.isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : <RmStockBox title={`Your available stock: ${own.total?.toLocaleString() ?? "—"} SIMs`}>{breakdownText(own.byType)}</RmStockBox>}
       {onboard.error && <RmNote tone="danger">{onboard.error.message}</RmNote>}
-      <div><RmLabel>How many SIMs to send initially?</RmLabel>{rmSimTypes.map(type => <RmStepperRow key={type} icon={rmSimMeta[type].icon} label={rmSimMeta[type].label} hint={`${own.byType?.[type] ?? "—"} available`} max={own.byType?.[type] ?? 0} value={quantities[type]} disabled={pending} onChange={value => setQuantities(current => ({ ...current, [type]: value }))} />)}</div>
+      <div><RmLabel>How many SIMs to send initially?</RmLabel>{rmSimTypes.map(type => <RmSimPickerRow key={type} type={type} source={{ kind: "own" }} hint={`${own.byType?.[type] ?? "—"} available`} value={sims[type]} disabled={pending || !own.byType?.[type]} onChange={next => setSims(current => ({ ...current, [type]: next }))} />)}</div>
       <RmTotalBar left={`Total: ${total} SIMs`} right={own.total !== undefined ? `Your stock after: ${(own.total - total).toLocaleString()} SIMs` : undefined} />
       {/* Custom bonus target toggle from the design is not shown: the onboard endpoint has no bonus-target field. */}
       <RmNote tone="warning">Stock is sent once the SC account is created. If the account needs Super Admin approval, distribute after it is approved.</RmNote>

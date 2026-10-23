@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -158,6 +159,9 @@ export function AgencyPartnerDashboardPage() {
           <span>Quick Activate SIM</span>
         </button>
       </div>
+
+      {/* Wallet + commission balances (GET /user/auth/me) with "Move to Wallet" */}
+      <WalletBalanceCards role="partner" />
 
       {/* 1. TOP 3 REUSABLE METRIC STAT CARDS (Matching Image 1) */}
       <div className="grid gap-4 sm:grid-cols-3">

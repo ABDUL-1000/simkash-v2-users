@@ -58,12 +58,12 @@ export function RmTransferResultModal({ lines, from, to, onClose, onRetry, onHis
 
 // No recall endpoint exists on the RM API (GET/POST /regional-manager/*), so recall flows render the design for review
 // but cannot be submitted. Wire `onConfirm` once the backend exposes a recall route.
-export const RECALL_UNAVAILABLE = "Recall isn't available yet — the API has no recall endpoint. You can review the recall here, but it can't be submitted.";
+export const RECALL_UNAVAILABLE = "Recall from SC is coming soon. You can preview the form, but recalls can't be submitted yet.";
 
 export function RmConfirmRecallModal({ sc, rmStock, quantities, mode, onEdit, onForce }: { sc: Party; rmStock?: number; quantities: RmTypeQuantities; mode: "voluntary" | "force"; onEdit: () => void; onForce: () => void }) {
   const total = sumQuantities(quantities);
   const scAfter = sc.stock !== undefined ? sc.stock - total : undefined;
-  return <AppModal open size="sm" title={<span style={{ color: rmFlow.navy }}>Confirm Stock Recall</span>} description="Bring stock back to your inventory" onOpenChange={open => { if (!open) onEdit(); }}
+  return <AppModal open size="xl" title={<span style={{ color: rmFlow.navy }}>Confirm Stock Recall</span>} description="Bring stock back to your inventory" onOpenChange={open => { if (!open) onEdit(); }}
     footer={<RmFlowFooter secondary={{ label: <span className="inline-flex items-center gap-1"><ArrowLeft className="size-3.5" />Edit</span>, onClick: onEdit }} primary={{ label: mode === "force" ? "Continue to Force Recall" : "Confirm Recall", color: mode === "force" ? rmFlow.red : rmFlow.green, disabled: mode !== "force", onClick: onForce }} />}>
     <div className="space-y-4 border-t pt-4" style={{ borderColor: rmFlow.border }}>
       <RmLabel>Recall summary</RmLabel>

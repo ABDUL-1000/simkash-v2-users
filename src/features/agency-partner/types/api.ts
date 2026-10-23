@@ -85,3 +85,23 @@ export type PartnerTransactionsResponse = ApResponse<PartnerTransactionsData>;
 export type PartnerTransactionDetailResponse = ApResponse<PartnerTransactionDetail>;
 export interface PartnerPayoutAccount { id: number; bank_name: string; bank_code: string; account_number: string; account_name: string; is_default: boolean; status: string }
 export type PartnerPayoutAccountResponse = ApResponse<{ default_account: PartnerPayoutAccount | null; accounts: PartnerPayoutAccount[] }>;
+
+// ---- Partner stock history (GET /partner/stock/history, /partner/stock/history/{id}) ----
+export interface PartnerStockParty { id: number; name: string; phone?: string; role?: string }
+export interface PartnerStockHistoryItem {
+  id: string; event_type: string; sim_type: string; network: string; quantity: number; direction: "in" | "out" | string;
+  from_to: string; party_name: string; party_role: string; reference: string; date: string; time_ago: string;
+  sender?: PartnerStockParty; recipient?: PartnerStockParty;
+}
+export interface PartnerStockHistoryData {
+  history: PartnerStockHistoryItem[]; total: number; page: number; limit: number; total_pages: number;
+  summary?: Record<string, number>;
+}
+export interface PartnerStockHistoryDetail {
+  id: string; reference: string; event_type: string; date: string; time_ago: string; quantity: number; direction: string;
+  sim_type_label: string; network_summary: string; sender?: PartnerStockParty; recipient?: PartnerStockParty;
+  breakdown: Record<string, number>; total_sims: number; page: number; limit: number; total_pages: number;
+  sims: Array<{ id: number; sim_number: string; serial_no?: string; network: string; status: string; sim_type: string; type_label: string; date?: string }>;
+}
+export type PartnerStockHistoryResponse = { success: boolean; message: string; data: PartnerStockHistoryData };
+export type PartnerStockHistoryDetailResponse = { success: boolean; message: string; data: PartnerStockHistoryDetail };

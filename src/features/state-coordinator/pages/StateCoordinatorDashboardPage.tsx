@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
@@ -88,6 +89,9 @@ export function StateCoordinatorDashboardPage() {
           Distribute Now
         </button>
       </div>}
+
+      {/* Wallet + commission balances (GET /user/auth/me) with "Move to Wallet" */}
+      <WalletBalanceCards role="state-coordinator" />
 
       {/* 2. Top 4 Main Metric Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">

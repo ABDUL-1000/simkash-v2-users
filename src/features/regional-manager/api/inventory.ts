@@ -43,44 +43,75 @@ export function useExportRmInventoryHistory() {
 export const rmSimTypes = ["pos", "cctv", "gps", "router"] as const;
 export type RmTypeQuantities = Record<RmSimType, number>;
 export const emptyRmQuantities = (): RmTypeQuantities => ({ pos: 0, cctv: 0, gps: 0, router: 0 });
+export type RmTypeSims = Record<RmSimType, string[]>;
+export const emptyRmSims = (): RmTypeSims => ({ pos: [], cctv: [], gps: [], router: [] });
+export const simsToQuantities = (sims: RmTypeSims): RmTypeQuantities => ({ pos: sims.pos.length, cctv: sims.cctv.length, gps: sims.gps.length, router: sims.router.length });
+
+// ---- Redistributable SIMs: unactivated stock sitting with SCs ----
+export interface RmRedistributableSim {
+  id: number; sim_number: string; type: string; type_label: string; network: string; network_code: string; network_color: string;
+  status: string; status_label: string; distributed_at: string;
+  current_coordinator: { id: number; user_id: number; name: string; phone: string; state: string };
+}
+export interface RmRedistributableData {
+  sims: RmRedistributableSim[];
+  summary: { total: number; pos: number; cctv: number; gps: number; router: number; cctv_device: number; coordinators_count: number };
+  coordinators: Array<{ coordinator_id: number; user_id: number; name: string; phone: string; state: string; unactivated_count: number; breakdown: Record<RmSimType | "cctv_device", number> }>;
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+export interface RmRedistributableParams extends RmPage { type?: string; coordinator_id?: number; search?: string }
+export const useGetRmRedistributableSims = (params: RmRedistributableParams, enabled = true) => useRmQuery<RmRedistributableData>("rm-redistributable-sims", "/redistributable", params, enabled, base);
+
 export interface RmBatchLine { sim_type: RmSimType; quantity: number; ok: boolean; reference?: string; message: string }
 export type RmBatchRequest =
-  | { kind: "distribute"; quantities: RmTypeQuantities; coordinator_id: number; network?: string; notes?: string }
-  | { kind: "redistribute"; quantities: RmTypeQuantities; from_coordinator_id: number; to_coordinator_id: number; reason: string };
+  | { kind: "distribute"; sims: RmTypeSims; coordinator_id: number; phone?: string; notes?: string }
+  | { kind: "redistribute"; sims: RmTypeSims; from_coordinator_id: number; from_phone?: string; to_coordinator_id: number; phone?: string; reason: string };
+interface RmTransferResponse { reference?: string; message?: string; summary?: Partial<Record<RmSimType, number>> }
 
 const errorMessage = (error: unknown) =>
   (error as { response?: { data?: { message?: string } } }).response?.data?.message ?? (error as Error).message ?? "Request failed";
 
-// distribute/redistribute accept one sim_type per request, so multi-type flows post one request per non-zero type.
-// Requests run in order and stop at the first failure, so the receipt shows exactly which types moved.
+// POST /distribute and /redistribute take every type at once as { sims: { pos: [...], ... } }.
+// The result is returned as one line per SIM type so the existing receipts can show the breakdown.
 export function useRmBatchTransfer() {
   const client = useQueryClient();
   const userId = useAuthStore(state => state.user?.id);
   return useMutation({
     mutationFn: async (request: RmBatchRequest): Promise<RmBatchLine[]> => {
-      const lines: RmBatchLine[] = [];
-      for (const sim_type of rmSimTypes) {
-        const quantity = request.quantities[sim_type];
-        if (!quantity) continue;
-        const payload = request.kind === "distribute"
-          ? { coordinator_id: request.coordinator_id, sim_type, quantity, network: request.network, notes: request.notes }
-          : { from_coordinator_id: request.from_coordinator_id, to_coordinator_id: request.to_coordinator_id, sim_type, quantity, reason: request.reason };
-        try {
-          const { data } = await authedHttpClient.post<ApiResponse<{ reference?: string; message?: string }>>(`${base}/${request.kind}`, payload);
-          if (!data.success) throw new Error(data.message);
-          lines.push({ sim_type, quantity, ok: true, reference: data.data?.reference, message: data.data?.message ?? data.message });
-        } catch (error) {
-          lines.push({ sim_type, quantity, ok: false, message: errorMessage(error) });
-          break;
-        }
+      const types = rmSimTypes.filter(type => request.sims[type].length);
+      const sims = Object.fromEntries(types.map(type => [type, request.sims[type]]));
+      const payload = request.kind === "distribute"
+        ? { coordinator_id: request.coordinator_id, phone: request.phone, sims, notes: request.notes }
+        : { from_coordinator_id: request.from_coordinator_id, from_phone: request.from_phone, to_coordinator_id: request.to_coordinator_id, phone: request.phone, sims, reason: request.reason, note: request.reason };
+      try {
+        const { data } = await authedHttpClient.post<ApiResponse<RmTransferResponse>>(`${base}/${request.kind}`, payload);
+        if (!data.success) throw new Error(data.message);
+        const message = data.data?.message ?? data.message;
+        return types.map(sim_type => ({ sim_type, quantity: data.data?.summary?.[sim_type] ?? request.sims[sim_type].length, ok: true, reference: data.data?.reference, message }));
+      } catch (error) {
+        const total = types.reduce((sum, type) => sum + request.sims[type].length, 0);
+        return [{ sim_type: types[0] ?? "pos", quantity: total, ok: false, message: errorMessage(error) }];
       }
-      return lines;
     },
     onSettled: async (lines) => {
       if (lines?.some(line => line.ok)) await invalidateRmDashboard(client, userId);
       const failed = lines?.find(line => !line.ok);
       if (failed) openNotification({ state: "error", title: "Request failed", description: failed.message });
-      else if (lines?.length) openNotification({ state: "success", title: lines.length > 1 ? `${lines.length} SIM types sent successfully` : lines[0].message });
+      else if (lines?.length) openNotification({ state: "success", title: lines[0].message });
     },
   });
 }
+
+// ---- History event detail (GET /history/{id}) ----
+export interface RmHistoryDetailData {
+  id: string; reference: string; event_type: string; event_label: string; event_badge_color: string;
+  quantity: number; quantity_delta: number; quantity_formatted: string; party_info: string;
+  recipient?: { id: number; name: string; role: string; phone?: string; state?: string };
+  sender?: { id: number; name: string; role: string; phone?: string };
+  stock_after?: number; time: string; created_at: string; date_group: string;
+  sim_type: string; sim_type_label: string; network: string;
+  breakdown: Record<string, number>; total_sims: number; page: number; limit: number; total_pages: number;
+  sims: Array<{ id: number; sim_number: string; serial_no?: string; network: string; status: string; sim_type: string; sim_type_label: string; assigned_date?: string }>;
+}
+export const useGetRmInventoryHistoryDetail = (id: string | undefined, page: number) =>
+  useRmQuery<RmHistoryDetailData>("rm-inventory-history-detail", `/history/${encodeURIComponent(id ?? "")}`, { page, limit: 100 }, Boolean(id), base);

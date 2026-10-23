@@ -4,11 +4,12 @@ import { Archive, ArrowDownToLine, Clock, Search, Send, X } from "lucide-react";
 import dayjs from "dayjs";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { useGetRmInventoryHistory } from "../../api/inventory";
+import { useGetRmInventoryHistory, useGetRmInventoryHistoryDetail } from "../../api/inventory";
+import { StockHistoryDetailContent } from "@/components/common/StockHistoryDetail";
 import { useGetRmStateCoordinators } from "../../api/dashboard";
 import type { RmHistoryParams } from "../../types/territory";
 import type { RmInventoryHistoryItem } from "../../types/inventory";
-import { RmFlowModal, RmReceipt } from "../../Modals/flow/RmFlow";
+import { RmFlowModal } from "../../Modals/flow/RmFlow";
 import { rmFlow } from "../../Modals/flow/rmFlowTokens";
 
 type Filters = Omit<RmHistoryParams, "page" | "limit">;
@@ -25,11 +26,20 @@ const cap = (value: string) => value ? value[0].toUpperCase() + value.slice(1) :
 const simLabel = (value: string) => `${value.toLowerCase() === "router" ? "Router" : value.toUpperCase()} SIM`;
 const Chip = ({ text, tone }: { text: string; tone: { color: string; bg: string } }) => <span className="inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ color: tone.color, background: tone.bg }}>{text}</span>;
 
+// Full event (parties, breakdown, SIM list) from GET /sim-inventory/history/{id}.
 function HistoryDetail({ item, onClose }: { item: RmInventoryHistoryItem; onClose: () => void }) {
-  const credit = item.quantity_delta >= 0;
+  const [page, setPage] = useState(1);
+  const query = useGetRmInventoryHistoryDetail(item.id || item.reference, page);
+  const data = query.data;
   return <RmFlowModal title="Stock Event Details" subtitle={`${item.reference} · ${cap(item.event_type)}`} onClose={onClose} primary={{ label: "Close", onClick: onClose }}>
-    <div className="py-2 text-center"><p className="text-3xl font-bold" style={{ color: credit ? rmFlow.green : rmFlow.red }}>{item.quantity_formatted}</p><p className="mt-1 text-xs" style={{ color: rmFlow.muted }}>{simLabel(item.sim_type)}</p></div>
-    <RmReceipt rows={[["Reference", item.reference], ["Event", <Chip text={cap(item.event_type)} tone={eventTones[item.event_type] ?? eventTones.adjusted} />], ["SIM type", simLabel(item.sim_type)], ["Network", item.network], ["From / To", item.party_info], ["Time", item.time], "divider", ["Stock after", `${item.stock_after.toLocaleString()} SIMs`]]} />
+    <StockHistoryDetailContent loading={query.isLoading} fetching={query.isFetching} error={query.error} onRetry={() => void query.refetch()} onPageChange={setPage}
+      detail={data && {
+        reference: data.reference, eventLabel: data.event_label || cap(data.event_type), quantityText: data.quantity_formatted, incoming: data.quantity_delta >= 0,
+        simTypeLabel: data.sim_type_label || data.sim_type, network: data.network, date: data.created_at, timeText: data.time,
+        sender: data.sender, recipient: data.recipient, stockAfter: data.stock_after, breakdown: data.breakdown,
+        totalSims: data.total_sims, page: data.page, totalPages: data.total_pages,
+        sims: data.sims.map(sim => ({ ...sim, type_label: sim.sim_type_label, date: sim.assigned_date })),
+      }} />
   </RmFlowModal>;
 }
 
