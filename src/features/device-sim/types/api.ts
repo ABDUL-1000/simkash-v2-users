@@ -13,30 +13,26 @@ export interface DeviceSimOverviewData {
   pendingSims: number;
   expiringSims: number;
   expiredSims: number;
-  usedThisMonth: string;
-  statCards: { total: DeviceSimStatCard; expiringSoon: DeviceSimStatCard; usedThisMonth: DeviceSimStatCard };
+  statCards: { total: DeviceSimStatCard; expiringSoon: DeviceSimStatCard };
 }
 
-export interface SimDataUsage { used: string; total: string; remaining: string; percentage: number; }
 export interface PendingStep { step: number; title: string; completed: boolean; current: boolean; }
 export interface PendingDetails { currentStep: number; stepName: string; submitted_at: string; steps: PendingStep[]; }
 
 export interface DeviceSimItem {
   id: number;
-  sim_id: number;
+  sim_id: number | null;
   sim_number: string;
   network: string;
   sim_type: string;
   typeLabel: string;
-  plan: string;
   status: "active" | "pending" | "expiring" | "expired";
   rawStatus: string;
-  activated_at?: string;
-  expiredDate?: string;
-  daysLeft?: number;
+  activated_at?: string | null;
+  expiredDate?: string | null;
+  daysLeft?: number | null;
   renewsInText?: string;
   isExpiringSoon?: boolean;
-  dataUsage?: SimDataUsage;
   pendingDetails?: PendingDetails;
   serial?: string;
   autoRenew?: boolean;
