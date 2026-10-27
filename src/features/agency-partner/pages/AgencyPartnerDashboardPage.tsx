@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BonusTrackerCard } from "@/features/bonus-tracker";
 import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useNavigate } from "react-router-dom";
 import {
@@ -210,17 +211,8 @@ export function AgencyPartnerDashboardPage() {
         />
       </div>
 
-      {/* 2. Bonus tracker is disabled: no partner endpoint supplies the bonus period, target or progress.
-      <ReusableBonusTracker
-        period="Jun 2026 · 15 days left"
-        status="Achieved"
-        currentActivations={247}
-        targetActivations={200}
-        bonusAmountText="₦5,000 BONUS PAID"
-        creditedNote="Credited to wallet on 15 Jun"
-        nextPeriodInfo="Next period starts 1 Jul 2026 · New target: 200 activations · ₦5,000 bonus"
-        onViewHistory={() => navigate(appPaths.scBonusHistory)}
-      /> */}
+      {/* 2. Weekly bonus tracker (GET /partner/bonus/overview + /history) */}
+      <BonusTrackerCard role="partner" />
 
       {/* 3. 5 QUICK ACTION PILL CARDS STRIP (Matching Image 1) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-3.5">

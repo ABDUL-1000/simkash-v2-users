@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BonusTrackerCard } from "@/features/bonus-tracker";
 import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
@@ -30,6 +31,8 @@ export function RegionalManagerDashboardPage() {
     <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
       <div className="min-w-0 space-y-4">
         <RmCoordinatorsTable summary={query.data?.my_state_coordinators} onView={target => navigate(appPaths.rmCoordinatorDetail(target.id).path)} onDistribute={distribute} onOnboard={() => setModal("onboard")} onViewAll={() => navigate(appPaths.rmStateCoordinators)} />
+        {/* Weekly bonus tracker (GET /regional-manager/bonus/overview + /history) */}
+        <BonusTrackerCard role="regional-manager" />
         <RmRecentActivityFeed />
       </div>
       {query.data && !query.error && <RmDashboardWidgets data={query.data} onRequest={() => setModal("request")} onDistribute={() => distribute()} onPayout={() => navigate(appPaths.rmWallet)} onOnboard={() => setModal("onboard")} onRemind={() => setModal("remind")}

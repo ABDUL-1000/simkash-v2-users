@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { BonusTrackerCard } from "@/features/bonus-tracker";
 import { WalletBalanceCards } from "@/features/commission-wallet";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   Box,
-  Calendar,
   DollarSign,
   Eye,
   EyeOff,
@@ -207,58 +207,8 @@ export function StateCoordinatorDashboardPage() {
         ))}
       </div>
 
-      {/* 4. BONUS TRACKER WIDGET */}
-      <div className="rounded-3xl border border-[#E2ECF6] bg-white p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Trophy className="size-5 text-[#F59E0B] shrink-0" />
-            <h2 className="text-base sm:text-lg font-black text-[#0F152A]">Bonus Tracker</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate(appPaths.scBonusHistory)}
-            className="text-xs font-semibold text-[#8C909B] hover:text-[#2563EB] flex items-center gap-1 self-start sm:self-auto"
-          >
-            View History →
-          </button>
-        </div>
-
-        {/* Target banner (this_month.target) */}
-        <div className={`rounded-2xl border p-4 sm:p-6 text-center space-y-3 ${targetMet ? "border-[#9DF8DA] bg-[#EBFFF8]" : "border-[#FDE68A] bg-[#FFFBEB]"}`}>
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#10B981]/10 text-[#F59E0B]">
-            <Trophy className="size-6" />
-          </div>
-
-          <div className="space-y-0.5">
-            <h3 className={`text-lg sm:text-xl font-black flex items-center justify-center gap-1.5 ${targetMet ? "text-[#10B981]" : "text-[#D9990D]"}`}>
-              {targetMet ? <><span>🎉</span><span>Target Achieved!</span></> : <span>{target.percentage}% of target</span>}
-            </h3>
-            <p className="text-xs font-medium text-[#66738C]">
-              You hit {data.this_month.activations_formatted} of {target.target_activations.toLocaleString()} activations
-            </p>
-          </div>
-
-          {/* Dark Navy Bonus Pill */}
-          {bonusCard && <div className="rounded-2xl bg-[#0D1B2E] p-3.5 sm:p-4 text-center text-white space-y-0.5 shadow-md">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-wide text-white break-words">
-              {String(bonusCard.value).toUpperCase()}
-            </h2>
-            <p className="text-xs text-[#8C909B] font-medium">
-              {bonusCard.subtext}
-            </p>
-          </div>}
-        </div>
-
-        {/* Date / Period Strip */}
-        <div className="rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-[#8C909B]">
-            <Calendar className="size-4 shrink-0 text-[#8C909B]" />
-          </div>
-          <span className="text-xs font-semibold text-[#8C909B]">
-            {target.text}
-          </span>
-        </div>
-
+      {/* 4. BONUS TRACKER WIDGET (GET /state-coordinator/bonus/overview + /history); AP network status from the dashboard API */}
+      <BonusTrackerCard role="state-coordinator">
         <div className="border-t border-[#E2ECF6] pt-3 space-y-3">
           <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
             YOUR AP NETWORK BONUS STATUS
@@ -288,7 +238,7 @@ export function StateCoordinatorDashboardPage() {
             </button>
           </div>
         </div>
-      </div>
+      </BonusTrackerCard>
 
       {/* 5. QUICK ACTION BUTTONS STRIP — Activate and Request Stock removed for State Coordinators */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
