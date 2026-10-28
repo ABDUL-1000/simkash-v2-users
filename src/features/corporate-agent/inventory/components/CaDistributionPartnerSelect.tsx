@@ -2,16 +2,12 @@ import { useState } from "react";
 import { Search, ChevronDown } from "lucide-react";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import type { CaApStockDistributionRow } from "../types/ca-inventory.types";
-export function CaDistributionPartnerSelect({ selectedAp, partners, onSelectAp }: { selectedAp?: CaApStockDistributionRow; partners: CaApStockDistributionRow[]; onSelectAp: (ap: CaApStockDistributionRow) => void }) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function CaDistributionPartnerSelect({ selectedAp, partners, onSelectAp, search: searchQuery, onSearch: setSearchQuery, loading }: { selectedAp?: CaApStockDistributionRow; partners: CaApStockDistributionRow[]; onSelectAp: (ap: CaApStockDistributionRow) => void; search: string; onSearch: (value: string) => void; loading?: boolean }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const currentApStock = selectedAp?.total;
 
-  const filteredAps = partners.filter((ap) =>
-    ap.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ap.phone.includes(searchQuery)
-  );
+  const filteredAps = partners;
 
 return (<>
       {/* SELECT AGENCY PARTNER */}
@@ -44,7 +40,7 @@ return (<>
 
           {dropdownOpen && (
             <div className="absolute top-full left-0 right-0 mt-1 max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg z-20 divide-y divide-slate-100">
-              {!filteredAps.length && <AppEmptyState title="No agency partners found" />}
+              {!filteredAps.length && <AppEmptyState title={loading ? "Loading agency partners…" : "No agency partners found"} />}
               {filteredAps.map((ap) => (
                 <div
                   key={ap.id}

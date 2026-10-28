@@ -5,25 +5,22 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import type { CaDistributeContextData } from "../types/inventory";
+import type { CaSimSelection, CaSimType, CaStockSummary } from "../types/inventory";
 import type { CaApStockDistributionRow } from "../types/ca-inventory.types";
 
 interface CaDistributeTabFormProps {
   selectedType?: string;
   selectedAp?: CaApStockDistributionRow;
   partners: CaApStockDistributionRow[];
-  stock: CaDistributeContextData["csa_stock"];
+  stock: CaStockSummary;
   safetyMessage?: string;
   previewReady: boolean;
+  partnerSearch: string;
+  onPartnerSearch: (value: string) => void;
+  partnersLoading?: boolean;
   onSelectAp: (ap: CaApStockDistributionRow) => void;
-  posQty: number;
-  setPosQty: (qty: number) => void;
-  cctvQty: number;
-  setCctvQty: (qty: number) => void;
-  gpsQty: number;
-  setGpsQty: (qty: number) => void;
-  routerQty: number;
-  setRouterQty: (qty: number) => void;
+  sims: CaSimSelection;
+  onSimsChange: (type: CaSimType, sims: string[]) => void;
   note: string;
   setNote: (note: string) => void;
   onClear: () => void;
@@ -31,22 +28,16 @@ interface CaDistributeTabFormProps {
 }
 
 export function CaDistributeTabForm({
-  selectedType, selectedAp, partners, stock, safetyMessage, previewReady,
+  selectedType, selectedAp, partners, stock, safetyMessage, previewReady, partnerSearch, onPartnerSearch, partnersLoading,
   onSelectAp,
-  posQty,
-  setPosQty,
-  cctvQty,
-  setCctvQty,
-  gpsQty,
-  setGpsQty,
-  routerQty,
-  setRouterQty,
+  sims,
+  onSimsChange,
   note,
   setNote,
   onClear,
   onPreview,
 }: CaDistributeTabFormProps) {
-  const totalDistributing = posQty + cctvQty + gpsQty + routerQty;
+  const totalDistributing = sims.pos.length + sims.cctv.length + sims.gps.length + sims.router.length;
   const myTotalStock = stock.total;
   const myStockAfter = myTotalStock - totalDistributing;
 
@@ -57,7 +48,7 @@ export function CaDistributeTabForm({
     >
       <div>
         <h2 className="text-base font-bold text-slate-900">Distribute SIM Stock</h2>
-        <p className="text-xs text-slate-500">Select an AP and enter quantities</p>
+        <p className="text-xs text-slate-500">Select an AP and pick the SIMs to send</p>
       </div>
 
       {/* TOP STOCK BAR */}
@@ -76,8 +67,8 @@ export function CaDistributeTabForm({
         </span>
       </div>
 
-      <CaDistributionPartnerSelect selectedAp={selectedAp} partners={partners} onSelectAp={onSelectAp} />
-      <CaDistributionQuantities selectedType={selectedType} posQty={posQty} setPosQty={setPosQty} cctvQty={cctvQty} setCctvQty={setCctvQty} gpsQty={gpsQty} setGpsQty={setGpsQty} routerQty={routerQty} setRouterQty={setRouterQty} stock={stock} />
+      <CaDistributionPartnerSelect selectedAp={selectedAp} partners={partners} onSelectAp={onSelectAp} search={partnerSearch} onSearch={onPartnerSearch} loading={partnersLoading} />
+      <CaDistributionQuantities selectedType={selectedType} sims={sims} onChange={onSimsChange} stock={stock} />
       {/* SUMMARY */}
       <div className="space-y-1 pt-1">
         <div className="flex items-center justify-between text-xs">
@@ -90,7 +81,7 @@ export function CaDistributeTabForm({
           </span>
         </div>
         <div className="text-[11px] text-emerald-600 font-bold">
-          {safetyMessage || "Choose quantities to calculate the stock preview."}
+          {safetyMessage || "Pick SIMs to see the stock preview."}
         </div>
       </div>
 

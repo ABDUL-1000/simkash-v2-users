@@ -1,206 +1,113 @@
+export type CaSimType = "pos" | "cctv" | "gps" | "router";
+export type CaRedistType = CaSimType | "cctv_device";
+export type CaQuantities = Record<CaSimType, number>;
+export type CaSimSelection = Record<CaSimType, string[]>;
 
-// --- Overview (Tab 1) ---
+interface CaSummaryCard { count: number; label: string; subtext: string }
+
+// --- GET /sim-inventory/overview ---
 export interface CaInventoryOverviewData {
   summary_cards: {
-    total_available: { count: number; label: string; subtext: string; icon: string };
-    distributed: { count: number; label: string; subtext: string; icon: string };
-    received: { count: number; label: string; subtext: string; icon: string };
-    pending_requests: { count: number; label: string; subtext: string; icon: string };
-    aps_low_on_stock: { count: number; label: string; subtext: string; icon: string; highlight?: boolean };
+    total_available: CaSummaryCard;
+    distributed: CaSummaryCard;
+    received: CaSummaryCard;
+    pending_requests: CaSummaryCard;
+    aps_low_on_stock: CaSummaryCard;
   };
-  current_inventory: Array<{
+  stock_types: Array<{
     type: string;
     label: string;
-    subtext: string;
     available: number;
     status: string;
-    status_color: string;
-    capacity_percentage: number;
-    capacity_text: string;
-    progress_color: string;
+    allocated_percentage: number;
+    allocated_text: string;
     network_breakdown: Array<{ network: string; count: number }>;
-    action: string;
-    is_warning?: boolean;
-    is_critical?: boolean;
   }>;
   how_stock_is_distributed: {
     total_partners: number;
     total_partners_text: string;
-    partners: Array<{
-      id: number;
-      name: string;
-      phone: string;
-      initials: string;
-      pos: number;
-      cctv: number;
-      gps: number;
-      router: number;
-      total: number;
-      status: string;
-      status_color: string;
-      stock_alert: boolean;
-    }>;
+    partners: Array<{ id: number; name: string; phone: string; stock: number; customers: number; activations_text: string; status: string }>;
   };
-  inventory_health: {
-    status: string;
-    score: number;
-    score_text: string;
-    breakdown: Array<{ category: string; percentage: number; color: string }>;
-  };
-  days_remaining: {
-    subtitle: string;
-    estimates: Array<{
-      category: string;
-      days: number;
-      days_text: string;
-      status: string;
-      color: string;
-      is_alert: boolean;
-    }>;
-  };
-  aps_needing_stock: Array<{
-    id: number;
-    name: string;
-    detail: string;
-    status: string;
-    status_color: string;
-    icon: string;
-  }>;
-  request_stock_card: {
-    message: string;
-    last_request_text: string;
-    can_request: boolean;
-  };
+  inventory_health: { overall_health: string; total_sims_text: string };
+  estimated_days_remaining: { subtitle: string; alert_callout?: { message: string } | null };
+  aps_need_distribution: { title: string; can_distribute_all: boolean };
+  rm_info: { name: string; role: string; phone: string; region: string };
 }
 
-// --- Distribution Context & Previews (Tab 2) ---
-export interface CaDistributeContextData {
-  csa_stock: {
-    total: number;
-    pos: number;
-    cctv: number;
-    gps: number;
-    router: number;
-    summary_text: string;
-  };
-  agency_partners: Array<{
-    id: number;
-    name: string;
-    phone: string;
-    initials: string;
-    current_stock: number;
-    current_stock_label: string;
-    status: string;
-    status_color: string;
-    customers: number;
-    activations_per_month: number;
-    bonus_status: string;
-    last_received_text: string;
-    is_low_stock: boolean;
-  }>;
+/** Per-type stock used by the distribute and request-stock forms (built from /undistributed or /overview). */
+export interface CaStockSummary { total: number; pos: number; cctv: number; gps: number; router: number; summary_text: string }
+
+// --- GET /sim-inventory/available and /undistributed ---
+export interface CaStockSim {
+  id: number; sim_number: string; type: CaSimType; type_label: string; network: string; network_code: string;
+  network_color: string; status: string; received_at: string;
+}
+export interface CaSimListParams { type?: string; network?: string; search?: string; page: number; limit: number }
+export interface CaSimListData { sims: CaStockSim[]; total: number; page: number; limit: number; total_pages: number }
+export interface CaUndistributedData extends CaSimListData {
+  owner: { id: number; role: string; name: string };
+  summary: { total_undistributed: number; pos: number; cctv: number; gps: number; router: number };
 }
 
-export interface CaApPreviewData {
-  id: number;
-  name: string;
-  phone: string;
-  initials: string;
-  location: string;
-  customers: number;
-  current_stock: number;
-  current_stock_text: string;
-  status: string;
-  activations_per_month: number;
-  activations_text: string;
-  bonus_status: string;
-  bonus_status_color: string;
-  last_received: string;
-  last_sent_details: {
-    time_ago: string;
-    total_sims: number;
-    breakdown_text: string;
-    reference: string;
-  };
-}
-
-export interface CaDistributeQuantities {
-  pos?: number;
-  cctv?: number;
-  gps?: number;
-  router?: number;
-}
-
-export interface CaDistributePreviewResponseData {
-  partner: { id: number; name: string; location: string; customers: number };
-  quantities: CaDistributeQuantities & { total: number };
-  csa_stock: {
-    before: number;
-    after: number;
-    difference_text: string;
-    is_healthy: boolean;
-    safety_message: string;
-  };
-  partner_stock: {
-    before: number;
-    after: number;
-    difference_text: string;
-  };
-}
-
-// --- History (Tab 3) ---
-export interface CaInventoryHistoryEvent {
-  id: string;
-  date: string;
-  date_section: string;
-  event: string;
-  event_color: string;
-  sim_type: string;
-  network: string;
-  qty: number;
-  qty_formatted: string;
-  party_text: string;
-  running_total: string;
-  reference: string;
-  raw_date: string;
-}
-
-export interface CaInventoryHistoryResponseData {
-  summary_cards: {
-    total_received: { count: number; label: string; subtext: string; icon: string };
-    total_distributed: { count: number; label: string; subtext: string; icon: string };
-    currently_in_stock: { count: number; label: string; subtext: string; icon: string };
-    pending_requests: { count: number; label: string; subtext: string; icon: string };
-  };
-  total_events: number;
-  filtered_events_count: number;
-  page: number;
-  limit: number;
-  total_pages: number;
-  showing_text: string;
-  grouped_events: Record<string, CaInventoryHistoryEvent[]>;
-  events: CaInventoryHistoryEvent[];
-}
-
-// --- Stock Requisitions ---
-export interface CaStockRequestItem {
-  id: number;
-  reference: string;
-  sim_type: string;
-  quantity: number;
-  status: string;
-  status_color: string;
-  requested_at: string;
-  time_ago: string;
-  notes: string;
-}
-export type CaSimType = "pos" | "cctv" | "gps" | "router";
-export type CaQuantities = Record<CaSimType, number>;
-export interface CaDistributionPayload { partner_id: number; quantities: CaQuantities; note?: string }
+// --- POST /sim-inventory/distribute ---
+export interface CaDistributionPayload { phone: string; partner_id: number; sims: Partial<Record<CaSimType, string[]>>; note?: string }
 export interface CaDistributionResult {
- reference: string; partner_id: number; partner_name: string;
- distributed_quantities: CaQuantities & { total: number };
- csa_stock_after: number; partner_stock_after: number; note: string; distributed_at: string; message: string;
+  reference: string;
+  recipient: { user_id: number; agent_id: number; name: string; phone: string };
+  total_distributed: number;
+  summary: Partial<Record<CaRedistType, number>>;
+  distributions: Partial<Record<CaRedistType, string[]>>;
+  distributed_at: string;
+  message: string;
 }
-export interface CaRequisitionPayload { sim_type: CaSimType; quantity: number; notes: string; urgency: "normal" | "high" }
-export interface CaRequisitionResult { request_id: number; reference: string; sim_type: string; quantity: number; status: string; requested_at: string; message: string }
-export interface CaHistoryParams { search: string; event_type: string; sim_type: string; page: number; limit: number }
+
+// --- GET /sim-inventory/redistributable + POST /redistribute ---
+export interface CaRedistributableSim {
+  id: number; sim_number: string; type: CaRedistType; type_label: string; network: string; network_code: string; network_color: string;
+  status: string; status_label: string; distributed_at: string;
+  current_partner: { id: number; user_id: number; name: string; phone: string };
+}
+export interface CaRedistributablePartner {
+  partner_id: number; user_id: number; name: string; phone: string; unactivated_count: number;
+  breakdown: Record<CaRedistType, number>;
+}
+export interface CaRedistributableData {
+  sims: CaRedistributableSim[];
+  summary: Record<CaRedistType, number> & { total: number; partners_count: number };
+  partners: CaRedistributablePartner[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+export interface CaRedistributableParams { type?: string; partnerId?: number; search?: string; page: number; limit: number }
+export interface CaRedistributionPayload { newPhone: string; sims: Partial<Record<CaRedistType, string[]>>; note?: string }
+export interface CaRedistributionResult {
+  reference: string; total_redistributed: number; redistributedTo: string;
+  recipient: { user_id: number; agent_id: number; name: string; phone: string };
+  previous_partners: Array<{ user_id: number; name: string; phone: string; count: number }>;
+  summary: Partial<Record<CaRedistType, number>>;
+  distributions: Partial<Record<CaRedistType, string[]>>;
+  redistributed_at: string; message: string;
+}
+
+// --- GET /sim-inventory/history and /history/{id} ---
+export interface CaInventoryHistoryItem {
+  id: string; event_type: string; sim_type: string; quantity: number; party_name: string; party_role: string;
+  reference: string; date: string; time_ago: string;
+}
+export interface CaInventoryHistoryData { history: CaInventoryHistoryItem[]; total: number; page: number; limit: number; total_pages: number }
+export interface CaHistoryParams { search: string; event_type: string; sim_type: string; start_date?: string; end_date?: string; page: number; limit: number }
+export interface CaHistoryDetailData {
+  id: string; reference: string; event_type: string; event_label: string; quantity: number; quantity_delta: number; quantity_formatted: string;
+  party_name: string; party_role: string; party_info: string;
+  recipient?: { id: number; name: string; role: string; phone?: string };
+  sender?: { id: number; name: string; role: string; phone?: string };
+  date: string; time: string; created_at: string; sim_type: string; sim_type_label: string; network: string;
+  breakdown: Record<string, number>; total_sims: number; page: number; limit: number; total_pages: number;
+  sims: Array<{ id: number; sim_number: string; serial_no?: string; network?: string; status?: string; sim_type: string; sim_type_label: string; date?: string }>;
+}
+
+// --- POST /sim-inventory/request-stock + GET /requests ---
+export interface CaRequisitionPayload { sim_type: CaSimType; quantity: number; notes: string; urgency: "normal" | "urgent" }
+export interface CaRequisitionResult { id: number; product_type: string; quantity: number; status: string; message: string }
+export interface CaStockRequestItem {
+  id: number; sim_type: string; quantity: number; status: string; urgency: string; notes: string; rm_name: string; requested_at: string;
+}

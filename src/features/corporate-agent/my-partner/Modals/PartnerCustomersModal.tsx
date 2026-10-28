@@ -6,6 +6,7 @@ import { AppModal } from "@/components/common/AppModal";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useGetCaPartnerCustomers } from "../api/useCaPartners";
+import { useDebouncedValue } from "../../inventory/api/useDebouncedValue";
 
 interface PartnerCustomersModalProps {
   open: boolean;
@@ -30,26 +31,19 @@ export function PartnerCustomersModal({
     initialPageSize: 10,
   });
 
+  const debouncedSearch = useDebouncedValue(search.trim());
+  // Search is server-side (?search=); the status filter applies to the loaded page.
   const { data, isLoading } = useGetCaPartnerCustomers(partnerId, {
     page,
     limit: pageSize,
-  });
+    search: debouncedSearch || undefined,
+  }, open);
 
-  const customers = data?.customers || [];
-  const pagination = data?.pagination;
+  const customers = data?.items || [];
+  const pagination = data && { total_items: data.total, total_pages: data.total_pages };
   const totalCount = pagination?.total_items ?? customers.length;
 
-  const filtered = customers.filter((c) => {
-    if (filter !== "All" && c.status.toLowerCase() !== filter.toLowerCase()) return false;
-    if (
-      search &&
-      !c.name.toLowerCase().includes(search.toLowerCase()) &&
-      !c.sim_number.includes(search)
-    ) {
-      return false;
-    }
-    return true;
-  });
+  const filtered = customers.filter((c) => filter === "All" || c.status.toLowerCase() === filter.toLowerCase());
 
   return (
     <AppModal
@@ -85,7 +79,7 @@ export function PartnerCustomersModal({
             type="text"
             placeholder="Search by name or SIM number..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] py-2 pl-9 pr-4 text-xs font-medium text-[#0F172A] outline-none focus:border-[#2563EB]"
           />
         </div>
@@ -141,11 +135,6 @@ export function PartnerCustomersModal({
                     />
                     {item.status}
                   </span>
-                  {(item.activated_date || item.expiry_date) && (
-                    <p className="text-[10px] text-[#8C909B]">
-                      {item.activated_date || item.expiry_date}
-                    </p>
-                  )}
                 </div>
               </div>
             ))}
@@ -156,7 +145,7 @@ export function PartnerCustomersModal({
         {pagination && pagination.total_pages > 1 && (
           <div className="flex items-center justify-between text-xs pt-2 border-t border-[#E2ECF6]">
             <span className="text-[11px] font-medium text-[#8C909B]">
-              Page {pagination.current_page} of {pagination.total_pages} ({pagination.total_items} total)
+              Page {page} of {pagination.total_pages} ({pagination.total_items} total)
             </span>
             <div className="flex items-center gap-1">
               <button

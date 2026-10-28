@@ -1,40 +1,16 @@
-import { useMutation, useQuery, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
 import { authedHttpClient } from "@/utils/http/auth";
 import { useAuthStore } from "@/store/authStore";
 import { openNotification } from "@/utils/notifications";
 import type { ApiResponse } from "@/features/auth/types/api";
 import type {
-  PartnersOverview,
-  PartnerDetail,
-  PartnerCustomer,
-  PartnerStockEvent,
-  PartnerPagination,
-  PartnerOverviewParams,
-  PartnerOnboardPayload,
-  PartnerProfile,
-  PartnerQuantities,
-  PartnerDistributionResult,
-  PartnerBatchResult,
-  PartnerReminder,
-  PartnerReminderResult,
-  PartnerRecall,
-  PartnerRecallResult,
-  PartnerStatusResult,
+  PartnersOverview, PartnerDetail, PartnerCustomersData, PartnerStockHistoryData, PartnerOverviewParams, PartnerOnboardPayload,
+  PartnerOnboardResult, PartnerProfile, PartnerUpdateResult, PartnerReminder, PartnerBulkReminder, PartnerReminderResult,
+  PartnerSuspendPayload, PartnerStatusResult, VerifiedPartner,
 } from "../types/api";
 
 const base = "/corporate-sales-agent/my-partner";
-export const partnerResources = [
-  "ca-partners-overview",
-  "ca-partner-detail",
-  "ca-partner-customers",
-  "ca-partner-stock-history",
-  "ca-dashboard-overview",
-  "ca-managed-partners",
-  "ca-inventory-overview",
-  "ca-distribute-context",
-  "ca-ap-preview",
-  "ca-inventory-history",
-];
+const partnerResources = ["ca-partners-overview", "ca-partner-detail", "ca-partner-customers", "ca-partner-stock-history", "ca-dashboard-overview", "ca-inventory-overview"];
 
 function usePartnerQuery<T>(key: string, path: string, params?: object, enabled = true) {
   const userId = useAuthStore((s) => s.user?.id);
@@ -43,6 +19,7 @@ function usePartnerQuery<T>(key: string, path: string, params?: object, enabled 
     queryKey: [key, userId, path, params],
     enabled: Boolean(userId && token && enabled),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
     queryFn: async ({ signal }) => {
       const { data } = await authedHttpClient.get<ApiResponse<T>>(base + path, { params, signal });
       if (!data.success) throw new Error(data.message);
@@ -52,136 +29,70 @@ function usePartnerQuery<T>(key: string, path: string, params?: object, enabled 
 }
 
 type Options<P, R> = Omit<UseMutationOptions<ApiResponse<R>, Error, P>, "mutationFn">;
-
-function usePartnerMutation<P, R>(
-  path: string,
-  method: "post" | "patch",
-  options?: Options<P, R>,
-  extraInvalidateKeys?: string[]
-) {
+function usePartnerMutation<P, R>(path: string, method: "post" | "put", options?: Options<P, R>, { toast = true, invalidate = true } = {}) {
   const client = useQueryClient();
   const userId = useAuthStore((s) => s.user?.id);
-
   return useMutation({
     ...options,
     retry: false,
     mutationFn: async (payload: P) => {
-      const { data } = await authedHttpClient[method]<ApiResponse<R>>(
-        base + path,
-        payload && Object.keys(payload as object).length > 0 ? payload : undefined
-      );
+      const { data } = await authedHttpClient[method]<ApiResponse<R>>(base + path, payload);
       if (!data.success) throw new Error(data.message);
       return data;
     },
     onSuccess: async (...args) => {
-      const allKeys = [...new Set([...partnerResources, ...(extraInvalidateKeys || [])])];
-      await Promise.all([
-        ...allKeys.map((key) => client.invalidateQueries({ queryKey: [key] })),
-        ...allKeys.map((key) => client.invalidateQueries({ queryKey: [key, userId] })),
-      ]);
-      openNotification({ state: "success", title: args[0].message });
+      if (invalidate) await Promise.all(partnerResources.map((key) => client.invalidateQueries({ queryKey: [key, userId] })));
+      if (toast) openNotification({ state: "success", title: args[0].message });
       await options?.onSuccess?.(...args);
     },
     onError: (...args) => {
-      openNotification({ state: "error", title: "Request failed", description: args[0].message });
+      if (toast) openNotification({ state: "error", title: "Request failed", description: args[0].message });
       return options?.onError?.(...args);
     },
   });
 }
 
-export const useGetCaPartners = (params: PartnerOverviewParams) =>
+const validId = (id?: number | string) => {
+  const value = Number(id);
+  return Number.isSafeInteger(value) && value > 0 ? value : undefined;
+};
+
+/** GET /my-partner/overview */
+export const useGetCaPartnersOverview = (params: PartnerOverviewParams) =>
   usePartnerQuery<PartnersOverview>("ca-partners-overview", "/overview", params);
+/** GET /my-partner/{agentId} */
+export const useGetCaPartnerDetail = (id?: number | string) =>
+  usePartnerQuery<PartnerDetail>("ca-partner-detail", `/${validId(id)}`, undefined, Boolean(validId(id)));
+/** GET /my-partner/{agentId}/customers */
+export const useGetCaPartnerCustomers = (id: number | string | undefined, params: { page: number; limit: number; search?: string }, enabled = true) =>
+  usePartnerQuery<PartnerCustomersData>("ca-partner-customers", `/${validId(id)}/customers`, params, enabled && Boolean(validId(id)));
+/** GET /my-partner/{agentId}/stock-history */
+export const useGetCaPartnerStockHistory = (id: number | string | undefined, enabled = true) =>
+  usePartnerQuery<PartnerStockHistoryData>("ca-partner-stock-history", `/${validId(id)}/stock-history`, undefined, enabled && Boolean(validId(id)));
 
-export const useGetCaPartner = (id?: number | string) => {
-  const numericId = typeof id === "string" ? Number(id) : id;
-  const isValid = Number.isSafeInteger(numericId) && Number(numericId) > 0;
-  return usePartnerQuery<PartnerDetail>("ca-partner-detail", `/${numericId}`, undefined, Boolean(isValid));
-};
+/** PUT /my-partner/{agentId} */
+export const useCaUpdatePartner = (id: number | string, options?: Options<PartnerProfile, PartnerUpdateResult>) =>
+  usePartnerMutation<PartnerProfile, PartnerUpdateResult>(`/${id}`, "put", options);
+/** POST /my-partner/verify-partner — no toast; the modal shows the result inline. */
+export const useCaVerifyPartner = () =>
+  usePartnerMutation<{ phone: string }, VerifiedPartner>("/verify-partner", "post", undefined, { toast: false, invalidate: false });
+/** POST /my-partner/add-partner — an existing Agency Partner joins your network. */
+export const useCaAddExistingPartner = (options?: Options<{ phone: string }, unknown>) =>
+  usePartnerMutation<{ phone: string }, unknown>("/add-partner", "post", options);
+/** POST /my-partner/onboard */
+export const useCaOnboardPartner = (options?: Options<PartnerOnboardPayload, PartnerOnboardResult>) =>
+  usePartnerMutation<PartnerOnboardPayload, PartnerOnboardResult>("/onboard", "post", options);
+/** POST /my-partner/remind — partner_id travels in the body, so one hook serves every partner. */
+export const useCaRemindPartner = (options?: Options<PartnerReminder, PartnerReminderResult>) =>
+  usePartnerMutation<PartnerReminder, PartnerReminderResult>("/remind", "post", options, { invalidate: false });
+/** POST /my-partner/bulk-remind */
+export const useCaBulkRemindPartners = (options?: Options<PartnerBulkReminder, PartnerReminderResult>) =>
+  usePartnerMutation<PartnerBulkReminder, PartnerReminderResult>("/bulk-remind", "post", options, { invalidate: false });
+/** POST /my-partner/{agentId}/suspend — { suspend: false } re-activates. */
+export const useCaSuspendPartner = (id: number | string, options?: Options<PartnerSuspendPayload, PartnerStatusResult>) =>
+  usePartnerMutation<PartnerSuspendPayload, PartnerStatusResult>(`/${id}/suspend`, "post", options);
 
-export const useGetCaPartnerCustomers = (id: number | string, params: { page: number; limit: number }) => {
-  const numericId = typeof id === "string" ? Number(id) : id;
-  return usePartnerQuery<{ customers: PartnerCustomer[]; pagination: PartnerPagination }>(
-    "ca-partner-customers",
-    `/${numericId}/customers`,
-    params,
-    Boolean(numericId && numericId > 0)
-  );
-};
-
-export const useGetCaPartnerStockHistory = (id: number | string, params: { page: number; limit: number }) => {
-  const numericId = typeof id === "string" ? Number(id) : id;
-  return usePartnerQuery<{ history: PartnerStockEvent[]; pagination: PartnerPagination }>(
-    "ca-partner-stock-history",
-    `/${numericId}/stock-history`,
-    params,
-    Boolean(numericId && numericId > 0)
-  );
-};
-
-export const useOnboardCaPartner = () =>
-  usePartnerMutation<
-    PartnerOnboardPayload,
-    { partner_id: number; agent_id: number; fullname: string; email: string; phone: string; state: string; status: string; message: string }
-  >("/onboard", "post", undefined, ["ca-partners-overview"]);
-
-export const useEditCaPartner = (id: number | string) =>
-  usePartnerMutation<
-    PartnerProfile,
-    { partner_id: number; fullname: string; phone: string; location: string; message: string }
-  >(`/${id}`, "patch", undefined, ["ca-partner-detail", "ca-partners-overview"]);
-
-export const useDistributeCaPartner = (id: number | string) =>
-  usePartnerMutation<PartnerQuantities & { notes?: string }, PartnerDistributionResult>(
-    `/${id}/distribute`,
-    "post",
-    undefined,
-    ["ca-partner-detail", "ca-partners-overview", "ca-inventory-overview"]
-  );
-
-export const useDistributeCaPartners = () =>
-  usePartnerMutation<
-    { distributions: (PartnerQuantities & { partner_id: number })[]; notes?: string },
-    PartnerBatchResult | unknown
-  >("/distribute-multiple", "post", undefined, ["ca-partners-overview", "ca-inventory-overview"]);
-
-export const useDistributeAllLowCaPartners = () =>
-  usePartnerMutation<{ quantity_per_partner: number }, PartnerBatchResult>(
-    "/distribute-all-low",
-    "post",
-    undefined,
-    ["ca-partners-overview", "ca-inventory-overview"]
-  );
-
-export const useRemindCaPartner = (id: number | string) =>
-  usePartnerMutation<PartnerReminder, PartnerReminderResult>(`/${id}/remind`, "post");
-
-export const useBulkRemindCaPartners = () =>
-  usePartnerMutation<PartnerReminder & { partner_ids: number[] }, PartnerReminderResult>("/bulk-reminder", "post");
-
-export const useToggleCaPartner = (id: number | string) =>
-  usePartnerMutation<{ reason: string }, PartnerStatusResult>(
-    `/${id}/toggle-status`,
-    "patch",
-    undefined,
-    ["ca-partner-detail", "ca-partners-overview"]
-  );
-
-export const useRecallCaPartner = (id: number | string) =>
-  usePartnerMutation<PartnerRecall, PartnerRecallResult>(
-    `/${id}/recall`,
-    "post",
-    undefined,
-    ["ca-partner-detail", "ca-partners-overview", "ca-inventory-overview"]
-  );
-
-export const useCaRecallGeneralStock = () =>
-  usePartnerMutation<Record<string, unknown> | void, PartnerRecallResult>(
-    "/recall-stock",
-    "post",
-    undefined,
-    ["ca-partners-overview", "ca-inventory-overview"]
-  );
-
+/** GET /my-partner/export (CSV) */
 export function useExportCaPartners() {
   return useMutation({
     retry: false,
@@ -200,24 +111,6 @@ export function useExportCaPartners() {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
-    onError: (error: Error) =>
-      openNotification({ state: "error", title: "Export failed", description: error.message }),
+    onError: (error: Error) => openNotification({ state: "error", title: "Export failed", description: error.message }),
   });
 }
-
-// -------------------------------------------------------------
-// Aliases matching specific requirement names in the spec
-// -------------------------------------------------------------
-export const useGetCaPartnersOverview = useGetCaPartners;
-export const useGetCaPartnerDetail = useGetCaPartner;
-export const useCaOnboardPartner = useOnboardCaPartner;
-export const useCaDistributeMultiple = useDistributeCaPartners;
-export const useCaDistributeAllLow = useDistributeAllLowCaPartners;
-export const useCaSendBulkReminder = useBulkRemindCaPartners;
-export const useCaDistributeToPartner = useDistributeCaPartner;
-export const useCaRemindPartner = useRemindCaPartner;
-export const useCaTogglePartnerStatus = useToggleCaPartner;
-export const useCaRecallPartnerStock = useRecallCaPartner;
-export const useCaUpdatePartner = useEditCaPartner;
-export const exportCaPartnersCsv = useExportCaPartners;
-

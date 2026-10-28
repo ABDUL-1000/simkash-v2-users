@@ -15,6 +15,8 @@ import { SimActivationPage } from "../agency-partner/pages/SimActivationPage";
 import CorporateAgentDashboardPage from "../corporate-agent/pages/CorporateAgentDashboardPage";
 import CaSimInventoryPage from "../corporate-agent/inventory/pages/CaSimInventoryPage";
 import CaSimActivationPage from "../corporate-agent/sim-activation/pages/CaSimActivationPage";
+import CaWalletPage from "../corporate-agent/wallet/pages/CaWalletPage";
+import CaSimPricingPage from "../corporate-agent/pricing/CaSimPricingPage";
 // Preserved legacy import; RM pages are registered in regional-manager.routes.tsx below. import RegionalManagerDashboardPage from "../regional-manager/pages/RegionalManagerDashboardPage";
 // Preserved legacy import; RM pages are registered in regional-manager.routes.tsx below. import RmCustomersPage from "../regional-manager/pages/RmCustomersPage";
 // Preserved legacy import; RM pages are registered in regional-manager.routes.tsx below. import RmNetworkPerformancePage from "../regional-manager/pages/RmNetworkPerformancePage";
@@ -33,6 +35,8 @@ export const dashboardRoutes: TRouteData[] = [
   { path: "/dashboard/corporate-agent/inventory", element: <CaSimInventoryPage />, title: "Corporate Agent SIM Inventory", isSearchable: false },
   { path: appPaths.caSimActivation, element: <CaSimActivationPage />, title: "Corporate Agent SIM Activation", isSearchable: true },
   { path: "/sim-activation/corporate-agent", element: <CaSimActivationPage />, title: "Corporate Agent SIM Activation", isSearchable: false },
+  { path: appPaths.caWallet, element: <CaWalletPage />, title: "Corporate Agent Wallet", isSearchable: true },
+  { path: appPaths.caSimPricing, element: <CaSimPricingPage />, title: "Corporate Agent SIM Pricing", isSearchable: true },
   // Disabled legacy mount: mock pages/unsupported network APIs; live RM routes are registered below. { path: appPaths.regionalManagerDashboard, element: <RegionalManagerDashboardPage />, title: "Regional Manager Dashboard", isSearchable: true },
   // Disabled legacy mount: mock pages/unsupported network APIs; live RM routes are registered below. { path: appPaths.rmCustomers, element: <RmCustomersPage />, title: "My State Coordinators", isSearchable: true },
   // Disabled legacy mount: mock pages/unsupported network APIs; live RM routes are registered below. { path: appPaths.rmStateCoordinators, element: <RmCustomersPage />, title: "My State Coordinators", isSearchable: false },

@@ -1,8 +1,9 @@
 import { Download, Send, Package, Clock } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import type { CaInventoryHistoryResponseData } from "../types/inventory";
+import type { CaInventoryOverviewData } from "../types/inventory";
 
-export function CaHistoryKpis({ data }: { data: CaInventoryHistoryResponseData["summary_cards"] }) {
+export function CaHistoryKpis({ data: summary }: { data: CaInventoryOverviewData["summary_cards"] }) {
+  const data = { total_received: summary.received, total_distributed: summary.distributed, currently_in_stock: summary.total_available, pending_requests: summary.pending_requests };
 
 
   const cards = [

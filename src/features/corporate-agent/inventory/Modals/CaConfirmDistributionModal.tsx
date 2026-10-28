@@ -1,21 +1,20 @@
 import { Alert } from "antd";
-import type { CaDistributePreviewResponseData, CaDistributeContextData, CaDistributionResult } from "../types/inventory";
-import { useExecuteCaDistribution } from "../api/useCaInventory";
+import type { CaDistributionResult, CaSimSelection, CaStockSummary } from "../types/inventory";
+import { useCaDistributeSims } from "../api/useCaInventory";
+import { CA_SIM_TYPES, CA_SIM_LABELS } from "../types/adapters";
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { APP_COLORS } from "@/constants/colors";
-import type { CaApStockDistributionRow } from "../types/ca-inventory.types";
+import type { CaApPreview, CaApStockDistributionRow, CaDistributionPreview } from "../types/ca-inventory.types";
 
 interface CaConfirmDistributionModalProps {
-  preview: CaDistributePreviewResponseData;
-  stock: CaDistributeContextData["csa_stock"];
+  preview: CaDistributionPreview;
+  stock: CaStockSummary;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  recipient: CaApPreview;
   selectedAp: CaApStockDistributionRow;
-  posQty: number;
-  cctvQty: number;
-  gpsQty: number;
-  routerQty: number;
+  sims: CaSimSelection;
   note?: string;
   onEditQuantities?: () => void;
   onSuccess?: (details: CaDistributionResult) => void;
@@ -24,25 +23,25 @@ interface CaConfirmDistributionModalProps {
 export function CaConfirmDistributionModal({
   open, preview, stock,
   onOpenChange,
+  recipient,
   selectedAp,
-  posQty,
-  cctvQty,
-  gpsQty,
-  routerQty,
+  sims,
   note = "",
   onEditQuantities,
   onSuccess,
 }: CaConfirmDistributionModalProps) {
-  const mutation = useExecuteCaDistribution();
+  const mutation = useCaDistributeSims();
   const isSubmitting = mutation.isPending;
-  const totalDistributing = preview.quantities.total;
-  const myTotalStock = preview.csa_stock.before;
-  const myStockAfter = preview.csa_stock.after;
-  const currentApStock = preview.partner_stock.before;
-  const apStockAfter = preview.partner_stock.after;
+  const [posQty, cctvQty, gpsQty, routerQty] = CA_SIM_TYPES.map(type => sims[type].length);
+  const totalDistributing = preview.total;
+  const myTotalStock = preview.csaBefore;
+  const myStockAfter = preview.csaAfter;
+  const currentApStock = preview.apBefore;
+  const apStockAfter = preview.apAfter;
   const handleConfirm = () => {
     if (isSubmitting) return;
-    mutation.mutate({ partner_id: preview.partner.id, quantities: { pos: posQty, cctv: cctvQty, gps: gpsQty, router: routerQty }, note }, {
+    const picked = Object.fromEntries(CA_SIM_TYPES.filter(type => sims[type].length).map(type => [type, sims[type]]));
+    mutation.mutate({ phone: recipient.phone, partner_id: recipient.id, sims: picked, note: note.trim() || undefined }, {
       onSuccess: result => { onOpenChange(false); onSuccess?.(result.data); },
     });
   };
@@ -69,7 +68,7 @@ export function CaConfirmDistributionModal({
                 {selectedAp.name}
               </div>
               <div className="text-[11px] text-slate-600">
-                {preview.partner.location} · {preview.partner.customers} customers · {currentApStock} SIMs now
+                {recipient.location} · {recipient.customers} customers · {currentApStock} SIMs now
               </div>
             </div>
           </div>
@@ -118,6 +117,15 @@ export function CaConfirmDistributionModal({
           </div>
         </div>
 
+        <details className="rounded-2xl border border-slate-200 bg-white p-3">
+          <summary className="cursor-pointer text-[11px] font-bold text-blue-600">View SIM numbers</summary>
+          <div className="mt-2 space-y-1.5">
+            {CA_SIM_TYPES.filter(type => sims[type].length).map(type => (
+              <p key={type} className="text-[11px] text-slate-500"><strong className="text-slate-900">{CA_SIM_LABELS[type]}:</strong> <span className="font-mono">{sims[type].join(", ")}</span></p>
+            ))}
+          </div>
+        </details>
+
         {/* SIDE-BY-SIDE TRANSITION CARDS */}
         <div className="grid grid-cols-2 gap-2.5">
           {/* YOUR INVENTORY AFTER */}
@@ -147,7 +155,7 @@ export function CaConfirmDistributionModal({
             <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">
               {selectedAp.name.split(" ")[0].toUpperCase()} AFTER
             </span>
-            {/* Per-type AP balances omitted: the API returns only the total before/after. */}
+            {/* Per-type AP balances omitted: the partner profile returns only the total. */}
             <div className="text-xs font-black text-emerald-600 pt-3 border-t border-emerald-100">
               Total: {currentApStock} → {apStockAfter} SIMs
             </div>
@@ -156,9 +164,9 @@ export function CaConfirmDistributionModal({
 
         {/* HEALTH CHECK & NOTE QUOTE */}
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{preview.csa_stock.safety_message}</span>
+          <div className={`flex items-center gap-1.5 font-bold text-xs ${preview.healthy ? "text-emerald-600" : "text-amber-600"}`}>
+            {preview.healthy ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+            <span>{preview.safetyMessage}</span>
           </div>
 
           {note && (
@@ -201,7 +209,7 @@ export function CaConfirmDistributionModal({
             className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Edit Quantities</span>
+            <span>Edit Selection</span>
           </button>
 
           <button

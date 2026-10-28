@@ -9,13 +9,13 @@ import {
 } from "lucide-react";
 import { Alert } from "antd";
 import { useCaRequestStockReplenishment } from "../api/useCaInventory";
-import type { CaDistributeContextData, CaRequisitionResult, CaSimType } from "../types/inventory";
+import type { CaRequisitionResult, CaSimType, CaStockSummary } from "../types/inventory";
 import { AppModal } from "@/components/common/AppModal";
 import { APP_COLORS } from "@/constants/colors";
 
 interface CaInventoryRequestStockModalProps {
  open: boolean; onOpenChange: (open: boolean) => void;
- stock: CaDistributeContextData["csa_stock"];
+ stock: CaStockSummary;
  onSuccess: (receipts: CaRequisitionResult[]) => void;
 }
 
@@ -29,7 +29,7 @@ export function CaInventoryRequestStockModal({
   const [cctvQty, setCctvQty] = useState(0);
   const [gpsQty, setGpsQty] = useState(0);
   const [routerQty, setRouterQty] = useState(0);
-  const [urgency, setUrgency] = useState<"normal" | "high">("normal");
+  const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [receipts, setReceipts] = useState<CaRequisitionResult[]>([]);
@@ -45,7 +45,7 @@ export function CaInventoryRequestStockModal({
     const completed = [...receipts];
     try {
       for (const type of Object.keys(quantities) as CaSimType[]) {
-        if (!quantities[type] || completed.some(r => r.sim_type.toLowerCase().replace("_sim", "") === type)) continue;
+        if (!quantities[type] || completed.some(r => r.product_type.toLowerCase().replace("_sim", "") === type)) continue;
         const result = await mutation.mutateAsync({ sim_type: type, quantity: quantities[type], notes: reason, urgency });
         completed.push(result.data); setReceipts([...completed]);
       }
@@ -67,7 +67,7 @@ export function CaInventoryRequestStockModal({
     >
       <div className="space-y-3.5 pt-1 text-xs">
         {failure && <Alert type="error" title="Request incomplete" description={failure + (receipts.length ? " Retry submits only the remaining SIM types." : "")} />}
-        {receipts.length > 0 && <Alert type="info" title="Submitted requests" description={receipts.map(r => r.reference + ": " + r.quantity + " " + r.sim_type + " (" + r.status + ")").join("; ")} />}
+        {receipts.length > 0 && <Alert type="info" title="Submitted requests" description={receipts.map(r => "#" + r.id + ": " + r.quantity + " " + r.product_type + " (" + r.status + ")").join("; ")} />}
         <fieldset disabled={isSubmitting || receipts.length > 0} className="space-y-3.5">
         {/* 1. YOUR INVENTORY BAR */}
         <div
@@ -150,15 +150,15 @@ export function CaInventoryRequestStockModal({
 
             {/* Urgent */}
             <div
-              onClick={() => { if (!isSubmitting && !receipts.length) setUrgency("high"); }}
+              onClick={() => { if (!isSubmitting && !receipts.length) setUrgency("urgent"); }}
               className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
-                urgency === "high"
+                urgency === "urgent"
                   ? "border-amber-500 bg-amber-50/60 shadow-xs ring-1 ring-amber-500"
                   : "border-slate-200 bg-white hover:bg-slate-50"
               }`}
             >
               <Zap className="w-4 h-4 text-amber-500 mb-1" />
-              <div className="font-bold text-slate-900 text-xs">High</div>
+              <div className="font-bold text-slate-900 text-xs">Urgent</div>
               <div className="text-[10px] text-slate-500 leading-tight mt-0.5">
                 High priority
               </div>

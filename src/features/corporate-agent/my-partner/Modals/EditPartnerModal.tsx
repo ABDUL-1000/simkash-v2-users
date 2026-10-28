@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { useCaUpdatePartner } from "../api/useCaPartners";
 import { openNotification } from "@/utils/notifications";
@@ -28,17 +28,7 @@ export function EditPartnerModal({
   const [lga, setLga] = useState(initialValues?.lga || "");
   const [address, setAddress] = useState(initialValues?.address || "");
 
-  useEffect(() => {
-    if (initialValues) {
-      if (initialValues.fullname) setFullname(initialValues.fullname);
-      if (initialValues.phone) setPhone(initialValues.phone);
-      if (initialValues.email) setEmail(initialValues.email);
-      if (initialValues.state) setState(initialValues.state);
-      if (initialValues.lga) setLga(initialValues.lga);
-      if (initialValues.address) setAddress(initialValues.address);
-    }
-  }, [initialValues]);
-
+  // Prefilled once on mount: the parent mounts this modal only while it is open.
   const updateMutation = useCaUpdatePartner(partnerId);
 
   const handleUpdate = () => {

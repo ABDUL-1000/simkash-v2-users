@@ -1,7 +1,7 @@
 import { CreditCard, Video, MapPin, Wifi, Trash2, Plus } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import type { CaDistributeContextData } from "../types/inventory";
-export function CaRequestQuantityRows({ posQty, setPosQty, cctvQty, setCctvQty, gpsQty, setGpsQty, routerQty, setRouterQty, stock }: { posQty: number; setPosQty: (value: number) => void; cctvQty: number; setCctvQty: (value: number) => void; gpsQty: number; setGpsQty: (value: number) => void; routerQty: number; setRouterQty: (value: number) => void; stock: CaDistributeContextData["csa_stock"] }) { return (<>
+import type { CaStockSummary } from "../types/inventory";
+export function CaRequestQuantityRows({ posQty, setPosQty, cctvQty, setCctvQty, gpsQty, setGpsQty, routerQty, setRouterQty, stock }: { posQty: number; setPosQty: (value: number) => void; cctvQty: number; setCctvQty: (value: number) => void; gpsQty: number; setGpsQty: (value: number) => void; routerQty: number; setRouterQty: (value: number) => void; stock: CaStockSummary }) { return (<>
         {/* 4. SIM HARDWARE ROWS WITH TRASH & PLUS BUTTONS */}
         <div className="space-y-2">
           {/* POS SIM */}

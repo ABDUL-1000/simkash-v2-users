@@ -11,10 +11,11 @@ export function CaHistoryTable({ rows, showingText, totalPages, pagination, onSe
 }) {
  const columns: ColumnsType<CaHistoryEventItem> = [
   { title: "Date", dataIndex: "timeLabel" },
-  { title: "Event", dataIndex: "eventType", render: (value: string) => <span className="px-2 py-0.5 rounded text-[10px] font-black" style={{ color: inventoryTone(value === "Received" ? "green" : value === "Returned" ? "amber" : "blue"), backgroundColor: APP_COLORS.backgrounds.surface }}>{value}</span> },
-  { title: "SIM Type", dataIndex: "simType" }, { title: "Network", dataIndex: "network" },
+  { title: "Event", dataIndex: "eventType", render: (value: string) => <span className="px-2 py-0.5 rounded text-[10px] font-black" style={{ color: inventoryTone(value === "Received" ? "green" : "blue"), backgroundColor: APP_COLORS.backgrounds.surface }}>{value}</span> },
+  { title: "SIM Type", dataIndex: "simType" },
   { title: "Qty", dataIndex: "qty", render: (qty: number) => <span className={qty > 0 ? "font-black text-emerald-600" : "font-black text-rose-600"}>{qty > 0 ? "+" : ""}{qty}</span> },
-  { title: "From/To", dataIndex: "fromTo" }, { title: "Running Total", dataIndex: "runningTotal" }, { title: "Ref", dataIndex: "ref" },
+  { title: "From/To", dataIndex: "fromTo" }, { title: "Ref", dataIndex: "ref" },
+  { title: "", key: "view", align: "right", render: () => <span className="text-xs font-bold text-blue-600">View →</span> },
  ];
  const groups = [...new Set(rows.map(row => row.periodGroup))];
  return <div className="rounded-2xl border bg-white shadow-xs overflow-hidden" style={{ borderColor: APP_COLORS.greys.stroke }}>

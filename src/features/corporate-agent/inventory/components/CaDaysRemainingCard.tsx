@@ -1,9 +1,8 @@
-import { Clock } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
-import { AppEmptyState } from "@/components/common/AppEmptyState";
 import type { CaInventoryOverviewData } from "../types/inventory";
 
-export function CaDaysRemainingCard({ data }: { data: CaInventoryOverviewData["days_remaining"] }) {
+export function CaDaysRemainingCard({ data, onRequestStock }: { data: CaInventoryOverviewData["estimated_days_remaining"]; onRequestStock?: () => void }) {
   return (
     <div
       className="rounded-2xl border p-4 bg-white shadow-xs space-y-3"
@@ -19,28 +18,17 @@ export function CaDaysRemainingCard({ data }: { data: CaInventoryOverviewData["d
         </span>
       </div>
 
-      <div className="divide-y" style={{ borderColor: APP_COLORS.greys.stroke }}>
-        {!data.estimates.length && <AppEmptyState title="No stock estimates" />}
-        {data.estimates.map((item) => (
-          <div
-            key={item.category}
-            className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between text-xs"
-          >
-            <span className="font-medium text-slate-700">{item.category}</span>
-            <span
-              className={`px-2 py-0.5 rounded font-black text-xs ${
-                item.status === "warning"
-                  ? "bg-amber-100 text-amber-800"
-                  : item.status === "critical"
-                  ? "bg-rose-100 text-rose-800"
-                  : "text-slate-900"
-              }`}
-            >
-              {item.days_text}
-            </span>
+      {data.alert_callout?.message ? (
+        <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 flex items-start gap-2 text-xs">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-semibold text-amber-900">{data.alert_callout.message}</p>
+            {onRequestStock && <button type="button" onClick={onRequestStock} className="font-black text-amber-700 underline">Request Stock</button>}
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-500">Stock levels are healthy at the current distribution pace.</p>
+      )}
     </div>
   );
 }

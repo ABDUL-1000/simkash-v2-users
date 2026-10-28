@@ -1,4 +1,4 @@
-export type CaInventoryTab = "available" | "distribute" | "history";
+export type CaInventoryTab = "available" | "distribute" | "redistribute" | "history";
 
 export interface CaInventoryKpis {
   totalAvailable: number;
@@ -26,13 +26,10 @@ export interface CaApStockDistributionRow {
   name: string;
   phone: string;
   state: string;
-  pos: number;
-  cctv: number;
-  gps: number;
-  router: number;
   total: number;
   status: string;
   customers?: number;
+  activations?: string;
   avatarInitials: string;
 }
 
@@ -69,18 +66,25 @@ export interface CaHistoryEventItem {
   periodGroup: string;
   eventType: string;
   simType: string;
-  network: string;
   qty: number;
   fromTo: string;
-  runningTotal: string;
   ref: string;
-  apName?: string;
-  apLocation?: string;
-  apPhone?: string;
-  returnReason?: string;
-  stockBefore?: string;
-  stockReturnedOrChanged?: string;
-  stockAfter?: string;
-  recipientStockTransition?: string;
-  detailedDate?: string;
 }
+
+/** Recipient card in the distribute tab, built from GET /my-partner/{id} and /stock-history. */
+export interface CaApPreview {
+  id: number;
+  name: string;
+  phone: string;
+  initials: string;
+  location: string;
+  customers: number;
+  current_stock: number;
+  activations_text: string;
+  bonus_status: string;
+  last_received: string;
+  last_sent_details?: { time_ago: string; total_sims: number; breakdown_text: string };
+}
+
+/** Stock before/after, computed locally from your undistributed stock and the partner stock. */
+export interface CaDistributionPreview { total: number; csaBefore: number; csaAfter: number; apBefore: number; apAfter: number; healthy: boolean; safetyMessage: string }

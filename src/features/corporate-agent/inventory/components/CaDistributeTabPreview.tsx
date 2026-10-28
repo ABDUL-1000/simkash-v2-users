@@ -1,11 +1,11 @@
 import { User, AlertTriangle, ArrowRight, Clock, FileText } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
-import type { CaApPreviewData, CaDistributePreviewResponseData } from "../types/inventory";
+import type { CaApPreview, CaDistributionPreview } from "../types/ca-inventory.types";
 
 interface CaDistributeTabPreviewProps {
-  selectedAp: CaApPreviewData;
-  preview?: CaDistributePreviewResponseData;
+  selectedAp: CaApPreview;
+  preview?: CaDistributionPreview;
   posQty: number;
   cctvQty: number;
   gpsQty: number;
@@ -22,11 +22,11 @@ export function CaDistributeTabPreview({
   onRequestStock,
 }: CaDistributeTabPreviewProps) {
   const total = posQty + cctvQty + gpsQty + routerQty;
-  const myTotalStock = preview?.csa_stock.before ?? "—";
-  const myStockAfter = preview?.csa_stock.after ?? "—";
+  const myTotalStock = preview?.csaBefore ?? "—";
+  const myStockAfter = preview?.csaAfter ?? "—";
 
   const apCurrentStock = selectedAp.current_stock;
-  const apStockAfter = preview?.partner_stock.after ?? "—";
+  const apStockAfter = preview?.apAfter ?? "—";
 
   return (
     <div className="space-y-4">
@@ -132,7 +132,7 @@ export function CaDistributeTabPreview({
           <h4 className="text-xs font-bold">Stock Safety</h4>
         </div>
         <p className="text-[11px] text-amber-100 leading-relaxed">
-          {preview?.csa_stock.safety_message || "Enter quantities to calculate stock safety."}
+          {preview?.safetyMessage || "Pick SIMs to check your stock safety."}
         </p>
         <button
           type="button"
@@ -161,9 +161,6 @@ export function CaDistributeTabPreview({
             {selectedAp.last_sent_details.time_ago} • {selectedAp.last_sent_details.total_sims} SIMs
           </div>
           <div className="text-[11px] text-slate-500">{selectedAp.last_sent_details.breakdown_text}</div>
-          <div className="text-[10px] text-slate-400 font-mono">
-            Ref: {selectedAp.last_sent_details.reference}
-          </div>
         </div> : <AppEmptyState title="No previous distribution" />}
       </div>
     </div>

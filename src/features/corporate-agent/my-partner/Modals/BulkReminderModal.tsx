@@ -2,58 +2,30 @@
 
 import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
-import { useCaSendBulkReminder } from "../api/useCaPartners";
+import { useCaBulkRemindPartners } from "../api/useCaPartners";
 import { openNotification } from "@/utils/notifications";
-import type { PartnerItem } from "../types/api";
 
 interface BulkReminderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  partners?: PartnerItem[];
-  defaultReminderType?: "low_stock" | "bonus";
+  /** Number of at-risk APs (from the overview), shown on the target option. */
+  atRiskCount?: number;
   onSuccess?: () => void;
 }
 
+/** POST /my-partner/bulk-remind { target_at_risk_only, message }. The backend picks the recipients. */
 export function BulkReminderModal({
   open,
   onOpenChange,
-  partners = [],
-  defaultReminderType = "bonus",
+  atRiskCount,
   onSuccess,
 }: BulkReminderModalProps) {
-  const [reminderType, setReminderType] = useState<"low_stock" | "bonus">(defaultReminderType);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [message, setMessage] = useState<string>(
-    "You are close to your bonus threshold! Push activations to secure this month payout."
-  );
+  const [atRiskOnly, setAtRiskOnly] = useState(true);
+  const [message, setMessage] = useState<string>("You are close to hitting your monthly bonus target! Increase activations this week.");
 
-  const bulkReminderMutation = useCaSendBulkReminder();
-
-  const handleTogglePartner = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.length === partners.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(partners.map((p) => p.partner_id || p.id));
-    }
-  };
-
-  const targetIds = selectedIds.length > 0 ? selectedIds : partners.map((p) => p.partner_id || p.id);
+  const bulkReminderMutation = useCaBulkRemindPartners();
 
   const handleSendReminder = () => {
-    if (targetIds.length === 0) {
-      openNotification({
-        state: "error",
-        title: "Validation error",
-        description: "Please select at least one Agency Partner.",
-      });
-      return;
-    }
     if (!message.trim()) {
       openNotification({
         state: "error",
@@ -65,8 +37,7 @@ export function BulkReminderModal({
 
     bulkReminderMutation.mutate(
       {
-        reminder_type: reminderType,
-        partner_ids: targetIds,
+        target_at_risk_only: atRiskOnly,
         message: message.trim(),
       },
       {
@@ -83,7 +54,7 @@ export function BulkReminderModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Send Bulk Reminder"
-      description={`Send notification to selected Agency Partners (${targetIds.length} recipients)`}
+      description={atRiskOnly ? "Send a reminder to your at-risk Agency Partners" : "Send a reminder to all your Agency Partners"}
       size="md"
       actions={[
         {
@@ -105,82 +76,40 @@ export function BulkReminderModal({
       <div className="space-y-4 pt-1 text-xs">
         {/* Reminder Type Selector */}
         <div>
-          <label className="mb-1 block font-bold text-[#0F172A]">Reminder Type</label>
+          <label className="mb-1 block font-bold text-[#0F172A]">Send To</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => {
-                setReminderType("bonus");
-                setMessage("You are close to your bonus threshold! Push activations to secure this month payout.");
+                setAtRiskOnly(true);
+                setMessage("You are close to hitting your monthly bonus target! Increase activations this week.");
               }}
               className={`rounded-xl border p-2.5 font-bold transition text-left ${
-                reminderType === "bonus"
+                atRiskOnly
                   ? "border-[#2563EB] bg-[#EFF4F8] text-[#2563EB]"
                   : "border-[#E2ECF6] bg-white text-[#64748B] hover:bg-[#F8FAFC]"
               }`}
             >
-              <span className="block text-xs font-black">Bonus Target</span>
-              <span className="block text-[10px] font-medium opacity-80">Remind about achieving target</span>
+              <span className="block text-xs font-black">At-Risk APs{atRiskCount != null ? ` (${atRiskCount})` : ""}</span>
+              <span className="block text-[10px] font-medium opacity-80">APs at risk of missing their bonus</span>
             </button>
             <button
               type="button"
               onClick={() => {
-                setReminderType("low_stock");
-                setMessage("Your SIM stock is running low. Request or prepare for restock distribution.");
+                setAtRiskOnly(false);
+                setMessage("Keep up the momentum! Push activations this week to secure your monthly bonus.");
               }}
               className={`rounded-xl border p-2.5 font-bold transition text-left ${
-                reminderType === "low_stock"
+                !atRiskOnly
                   ? "border-[#F59E0B] bg-[#FFFBEB] text-[#F59E0B]"
                   : "border-[#E2ECF6] bg-white text-[#64748B] hover:bg-[#F8FAFC]"
               }`}
             >
-              <span className="block text-xs font-black">Low Stock Alert</span>
-              <span className="block text-[10px] font-medium opacity-80">Remind low-stock APs</span>
+              <span className="block text-xs font-black">All My APs</span>
+              <span className="block text-[10px] font-medium opacity-80">Every partner in your network</span>
             </button>
           </div>
         </div>
-
-        {/* Partner Selection */}
-        {partners.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between pb-1.5">
-              <label className="font-bold text-[#0F172A]">Target Partners</label>
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="text-[11px] font-bold text-[#2563EB] hover:underline"
-              >
-                {selectedIds.length === partners.length ? "Deselect All" : "Select All"}
-              </button>
-            </div>
-            <div className="max-h-36 overflow-y-auto space-y-1 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] p-2">
-              {partners.map((p) => {
-                const id = p.partner_id || p.id;
-                const isChecked = selectedIds.length === 0 || selectedIds.includes(id);
-                return (
-                  <label
-                    key={id}
-                    className="flex items-center justify-between rounded-lg p-1.5 text-xs hover:bg-white cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleTogglePartner(id)}
-                        className="accent-[#2563EB]"
-                      />
-                      <span className="font-bold text-[#0F172A]">{p.name}</span>
-                      <span className="text-[10px] text-[#64748B]">({p.phone})</span>
-                    </div>
-                    <span className="text-[10px] font-semibold text-[#10B981]">
-                      {p.status_label || p.status}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Message */}
         <div>

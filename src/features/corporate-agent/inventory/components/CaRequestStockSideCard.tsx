@@ -1,9 +1,8 @@
 import { Send, Plus, Clock } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
 
-import type { CaInventoryOverviewData } from "../types/inventory";
 interface CaRequestStockSideCardProps {
-  data: CaInventoryOverviewData["request_stock_card"];
+  data: { message: string; last_request_text: string; can_request: boolean };
   onRequestStock?: () => void;
 }
 

@@ -37,6 +37,8 @@ export const appPaths = {
   caSimInventory: "/sim-inventory/corporate-agent",
   caSimActivation: "/dashboard/corporate-agent/sim-activation",
   caNetwork: "/corporate-agent/network",
+  caWallet: "/wallet/corporate-agent",
+  caSimPricing: "/pricing/corporate-agent",
   caActivationDetails: (id?: string) => ({
     format: "/corporate-agent/network/activation/:id",
     path: `/corporate-agent/network/activation/${id ? encodeURIComponent(id) : "ACT-CA-2026-008472"}`,

@@ -11,6 +11,7 @@ export function CaInventoryTabsNav({
   const tabs: { id: CaInventoryTab; label: string }[] = [
     { id: "available", label: "Available Stock" },
     { id: "distribute", label: "Distribute to AP" },
+    { id: "redistribute", label: "Redistribute" },
     { id: "history", label: "Inventory History" },
   ];
 

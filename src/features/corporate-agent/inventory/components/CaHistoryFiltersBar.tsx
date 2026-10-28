@@ -8,6 +8,9 @@ interface CaHistoryFiltersBarProps {
   selectedType: string;
   onSelectType: (t: string) => void;
   showingText: string;
+  startDate: string;
+  endDate: string;
+  onDatesChange: (start: string, end: string) => void;
   totalEvents?: number;
   onExportReport?: () => void;
 }
@@ -20,9 +23,12 @@ export function CaHistoryFiltersBar({
   selectedType,
   onSelectType,
   showingText,
+  startDate,
+  endDate,
+  onDatesChange,
   onExportReport,
 }: CaHistoryFiltersBarProps) {
-  const events = ["All Events", "Received", "Distributed", "Returned", "Adjusted"];
+  const events = ["All Events", "Received", "Distributed"];
   const types = ["All Types", "POS SIM", "CCTV SIM", "GPS SIM", "Router SIM"];
 
   return (
@@ -80,6 +86,11 @@ export function CaHistoryFiltersBar({
             ))}
           </select>
 
+          {/* Date range (start_date / end_date) */}
+          <input type="date" aria-label="From date" value={startDate} max={endDate || undefined} onChange={(e) => onDatesChange(e.target.value, endDate)} className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 outline-none" />
+          <span className="text-slate-400">to</span>
+          <input type="date" aria-label="To date" value={endDate} min={startDate || undefined} onChange={(e) => onDatesChange(startDate, e.target.value)} className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 outline-none" />
+
           {/* AP filter and sorting disabled: neither parameter is supported by the inventory history endpoint.
 
           <select
@@ -120,6 +131,7 @@ export function CaHistoryFiltersBar({
               onSearchChange("");
               onSelectEvent("All Events");
               onSelectType("All Types");
+              onDatesChange("", "");
             }}
             className="text-[11px] font-bold text-slate-400 hover:text-slate-600"
           >
