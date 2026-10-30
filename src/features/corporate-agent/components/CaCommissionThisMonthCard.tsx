@@ -14,8 +14,11 @@ export function CaCommissionThisMonthCard({
   data,
   onRequestPayout,
 }: CaCommissionThisMonthCardProps) {
-  const profit = data.top_cards.my_profit;
+  const profit = data.top_cards?.my_profit;
+  // Every nested field is optional: the live response may omit parts of profit_this_month.
   const month = data.profit_this_month;
+  const mine = month?.my_activations;
+  const network = month?.ap_network;
   return (
     <div
       className="rounded-2xl border p-4 shadow-xs space-y-4 bg-white"
@@ -32,7 +35,7 @@ export function CaCommissionThisMonthCard({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900">Profit This Month</h3>
-            <p className="text-[11px] text-slate-500">{profit.period_text}</p>
+            <p className="text-[11px] text-slate-500">{profit?.period_text ?? "This month"}</p>
           </div>
         </div>
       </div>
@@ -42,10 +45,10 @@ export function CaCommissionThisMonthCard({
         <div className="flex items-baseline justify-between">
           <span className="text-xs font-semibold text-slate-500">Total Profit</span>
           <span className="text-2xl font-black text-slate-900 tracking-tight">
-            {month ? naira(month.total_profit_this_month) : profit.amount_formatted}
+            {month?.total_profit_this_month != null ? naira(month.total_profit_this_month) : profit?.amount_formatted ?? "—"}
           </span>
         </div>
-        {month && <div className="flex items-baseline justify-between text-[11px]">
+        {month?.total_partner_commission_this_month != null && <div className="flex items-baseline justify-between text-[11px]">
           <span className="text-slate-500">Partner commission paid</span>
           <span className="font-bold text-slate-700">{naira(month.total_partner_commission_this_month)}</span>
         </div>}
@@ -56,20 +59,20 @@ export function CaCommissionThisMonthCard({
         <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
           <div className="text-[11px] text-slate-500 font-medium">Direct Acts</div>
           <div className="text-sm font-black text-slate-900 mt-0.5">
-            {month ? naira(month.my_activations.total) : data.secondary_cards?.my_own_acts?.subtext ?? "—"}
+            {mine ? naira(mine.total) : data.secondary_cards?.my_own_acts?.subtext ?? "—"}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">
-            {(month?.my_activations.count ?? data.top_cards.this_month.own_activations).toLocaleString()} activations{month?.my_activations.rate ? ` · ${naira(month.my_activations.rate)} each` : ""}
+            {(mine?.count ?? data.top_cards?.this_month?.own_activations ?? 0).toLocaleString()} activations{mine?.rate ? ` · ${naira(mine.rate)} each` : ""}
           </div>
         </div>
 
         <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
           <div className="text-[11px] text-slate-500 font-medium">AP Network</div>
           <div className="text-sm font-black text-slate-900 mt-0.5">
-            {month ? naira(month.ap_network.total) : data.secondary_cards?.ap_network_acts?.subtext ?? "—"}
+            {network ? naira(network.total) : data.secondary_cards?.ap_network_acts?.subtext ?? "—"}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">
-            {(month?.ap_network.count ?? data.top_cards.this_month.ap_network_activations).toLocaleString()} activations{month ? ` · ${naira(month.ap_network.partner_commission_total)} to APs` : ""}
+            {(network?.count ?? data.top_cards?.this_month?.ap_network_activations ?? 0).toLocaleString()} activations{network?.partner_commission_total != null ? ` · ${naira(network.partner_commission_total)} to APs` : ""}
           </div>
         </div>
       </div>
@@ -79,7 +82,7 @@ export function CaCommissionThisMonthCard({
         <button
           type="button"
           onClick={onRequestPayout}
-          disabled={!profit.can_request_payout || profit.amount <= 0}
+          disabled={!profit?.can_request_payout || (profit?.amount ?? 0) <= 0}
           className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] hover:opacity-95 disabled:opacity-50"
           style={{
             background: CA_DASHBOARD_COLORS.commissionGradient,

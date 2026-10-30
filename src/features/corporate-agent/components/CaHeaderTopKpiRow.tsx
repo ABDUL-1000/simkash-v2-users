@@ -57,7 +57,7 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
             {kpis.network_today.profit_formatted}
           </span>
           <span className="text-[10px] font-semibold text-slate-500 block">
-            {kpis.network_today.partner_commission_formatted}
+            {kpis.network_today?.partner_commission_formatted}
           </span>
         </div>
         <span className="text-[10px] text-slate-400 font-medium">
@@ -143,16 +143,16 @@ export function CaHeaderTopKpiRow({ kpis, onRequestPayout }: CaHeaderTopKpiRowPr
         </div>
         <div className="my-0.5">
           <div className="text-2xl font-black text-slate-900">
-            {commissionVisible ? kpis.my_profit.amount_formatted : "₦••••••"}
+            {commissionVisible ? kpis.my_profit?.amount_formatted : "₦••••••"}
           </div>
           <span className="text-[10px] text-slate-400 font-medium block">
-            {kpis.my_profit.period_text}
+            {kpis.my_profit?.period_text}
           </span>
         </div>
         <button
           type="button"
           onClick={onRequestPayout}
-          disabled={!kpis.my_profit.can_request_payout || kpis.my_profit.amount <= 0}
+          disabled={!kpis.my_profit?.can_request_payout || (kpis.my_profit?.amount ?? 0) <= 0}
           className="w-full mt-1.5 py-1.5 px-2 rounded-xl text-xs font-bold text-white shadow-xs transition-all hover:opacity-95 active:scale-98 text-center"
           style={{ backgroundColor: CA_DASHBOARD_COLORS.payoutText }}
         >
