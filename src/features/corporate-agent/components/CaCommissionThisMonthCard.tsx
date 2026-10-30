@@ -7,10 +7,15 @@ interface CaCommissionThisMonthCardProps {
   onRequestPayout?: () => void;
 }
 
+const naira = (value = 0) => `₦${value.toLocaleString()}`;
+
+/** "Profit This Month" — top_cards.my_profit + profit_this_month. */
 export function CaCommissionThisMonthCard({
   data,
   onRequestPayout,
 }: CaCommissionThisMonthCardProps) {
+  const profit = data.top_cards.my_profit;
+  const month = data.profit_this_month;
   return (
     <div
       className="rounded-2xl border p-4 shadow-xs space-y-4 bg-white"
@@ -26,24 +31,24 @@ export function CaCommissionThisMonthCard({
             <Wallet className="w-4 h-4" style={{ color: APP_COLORS.greens.secondary }} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Commission This Month</h3>
-            <p className="text-[11px] text-slate-500">{data.top_cards.my_commission.period_text}</p>
+            <h3 className="text-sm font-bold text-slate-900">Profit This Month</h3>
+            <p className="text-[11px] text-slate-500">{profit.period_text}</p>
           </div>
         </div>
-
-        {/* Monthly percentage change is commented out: not supplied by the overview. */}
       </div>
 
       {/* TOTAL AMOUNT DISPLAY */}
       <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 space-y-2">
         <div className="flex items-baseline justify-between">
-          <span className="text-xs font-semibold text-slate-500">Total Earned</span>
+          <span className="text-xs font-semibold text-slate-500">Total Profit</span>
           <span className="text-2xl font-black text-slate-900 tracking-tight">
-            {data.top_cards.my_commission.amount_formatted}
+            {month ? naira(month.total_profit_this_month) : profit.amount_formatted}
           </span>
         </div>
-
-        {/* Commission percentage bar is commented out: monthly numeric splits are not supplied. */}
+        {month && <div className="flex items-baseline justify-between text-[11px]">
+          <span className="text-slate-500">Partner commission paid</span>
+          <span className="font-bold text-slate-700">{naira(month.total_partner_commission_this_month)}</span>
+        </div>}
       </div>
 
       {/* DETAILED STATS */}
@@ -51,27 +56,31 @@ export function CaCommissionThisMonthCard({
         <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
           <div className="text-[11px] text-slate-500 font-medium">Direct Acts</div>
           <div className="text-sm font-black text-slate-900 mt-0.5">
-            {data.secondary_cards.my_own_acts.subtext}
+            {month ? naira(month.my_activations.total) : data.secondary_cards?.my_own_acts?.subtext ?? "—"}
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{data.top_cards.this_month.own_activations.toLocaleString()} activations</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            {(month?.my_activations.count ?? data.top_cards.this_month.own_activations).toLocaleString()} activations{month?.my_activations.rate ? ` · ${naira(month.my_activations.rate)} each` : ""}
+          </div>
         </div>
 
         <div className="p-2.5 rounded-lg border border-slate-100 bg-white">
           <div className="text-[11px] text-slate-500 font-medium">AP Network</div>
           <div className="text-sm font-black text-slate-900 mt-0.5">
-            {data.secondary_cards.ap_network_acts.subtext}
+            {month ? naira(month.ap_network.total) : data.secondary_cards?.ap_network_acts?.subtext ?? "—"}
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{data.top_cards.this_month.ap_network_activations.toLocaleString()} activations</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            {(month?.ap_network.count ?? data.top_cards.this_month.ap_network_activations).toLocaleString()} activations{month ? ` · ${naira(month.ap_network.partner_commission_total)} to APs` : ""}
+          </div>
         </div>
       </div>
 
-      {/* PAYOUT STATUS & CTA BUTTON */}
+      {/* PAYOUT CTA BUTTON */}
       <div className="pt-1 space-y-2">
         <button
           type="button"
           onClick={onRequestPayout}
-          disabled={!data.top_cards.my_commission.can_request_payout || data.top_cards.my_commission.amount <= 0}
-          className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] hover:opacity-95"
+          disabled={!profit.can_request_payout || profit.amount <= 0}
+          className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] hover:opacity-95 disabled:opacity-50"
           style={{
             background: CA_DASHBOARD_COLORS.commissionGradient,
           }}
@@ -79,8 +88,6 @@ export function CaCommissionThisMonthCard({
           <span>Request Payout</span>
           <ArrowUpRight className="w-4 h-4" />
         </button>
-
-        {/* Automated payout schedule is commented out: not returned by this API. */}
       </div>
     </div>
   );

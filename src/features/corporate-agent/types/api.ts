@@ -13,14 +13,16 @@ export interface CaDashboardOverviewData {
   top_cards: {
     my_acts_today: {
       activations: number;
-      commission: number;
-      commission_formatted: string;
+      profit: number;
+      profit_formatted: string;
       comparison: CaComparison;
     };
     network_today: {
       activations: number;
-      network_commission: number;
-      commission_formatted: string;
+      network_profit: number;
+      profit_formatted: string;
+      partner_commission_paid: number;
+      partner_commission_formatted: string;
       comparison: CaComparison;
     };
     this_month: {
@@ -35,7 +37,7 @@ export interface CaDashboardOverviewData {
       managed_aps_count: number;
       subtext_aps: string;
     };
-    my_commission: {
+    my_profit: {
       amount: number;
       amount_formatted: string;
       period_text: string;
@@ -46,27 +48,14 @@ export interface CaDashboardOverviewData {
     my_own_acts: { value: number; label: string; subtext: string };
     ap_network_acts: { value: number; label: string; subtext: string };
     agency_partners: { value: number; label: string; subtext: string };
-    bonus_progress: { value: string; label: string; subtext: string };
+    total_profit: { value: string; label: string; subtext: string };
     sims_in_stock: { value: number; label: string; subtext: string };
   };
-  bonus_tracker: {
-    period_label: string;
-    target_activations: number;
-    current_activations: number;
-    percentage: number;
-    activations_remaining: number;
-    bonus_amount: number;
-    bonus_amount_formatted: string;
-    banner_message: string;
-    days_remaining: number;
-    activations_left: number;
-    daily_average: number;
-    ap_network_bonus_status: Array<{
-      name: string;
-      activations: number;
-      target: number;
-      status: string;
-    }>;
+  profit_this_month?: {
+    my_activations: { count: number; rate: number; total: number };
+    ap_network: { count: number; total: number; partner_commission_total: number };
+    total_profit_this_month: number;
+    total_partner_commission_this_month: number;
   };
   recent_activations: {
     items: Array<{
@@ -75,7 +64,10 @@ export interface CaDashboardOverviewData {
       actor_badge: string;
       customer_name: string;
       time_ago: string;
-      commission_formatted: string;
+      corporate_profit: number;
+      corporate_profit_formatted: string;
+      partner_commission: number;
+      partner_commission_formatted: string;
       status: string;
     }>;
   };
@@ -92,8 +84,12 @@ export interface CaRecentActivationItem {
   partner_name?: string;
   customer_name: string;
   time_ago: string;
-  commission: number;
-  commission_formatted: string;
+  corporate_profit: number;
+  corporate_profit_formatted: string;
+  partner_commission: number;
+  partner_commission_formatted: string;
+  profit: number;
+  profit_formatted: string;
   status: string;
   created_at: string;
 }

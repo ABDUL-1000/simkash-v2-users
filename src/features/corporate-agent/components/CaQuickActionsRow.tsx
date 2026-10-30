@@ -1,4 +1,4 @@
-import { Smartphone, Users, Package, Send, Wallet, PlusSquare } from "lucide-react";
+import { Users, Package, Send, Wallet } from "lucide-react";
 import { APP_COLORS, CA_DASHBOARD_COLORS } from "@/constants/colors";
 
 interface CaQuickActionsRowProps {
@@ -13,22 +13,21 @@ interface CaQuickActionsRowProps {
 
 export function CaQuickActionsRow({
   canPayout,
-  onActivateSim,
   onViewAps,
   onViewStock,
   onDistributeStock,
   onRequestPayout,
-  onRequestStock,
+  
 }: CaQuickActionsRowProps) {
   const actions = [
-    {
-      id: "activate",
-      label: "Activate SIM",
-      icon: Smartphone,
-      bg: APP_COLORS.blues.surfaceLight,
-      color: APP_COLORS.blues.interactiveCta,
-      onClick: onActivateSim,
-    },
+    // {
+    //   id: "activate",
+    //   label: "Activate SIM",
+    //   icon: Smartphone,
+    //   bg: APP_COLORS.blues.surfaceLight,
+    //   color: APP_COLORS.blues.interactiveCta,
+    //   onClick: onActivateSim,
+    // },
     {
       id: "aps",
       label: "My APs",
@@ -61,18 +60,18 @@ export function CaQuickActionsRow({
       color: CA_DASHBOARD_COLORS.payoutText,
       onClick: onRequestPayout,
     },
-    {
-      id: "request",
-      label: "Request Stock",
-      icon: PlusSquare,
-      bg: APP_COLORS.greens.light,
-      color: APP_COLORS.greens.green,
-      onClick: onRequestStock,
-    },
+    // {
+    //   id: "request",
+    //   label: "Request Stock",
+    //   icon: PlusSquare,
+    //   bg: APP_COLORS.greens.light,
+    //   color: APP_COLORS.greens.green,
+    //   onClick: onRequestStock,
+    // },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2.5">
       {actions.map((act) => {
         const Icon = act.icon;
         return (

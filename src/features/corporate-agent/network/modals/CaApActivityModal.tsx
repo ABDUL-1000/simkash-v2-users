@@ -9,7 +9,6 @@ interface CaApActivityModalProps {
   todayActs?: number;
   monthActs?: number;
   stock?: number;
-  bonusStatus?: string;
 }
 
 export function CaApActivityModal({
@@ -19,7 +18,6 @@ export function CaApActivityModal({
   todayActs = 5,
   monthActs = 847,
   stock = 18,
-  bonusStatus = "Achieved",
 }: CaApActivityModalProps) {
   const [filter, setFilter] = useState<"Today" | "This Week" | "This Month">("Today");
 
@@ -41,7 +39,7 @@ export function CaApActivityModal({
     >
       <div className="space-y-4 pt-1 text-xs">
         {/* 4-Stat Strip */}
-        <div className="grid grid-cols-4 gap-2 rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 text-center">
+        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-3 text-center">
           <div>
             <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#8C909B]">
               TODAY
@@ -59,12 +57,6 @@ export function CaApActivityModal({
               STOCK
             </span>
             <p className="font-black text-sm text-[#0F152A] pt-0.5">{stock}</p>
-          </div>
-          <div>
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#8C909B]">
-              BONUS
-            </span>
-            <p className="font-black text-xs text-purple-600 pt-0.5 truncate">{bonusStatus}</p>
           </div>
         </div>
 

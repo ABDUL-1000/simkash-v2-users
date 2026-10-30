@@ -113,12 +113,6 @@ export function CaDistributeTabPreview({
             <span className="font-bold text-slate-900">{selectedAp.activations_text}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Bonus Status</span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700">
-              {selectedAp.bonus_status}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
             <span className="text-slate-500">Last Received</span>
             <span className="text-slate-700 font-medium">{selectedAp.last_received}</span>
           </div>

@@ -19,15 +19,7 @@ import { EditPartnerModal } from "../Modals/EditPartnerModal";
 import { SuspendPartnerModal } from "../Modals/SuspendPartnerModal";
 import { caDistributePath, caRedistributePath } from "../../utils/caLinks";
 
-const TIMELINE_DOT: Record<string, string> = { sim: "bg-[#10B981]", stock: "bg-[#2563EB]", bonus: "bg-purple-600", onboard: "bg-[#10B981]" };
-const bonusTone = (status = "") => {
-  const value = status.toLowerCase();
-  if (value === "achieved") return "text-purple-600";
-  if (value === "at risk") return "text-[#F59E0B]";
-  if (value === "on track") return "text-[#10B981]";
-  return "text-[#8C909B]";
-};
-
+const TIMELINE_DOT: Record<string, string> = { sim: "bg-[#10B981]", stock: "bg-[#2563EB]", onboard: "bg-[#10B981]" };
 export default function AgencyPartnerDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -53,7 +45,6 @@ export default function AgencyPartnerDetailsPage() {
   const profileDetails = detailData?.profile_details;
   const stockDetails = detailData?.stock_details;
   const performance = detailData?.performance_this_month;
-  const bonusTracker = detailData?.bonus_tracker;
   const commission = detailData?.commission;
   const timeline = detailData?.account_timeline || [];
   const stockHistory = stockHistoryQuery.data?.items.slice(0, 5) || [];
@@ -67,7 +58,6 @@ export default function AgencyPartnerDetailsPage() {
   const isLowStock = (stockDetails?.total_stock ?? summaryBar?.stock?.count ?? 0) <= 5;
   const isNew = hero?.status?.toLowerCase() === "new";
   const location = hero?.location || [profileDetails?.lga, profileDetails?.state].filter(Boolean).join(", ");
-  const bonusStatus = summaryBar?.bonus?.status || commission?.bonus_status || "";
   const dailyActivations = performance?.daily_activations || [];
   const maxDaily = Math.max(1, ...dailyActivations.map((day) => day.count));
 
@@ -77,11 +67,11 @@ export default function AgencyPartnerDetailsPage() {
   const handleSendReminder = () => {
     remindMutation.mutate({
       partner_id: partnerId,
-      type: isLowStock ? "low_stock" : "bonus_at_risk",
-      title: isLowStock ? "Low Stock Alert" : "Bonus Target Reminder",
+      type: isLowStock ? "low_stock" : "general",
+      title: isLowStock ? "Low Stock Alert" : "Activation Reminder",
       message: isLowStock
         ? `You currently have ${stockDetails?.total_stock ?? 0} SIMs left. Request replenishment to maintain activation momentum.`
-        : "Please push activations to secure this month payout.",
+        : "Keep up the momentum! Push SIM activations this week.",
     });
   };
 
@@ -141,13 +131,6 @@ export default function AgencyPartnerDetailsPage() {
               <span className="text-[#8C909B] font-medium">ACTIVATIONS:</span>
               <span className="font-extrabold text-[#0F152A]">
                 {(summaryBar?.activations?.count ?? performance?.activations ?? 0).toLocaleString()} This month
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[#8C909B] font-medium">BONUS:</span>
-              <span className={`font-extrabold ${bonusTone(bonusStatus)}`}>
-                • {bonusStatus || "—"}
               </span>
             </div>
 
@@ -456,7 +439,7 @@ export default function AgencyPartnerDetailsPage() {
               </div>
             </div>
 
-            {/* MIDDLE COLUMN: Performance, Bonus Tracker, Stock History */}
+            {/* MIDDLE COLUMN: Performance, Stock History */}
             <div className="space-y-4">
               {/* Performance This Month Card */}
               <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-4">
@@ -512,33 +495,6 @@ export default function AgencyPartnerDetailsPage() {
                       ))}
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* Bonus Tracker Card */}
-              <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3">
-                <h3 className="text-xs font-extrabold text-[#0F152A]">
-                  {firstName}'s Bonus Tracker
-                </h3>
-
-                <div
-                  className={`rounded-2xl border p-3.5 space-y-2 text-xs ${
-                    bonusStatus.toLowerCase() === "achieved"
-                      ? "bg-[#EBFFF8] border-[#10B981]/30 text-[#10B981]"
-                      : bonusStatus.toLowerCase() === "at risk"
-                      ? "bg-[#FFFBEB] border-[#F59E0B]/30 text-[#D9990D]"
-                      : "bg-[#F8FAFC] border-[#E2ECF6] text-[#0F152A]"
-                  }`}
-                >
-                  <h4 className="font-black text-sm">
-                    {bonusTracker?.headline || "No bonus progress yet"}
-                  </h4>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/70">
-                    <div className="h-full rounded-full bg-current" style={{ width: `${Math.min(100, Math.max(0, bonusTracker?.percentage ?? 0))}%` }} />
-                  </div>
-                  <p className="text-[11px] font-medium opacity-90">
-                    {bonusTracker?.bonus_reward}
-                  </p>
                 </div>
               </div>
 
@@ -666,7 +622,6 @@ export default function AgencyPartnerDetailsPage() {
                   </div>
                   <div className="divide-y divide-[#E2ECF6] text-xs">
                     <div className="flex justify-between py-1.5"><span className="text-[#66738C]">Activation rate</span><span className="font-bold text-[#0F152A]">{commission.activation_rate}</span></div>
-                    <div className="flex justify-between py-1.5"><span className="text-[#66738C]">Bonus status</span><span className={`font-bold ${bonusTone(commission.bonus_status)}`}>{commission.bonus_status}</span></div>
                     <div className="flex justify-between py-1.5"><span className="text-[#66738C]">vs last month</span><span className={`font-bold ${commission.vs_last_month_formatted.startsWith("-") ? "text-[#EF4444]" : "text-[#10B981]"}`}>{commission.vs_last_month_formatted}</span></div>
                     <div className="flex justify-between py-1.5"><span className="text-[#66738C]">Last month</span><span className="font-bold text-[#0F152A]">{commission.last_month_formatted}</span></div>
                     <div className="flex justify-between py-1.5"><span className="text-[#66738C]">Two months ago</span><span className="font-bold text-[#0F152A]">{commission.two_months_ago_formatted}</span></div>

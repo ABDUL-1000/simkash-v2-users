@@ -272,8 +272,6 @@ export const appPaths = {
     path: `/finance/performance/agent/${id ? encodeURIComponent(id) : ""}`,
   }),
   bonusTracking: "/finance/bonus-tracking",
-  caBonusTracker: "/bonus/ca",
-  caBonusHistory: "/bonus/ca/history",
   scBonusTracker: "/bonus/sc",
   scBonusHistory: "/bonus/sc/history",
 

@@ -101,8 +101,9 @@ export function CaRecentActivationsCard({ onViewAll, initialFilter = "all" }: Ca
               {/* Amount & Status */}
               <div className="text-right shrink-0">
                 <span className="font-black text-xs text-emerald-600 block">
-                  {item.commission_formatted}
+                  {item.corporate_profit_formatted ?? item.profit_formatted}
                 </span>
+                {item.partner_commission > 0 && <span className="text-[9px] font-semibold text-slate-400 block">AP comm. {item.partner_commission_formatted}</span>}
                 <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded"
                   style={/fail|reject/i.test(item.status) ? { color: APP_COLORS.reds.red, backgroundColor: APP_COLORS.reds.light } : /pending|processing/i.test(item.status) ? { color: APP_COLORS.ambers.secondary, backgroundColor: APP_COLORS.ambers.light } : undefined}>
                   {item.status}

@@ -43,9 +43,9 @@ export function CaWalletPage() {
   const groups = transactions.data?.grouped_transactions ?? [];
 
   return <main className="mx-auto w-full min-w-0 max-w-[1440px] space-y-5 p-4 sm:p-6">
-    <PageHeader title="My Wallet" description="Commission balance, payouts and transaction history" actions={[
-      { key: "payout", label: "Request Payout", disabled: !actions?.can_request_payout || !balance?.commission_balance, onClick: () => setModal("payout") },
-      { key: "profit", label: "Withdraw to Wallet", variant: "secondary", disabled: !balance?.commission_balance, onClick: () => setModal("profit") },
+    <PageHeader title="My Wallet" description="Profit balance, payouts and transaction history" actions={[
+      { key: "payout", label: "Request Payout", disabled: !actions?.can_request_payout || !balance?.profit_balance, onClick: () => setModal("payout") },
+      { key: "profit", label: "Withdraw to Wallet", variant: "secondary", disabled: actions?.can_withdraw_profit === false || !balance?.profit_balance, onClick: () => setModal("profit") },
       { key: "account", label: "Payout Account", variant: "outline", disabled: actions ? !actions.can_manage_bank : false, onClick: () => setModal("account") },
       { key: "history", label: "Payout History", variant: "outline", disabled: actions ? !actions.can_view_history : false, onClick: () => setModal("history") },
       { key: "export", label: "Export CSV", variant: "outline", loading: exporter.isPending, disabled: actions ? !actions.can_download_statement : false, onClick: () => exporter.mutate({ category, period, search: debounced || undefined }) },
@@ -57,8 +57,8 @@ export function CaWalletPage() {
         <div className="flex items-start justify-between gap-3">
           <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold text-[#8C909B]">Commission Balance</p>
-              <h2 className="text-3xl font-black tracking-wide">{money(balance.commission_balance_formatted)}</h2>
+              <p className="text-xs font-semibold text-[#8C909B]">Profit Balance</p>
+              <h2 className="text-3xl font-black tracking-wide">{money(balance.profit_balance_formatted)}</h2>
             </div>
             <div>
               <p className="text-xs font-semibold text-[#8C909B]">Wallet Balance</p>
@@ -163,7 +163,7 @@ export function CaWalletPage() {
       </>}</aside>
     </div>
 
-    {(modal === "payout" || modal === "profit") && <CaPinAmountModal mode={modal} available={balance?.commission_balance ?? 0} walletBalance={balance?.wallet_balance ?? 0}
+    {(modal === "payout" || modal === "profit") && <CaPinAmountModal mode={modal} available={balance?.profit_balance ?? 0} walletBalance={balance?.wallet_balance ?? 0}
       payoutAccount={data?.payout_account} onClose={close} onManageBank={() => setModal("account")} />}
     {modal === "account" && <CaPayoutAccountModal onClose={close} />}
     {modal === "history" && <CaPayoutsHistoryModal onClose={close} />}

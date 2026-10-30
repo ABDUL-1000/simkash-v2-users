@@ -36,7 +36,7 @@ export function CaPinAmountModal({ mode, available, walletBalance, payoutAccount
 
   return (
     <AppModal open onOpenChange={(value) => { if (!value) close(); }} title={mode === "payout" ? "Request Payout" : "Withdraw Profit to Wallet"}
-      description={mode === "payout" ? "Send commission to your payout bank account" : "Move profit into your main wallet balance"} size="sm" showCloseButton={!mutation.isPending}>
+      description={mode === "payout" ? "Send profit to your payout bank account" : "Move profit into your main wallet balance"} size="sm" showCloseButton={!mutation.isPending}>
       <form onSubmit={submit} className="space-y-4 pt-1 text-xs">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-[#0F152A] p-3 text-white">

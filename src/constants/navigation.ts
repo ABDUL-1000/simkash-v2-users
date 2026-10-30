@@ -289,13 +289,6 @@ export const userNavigation: NavigationSection[] = [
         icon: Coins,
         badge: "CA",
       },
-      // {
-      //   id: "ca-bonus-tracker",
-      //   label: "Bonus Tracker",
-      //   href: appPaths.caBonusTracker,
-      //   icon: Trophy,
-      //   badge: "CA",
-      // },
     ],
   },
   {

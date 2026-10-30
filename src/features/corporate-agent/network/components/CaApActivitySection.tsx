@@ -59,20 +59,6 @@ export function CaApActivitySection({
               <p className="text-[10px] text-[#8C909B]">STOCK</p>
             </div>
 
-            <div className="text-center">
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold ${
-                  ap.bonusStatus === "Achieved"
-                    ? "bg-purple-50 text-purple-600"
-                    : ap.bonusStatus === "On Track"
-                    ? "bg-[#EBFFF8] text-[#10B981]"
-                    : "bg-[#FFFBEB] text-[#F59E0B]"
-                }`}
-              >
-                {ap.bonusStatus}
-              </span>
-            </div>
-
             <div className="space-y-0.5 text-right">
               <span className="block text-[10px] text-[#8C909B]">
                 {ap.trend === "up"

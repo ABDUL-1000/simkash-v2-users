@@ -4,7 +4,6 @@ import {
   Users,
   UserCheck,
   AlertTriangle,
-  Trophy,
   Zap,
   Plus,
   MoreVertical,
@@ -18,7 +17,7 @@ import {
   useExportCaPartners,
   useCaRemindPartner,
 } from "../api/useCaPartners";
-import type { PartnerTab, PartnerBonusFilter, PartnerItem } from "../types/api";
+import type { PartnerTab, PartnerItem } from "../types/api";
 import { OnboardPartnerModal } from "../Modals/OnboardPartnerModal";
 import { BulkReminderModal } from "../Modals/BulkReminderModal";
 import { PartnerCustomersModal } from "../Modals/PartnerCustomersModal";
@@ -32,13 +31,6 @@ const TABS: { id: PartnerTab; label: string }[] = [
   { id: "suspended", label: "Suspended" },
   { id: "new", label: "New" },
 ];
-const BONUS_FILTERS: { id: PartnerBonusFilter; label: string }[] = [
-  { id: "all", label: "All bonus status" },
-  { id: "achieved", label: "Achieved" },
-  { id: "on_track", label: "On Track" },
-  { id: "at_risk", label: "At Risk" },
-  { id: "missed", label: "Missed" },
-];
 const isSuspendedAp = (ap: PartnerItem) => ap.status.toLowerCase() === "suspended" || ap.status_label?.toLowerCase() === "suspended";
 
 export default function AgencyPartnerPage() {
@@ -47,7 +39,6 @@ export default function AgencyPartnerPage() {
 
   // Filter & Query States
   const [tab, setTab] = useState<PartnerTab>("all");
-  const [bonusStatus, setBonusStatus] = useState<PartnerBonusFilter>("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -65,7 +56,6 @@ export default function AgencyPartnerPage() {
 
   const { data: overview, isLoading, refetch } = useGetCaPartnersOverview({
     status: tab,
-    bonus_status: bonusStatus,
     search: debouncedSearch || undefined,
     page,
     limit: pageSize,
@@ -89,7 +79,6 @@ export default function AgencyPartnerPage() {
   const pagination = overview?.pagination;
   const networkSummary = overview?.network_summary;
   const apsNeedingStock = overview?.aps_needing_stock;
-  const apBonusStatus = overview?.ap_bonus_status;
 
   // Distribution lives on the SIM inventory page (POST /sim-inventory/distribute).
   const goDistribute = (partnerId?: number) => navigate(caDistributePath(partnerId));
@@ -102,11 +91,11 @@ export default function AgencyPartnerPage() {
     const lowStock = partner.stock <= 5;
     remindMutation.mutate({
       partner_id: partner.id,
-      type: lowStock ? "low_stock" : "bonus_at_risk",
-      title: lowStock ? "Low Stock Alert" : "Bonus Target Reminder",
+      type: lowStock ? "low_stock" : "general",
+      title: lowStock ? "Low Stock Alert" : "Activation Reminder",
       message: lowStock
         ? `You currently have ${partner.stock} SIMs left. Request replenishment to maintain activation momentum.`
-        : "Please push activations to secure this month payout.",
+        : "Keep up the momentum! Push SIM activations this week.",
     });
   };
 
@@ -134,7 +123,7 @@ export default function AgencyPartnerPage() {
       </div>
 
       {/* Top KPI Cards Strip (5 Cards) */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-[#EFF4F8] text-[#2563EB]">
             <Users className="size-4" />
@@ -177,21 +166,6 @@ export default function AgencyPartnerPage() {
           </p>
           <p className="text-[10px] text-[#8C909B]">
             {cards?.low_stock_aps?.subtitle ?? "Need distribution"}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-            <Trophy className="size-4" />
-          </div>
-          <h3 className="text-2xl font-black text-purple-600">
-            {cards?.bonus_achieved_aps?.count?.toLocaleString() ?? "0"}
-          </h3>
-          <p className="text-[11px] font-bold text-[#0F152A]">
-            {cards?.bonus_achieved_aps?.label ?? "Bonus Achieved"}
-          </p>
-          <p className="text-[10px] text-[#8C909B]">
-            {cards?.bonus_achieved_aps?.subtitle ?? "This period"}
           </p>
         </div>
 
@@ -240,15 +214,8 @@ export default function AgencyPartnerPage() {
               ))}
             </div>
 
-            {/* Bonus status filter (?bonus_status=) + Search Input */}
+            {/* Search Input */}
             <div className="flex flex-col gap-2 sm:flex-row">
-              <select
-                value={bonusStatus}
-                onChange={(e) => { setBonusStatus(e.target.value as PartnerBonusFilter); setPage(1); }}
-                className="rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] px-3 py-1.5 text-xs font-bold text-[#0F152A] outline-none"
-              >
-                {BONUS_FILTERS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-              </select>
               <div className="relative min-w-[200px]">
                 <Search className="absolute left-3 top-2.5 size-3.5 text-[#8C909B]" />
                 <input
@@ -282,7 +249,6 @@ export default function AgencyPartnerPage() {
                   ap.status.toLowerCase() === "low stock" ||
                   ap.stock <= 5;
                 const isSuspended = isSuspendedAp(ap);
-                const bonus = ap.bonus_milestone.toLowerCase();
 
                 return (
                   <div
@@ -338,8 +304,8 @@ export default function AgencyPartnerPage() {
                       </button>
                     </div>
 
-                    {/* Stat Grid (4 Columns) */}
-                    <div className="grid grid-cols-4 gap-2 text-center pt-1">
+                    {/* Stat Grid (3 Columns) */}
+                    <div className="grid grid-cols-3 gap-2 text-center pt-1">
                       <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 space-y-0.5">
                         <h4
                           className={`text-base font-black ${
@@ -369,21 +335,6 @@ export default function AgencyPartnerPage() {
                         <p className="text-[10px] text-[#8C909B] font-medium">This month</p>
                       </div>
 
-                      <div className="rounded-2xl bg-[#F8FAFC] border border-[#E2ECF6] p-2.5 flex flex-col items-center justify-center">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold ${
-                            bonus === "achieved"
-                              ? "bg-purple-50 text-purple-600"
-                              : bonus === "on track"
-                              ? "bg-[#EBFFF8] text-[#10B981]"
-                              : bonus === "at risk"
-                              ? "bg-[#FFFBEB] text-[#F59E0B]"
-                              : "bg-[#F8FAFC] text-[#8C909B]"
-                          }`}
-                        >
-                          {ap.bonus_milestone}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Card Bottom Links */}
@@ -534,57 +485,6 @@ export default function AgencyPartnerPage() {
             </div>
           </div>
 
-          {/* AP Bonus Status Box */}
-          <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3">
-            <h3 className="text-xs font-extrabold text-[#0F152A]">
-              AP Bonus Status
-            </h3>
-
-            <div className="space-y-2 text-xs divide-y divide-[#E2ECF6]">
-              <div className="flex justify-between py-1.5 font-bold">
-                <span className="text-[#66738C] flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-purple-600" /> Achieved
-                </span>
-                <span className="text-purple-600">{apBonusStatus?.achieved ?? 0}</span>
-              </div>
-              <div className="flex justify-between py-1.5 font-bold">
-                <span className="text-[#66738C] flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-[#10B981]" /> On Track
-                </span>
-                <span className="text-[#10B981]">{apBonusStatus?.on_track ?? 0}</span>
-              </div>
-              <div className="flex justify-between py-1.5 font-bold">
-                <span className="text-[#66738C] flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-[#F59E0B]" /> At Risk
-                </span>
-                <span className="text-[#F59E0B]">{apBonusStatus?.at_risk ?? 0}</span>
-              </div>
-              <div className="flex justify-between py-1.5 font-bold">
-                <span className="text-[#66738C] flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-[#EF4444]" /> Missed
-                </span>
-                <span className="text-[#8C909B]">{apBonusStatus?.missed ?? 0}</span>
-              </div>
-              <div className="flex justify-between py-1.5 font-bold">
-                <span className="text-[#66738C] flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-[#8C909B]" /> N/A (suspended)
-                </span>
-                <span className="text-[#8C909B]">{apBonusStatus?.suspended_count ?? apBonusStatus?.na ?? 0}</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={apBonusStatus ? !apBonusStatus.can_remind_at_risk : false}
-              onClick={() => setBulkReminderModalOpen(true)}
-              className="text-xs font-extrabold text-[#F59E0B] hover:underline pt-1 disabled:opacity-40 disabled:no-underline"
-            >
-              ▲ Send Reminders to At Risk
-            </button>
-          </div>
-
-          {/* Combined bonus tier progress is removed: not part of the overview contract. */}
-
           {/* Quick Actions Box */}
           <div className="rounded-3xl border border-[#E2ECF6] bg-white p-5 shadow-xs space-y-3">
             <h3 className="text-xs font-extrabold text-[#0F152A]">
@@ -649,7 +549,6 @@ export default function AgencyPartnerPage() {
       <BulkReminderModal
         open={bulkReminderModalOpen}
         onOpenChange={setBulkReminderModalOpen}
-        atRiskCount={apBonusStatus?.at_risk}
       />
 
       {/* 3. Suspend / Reactivate */}

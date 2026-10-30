@@ -9,7 +9,6 @@ import { useGetCaDashboardOverview } from "../api/useGetCaDashboardOverview";
 import { CaQueryState } from "../components/CaQueryState";
 import { CaHeaderTopKpiRow } from "../components/CaHeaderTopKpiRow";
 import { CaSecondaryKpiCards } from "../components/CaSecondaryKpiCards";
-import { CaBonusTrackerCard } from "../components/CaBonusTrackerCard";
 import { CaQuickActionsRow } from "../components/CaQuickActionsRow";
 import { CaRecentActivationsCard } from "../components/CaRecentActivationsCard";
 import { CaCommissionThisMonthCard } from "../components/CaCommissionThisMonthCard";
@@ -28,7 +27,7 @@ export default function CorporateAgentDashboardPage() {
   const [feedFilter, setFeedFilter] = useState<"all" | "mine">("all");
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const data = overview.data;
-  const canPayout = Boolean(data?.top_cards.my_commission.can_request_payout && data.top_cards.my_commission.amount > 0 && !overview.error);
+  const canPayout = Boolean(data?.top_cards.my_profit?.can_request_payout && data.top_cards.my_profit.amount > 0 && !overview.error);
   const goDistribute = () => navigate(caDistributePath());
   const goRequestStock = () => navigate(caRequestStockPath());
   const goPayout = () => navigate(caPayoutPath());
@@ -41,11 +40,10 @@ export default function CorporateAgentDashboardPage() {
       { key: "request", label: "Request Stock from Admin", variant: "outline", onClick: goRequestStock },
       { key: "payout", label: "Request Payout", variant: "outline", disabled: !canPayout, onClick: goPayout },
     ]} />
-    {/* Mock company/region, notification dot and bonus celebration preview remain commented: the dashboard contract does not provide identity/notifications/bonus-payment history. */}
+    {/* Mock company/region and notification dot remain commented: the dashboard contract does not provide identity/notifications. */}
     <CaQueryState loading={overview.isLoading} error={overview.error} empty={!data} retry={() => void overview.refetch()}>{data && <>
       <CaHeaderTopKpiRow kpis={data.top_cards} onRequestPayout={goPayout} />
-      <CaSecondaryKpiCards data={data.secondary_cards} onViewOwnActs={() => { setFeedFilter("mine"); scrollTo("ca-activations"); }} onViewNetworkActs={() => { setFeedFilter("all"); scrollTo("ca-activations"); }} onViewAps={goPartners} onViewBonus={() => scrollTo("ca-bonus")} onViewStock={() => scrollTo("ca-stock")} />
-      <div id="ca-bonus"><CaBonusTrackerCard data={data.bonus_tracker} onViewAllAps={goPartners} /></div>
+      <CaSecondaryKpiCards data={data.secondary_cards ?? {}} onViewOwnActs={() => { setFeedFilter("mine"); scrollTo("ca-activations"); }} onViewNetworkActs={() => { setFeedFilter("all"); scrollTo("ca-activations"); }} onViewAps={goPartners} onViewProfit={() => scrollTo("ca-profit")} onViewStock={() => scrollTo("ca-stock")} />
     </>}</CaQueryState>
     <CaQuickActionsRow canPayout={canPayout} onActivateSim={() => navigate(appPaths.caSimActivation)} onViewAps={goPartners} onViewStock={() => navigate(appPaths.caSimInventory)} onDistributeStock={goDistribute} onRequestStock={goRequestStock} onRequestPayout={goPayout} />
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -55,7 +53,7 @@ export default function CorporateAgentDashboardPage() {
             dashboard contract. The full AP list lives on the Agency Partners page (goPartners). */}
       </div>
       <div className="lg:col-span-5 space-y-6 min-w-0">
-        <CaQueryState loading={overview.isLoading} error={overview.error} empty={!data} retry={() => void overview.refetch()}>{data && <><CaCommissionThisMonthCard data={data} onRequestPayout={goPayout} /><div id="ca-stock"><CaSimInventoryCard totalAvailable={data.top_cards.my_stock.total_available} onDistributeStock={goDistribute} onRequestStock={goRequestStock} onViewFullInventory={() => navigate(appPaths.caSimInventory)} /></div></>}</CaQueryState>
+        <CaQueryState loading={overview.isLoading} error={overview.error} empty={!data} retry={() => void overview.refetch()}>{data && <><div id="ca-profit"><CaCommissionThisMonthCard data={data} onRequestPayout={goPayout} /></div><div id="ca-stock"><CaSimInventoryCard totalAvailable={data.top_cards.my_stock.total_available} onDistributeStock={goDistribute} onRequestStock={goRequestStock} onViewFullInventory={() => navigate(appPaths.caSimInventory)} /></div></>}</CaQueryState>
         <div className="rounded-2xl border p-4 shadow-xs space-y-3 bg-white" style={{ borderColor: APP_COLORS.greys.stroke }}><PageHeader title="Activity Feed" /><AppEmptyState title="Activity feed unavailable" description="Recent SIM activations are available in the activations panel." />{/* <CaActivityFeedCard /> remains commented: no activity records or activity endpoint in supplied CA dashboard contract. */}</div>
       </div>
     </div>

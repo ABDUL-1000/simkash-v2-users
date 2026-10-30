@@ -5,10 +5,6 @@ interface ActivationDetailsTableProps {
 }
 
 export function ActivationDetailsTable({ record }: ActivationDetailsTableProps) {
-  const target = record.bonusTarget || 3000;
-  const after = record.bonusAfter || 2218;
-  const percent = Math.min(100, Math.round((after / target) * 100));
-
   return (
     <div className="space-y-5 rounded-3xl border border-[#E2ECF6] bg-white p-6 shadow-xs">
       <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#8C909B]">
@@ -141,29 +137,6 @@ export function ActivationDetailsTable({ record }: ActivationDetailsTableProps) 
           </span>
         </div>
 
-        {/* BONUS CONTRIBUTION SECTION */}
-        <div className="pb-2 pt-4">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">
-            BONUS CONTRIBUTION
-          </span>
-        </div>
-
-        <div className="space-y-2 py-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#0F152A]">
-            <span>🎯</span>
-            <span>This activation counted toward your 3,000 combined target</span>
-          </div>
-          <div className="flex justify-between text-[11px] font-medium text-[#66738C]">
-            <span>Before: {record.bonusBefore?.toLocaleString() || "2,217"}</span>
-            <span>After: {record.bonusAfter?.toLocaleString() || "2,218"}</span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-[#EFF4F8]">
-            <div
-              className="h-full rounded-full bg-[#2563EB] transition-all"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );

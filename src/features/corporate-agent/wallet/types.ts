@@ -2,13 +2,14 @@
 export interface CaWalletOverview {
   balance_card: {
     commission_balance: number; commission_balance_formatted: string;
+    profit_balance: number; profit_balance_formatted: string;
     wallet_balance: number; wallet_balance_formatted: string;
     currency: string; currency_symbol: string;
     chips: {
       ap_network_this_month: { amount: number; formatted: string; label: string };
       pending_payout: { amount: number; formatted: string; label: string };
     };
-    actions: { can_request_payout: boolean; can_download_statement: boolean; can_view_history: boolean; can_manage_bank: boolean };
+    actions: { can_request_payout: boolean; can_withdraw_profit?: boolean; can_download_statement: boolean; can_view_history: boolean; can_manage_bank: boolean };
   };
   stats_cards: {
     total_earned: { amount: number; formatted: string; label: string; subtext: string };

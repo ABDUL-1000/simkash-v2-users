@@ -40,7 +40,7 @@ export function CaDistributionTab({ initialPartnerId, initialType, onRequestStoc
   id: partnerId, name: detail.hero.name, phone: detail.hero.phone, initials: detail.hero.initials,
   location: [detail.profile_details.lga, detail.profile_details.state].filter(Boolean).join(", "),
   customers: detail.summary_bar.customers.count, current_stock: detail.summary_bar.stock.count,
-  activations_text: `${detail.summary_bar.activations.count.toLocaleString()} this month`, bonus_status: detail.summary_bar.bonus.status,
+  activations_text: `${detail.summary_bar.activations.count.toLocaleString()} this month`,
   last_received: detail.stock_details.last_distribution_text,
   last_sent_details: lastSent.data?.items[0] && { time_ago: lastSent.data.items[0].time_ago, total_sims: lastSent.data.items[0].total_sims, breakdown_text: lastSent.data.items[0].breakdown_text },
  } : undefined;

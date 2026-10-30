@@ -81,7 +81,6 @@ export interface CaApPreview {
   customers: number;
   current_stock: number;
   activations_text: string;
-  bonus_status: string;
   last_received: string;
   last_sent_details?: { time_ago: string; total_sims: number; breakdown_text: string };
 }

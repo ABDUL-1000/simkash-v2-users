@@ -53,7 +53,6 @@ import { CaCancelPendingModal } from "../Modals/CaCancelPendingModal";
 import { CaActivationRecordDetailsModal } from "../Modals/CaActivationRecordDetailsModal";
 import { CaExportHistoryModal } from "../Modals/CaExportHistoryModal";
 import { CaScanQrModal } from "../Modals/CaScanQrModal";
-import { CaBonusTargetHitModal } from "../Modals/CaBonusTargetHitModal";
 import { CaBulkActivationConfirmModal } from "../Modals/CaBulkActivationConfirmModal";
 import { CaRetryPendingModal } from "../Modals/CaRetryPendingModal";
 import { CaSwitchNetworkModal } from "../Modals/CaSwitchNetworkModal";
@@ -134,7 +133,6 @@ export function CaSimActivationPage() {
   const [requestStockModalOpen, setRequestStockModalOpen] = useState(false);
 
   // New Requested Modals
-  const [bonusTargetHitModalOpen, setBonusTargetHitModalOpen] = useState(false);
   const [bulkConfirmModalOpen, setBulkConfirmModalOpen] = useState(false);
   const [switchNetworkModalOpen, setSwitchNetworkModalOpen] = useState(false);
 
@@ -219,9 +217,6 @@ export function CaSimActivationPage() {
 
     setHistoryRecords([newRecord, ...historyRecords]);
     setCurrentStep(1);
-
-    // Trigger Bonus Target Hit celebration modal matching Modal 1 reference
-    setBonusTargetHitModalOpen(true);
   };
 
   const handleConfirmBulkActivation = () => {
@@ -782,28 +777,6 @@ export function CaSimActivationPage() {
         onScanSuccess={(scanned) => setSimNumber(scanned)}
       />
 
-      {/* 8. Bonus Target Hit Celebration Modal matching Modal 1 screenshot */}
-      <CaBonusTargetHitModal
-        open={bonusTargetHitModalOpen}
-        onOpenChange={setBonusTargetHitModalOpen}
-        bonusAmount={15000}
-        activationCommission={600}
-        previousWallet={269700}
-        newWallet={285300}
-        simNumber={simNumber}
-        simType={selectedSimType}
-        network={selectedNetwork}
-        customerName={customerName}
-        customerPhone={customerPhone}
-        planName={selectedPlanObj.label}
-        onActivateAnother={() => {
-          handleClearForm();
-          setCurrentStep(1);
-        }}
-        onDone={() => {
-          setCurrentStep(1);
-        }}
-      />
 
       {/* 9. Confirm Bulk Activation Modal with PIN matching Modal 2 screenshot */}
       <CaBulkActivationConfirmModal
