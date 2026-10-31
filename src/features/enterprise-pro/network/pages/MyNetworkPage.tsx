@@ -59,7 +59,7 @@ export const MyNetworkPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       {/* Page Header */}
       <PageHeader
-        title="My Network"
+        title="My State Coordinators"
         description="Monitor State Coordinators, stock alerts, and territory performance."
         actions={[
           {

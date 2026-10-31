@@ -84,26 +84,26 @@ export const userNavigation: NavigationSection[] = [
         badge: "EP",
       },
       {
+        id: "ep-network",
+        label: "My State Coordinators",
+        href: appPaths.enterpriseProNetwork,
+        icon: Users,
+        badge: "EP",
+      },
+      {
         id: "enterprise-wallet",
         label: "My Wallet",
         href: appPaths.enterpriseWallet,
         icon: Wallet,
         badge: "EP",
       },
-      {
-        id: "ep-investment",
-        label: "My Investment",
-        href: appPaths.enterpriseProInvestment,
-        icon: Coins,
-        badge: "19.0% ROI",
-      },
-      {
-        id: "ep-network",
-        label: "My Network",
-        href: appPaths.enterpriseProNetwork,
-        icon: Users,
-        badge: "12 SCs",
-      },
+      // {
+      //   id: "ep-investment",
+      //   label: "My Investment",
+      //   href: appPaths.enterpriseProInvestment,
+      //   icon: Coins,
+      //   badge: "19.0% ROI",
+      // },
       {
         id: "ep-sim-inventory",
         label: "SIM Inventory",
@@ -453,7 +453,7 @@ export const userNavigation: NavigationSection[] = [
   {
     label: "Main Navigation",
     items: [
-      { id: "user-wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
+      // { id: "user-wallet", label: "My Wallet", href: appPaths.wallet, icon: Wallet },
       {
         id: "bill-payments",
         label: "Bill Payments",

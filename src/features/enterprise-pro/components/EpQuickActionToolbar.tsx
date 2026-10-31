@@ -48,7 +48,7 @@ export function EpQuickActionToolbar({
       bgColor: "bg-purple-50/80",
     },
     {
-      label: "My Network",
+      label: "My State Coordinators",
       icon: Users,
       onClick: onMyNetwork,
       iconColor: "text-blue-600",

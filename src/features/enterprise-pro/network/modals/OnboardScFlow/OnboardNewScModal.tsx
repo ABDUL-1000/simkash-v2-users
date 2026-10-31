@@ -84,7 +84,7 @@ export const OnboardNewScModal: React.FC<OnboardNewScModalProps> = ({ onClose, o
           <div className="flex items-center gap-3 pt-2">
             <button type="button" disabled={pending} onClick={close} className="flex-1 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
             {canAdd
-              ? <button type="button" disabled={pending} onClick={() => addExisting.mutate({ phone }, { onSuccess: onClose })} className="flex-1 py-2.5 rounded-xl bg-[#1F3A5F] text-white font-bold hover:bg-slate-800 disabled:opacity-50">{addExisting.isPending ? "Adding…" : "Add to My Network"}</button>
+              ? <button type="button" disabled={pending} onClick={() => addExisting.mutate({ phone }, { onSuccess: onClose })} className="flex-1 py-2.5 rounded-xl bg-[#1F3A5F] text-white font-bold hover:bg-slate-800 disabled:opacity-50">{addExisting.isPending ? "Adding…" : "Add to My State Coordinators"}</button>
               : <button type="button" disabled={!person && !verify.isError} onClick={startOnboarding} className="flex-1 py-2.5 rounded-xl bg-[#1F3A5F] text-white font-bold hover:bg-slate-800 disabled:opacity-50">Continue to Onboarding</button>}
           </div>
         </> : <form onSubmit={handleSubmit} className="space-y-4">

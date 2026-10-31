@@ -79,7 +79,7 @@ export const enterpriseProRoutes: TRouteData[] = [
   {
     path: appPaths.enterpriseProNetwork,
     element: <MyNetworkPage />,
-    title: "Enterprise Pro Network",
+    title: "My State Coordinators",
     isSearchable: true,
   },
   {
