@@ -25,10 +25,9 @@ export const ReinstateScModal: React.FC<ReinstateScModalProps> = ({
 
   const handleConfirm = () => {
     if (update.isPending || !note.trim()) return;
-    update.mutate({ status: 'ACTIVE', reason: note.trim() }, { onSuccess: result => {
+    update.mutate({ action: 'reactivate', reason: note.trim() }, { onSuccess: result => {
       onOpenChange(false);
-      onConfirmReinstate({ ...coordinator, name: result.name, status: result.new_status.toUpperCase() === 'ACTIVE' ? 'active' : 'suspended',
-        api: coordinator.api ? { ...coordinator.api, name: result.name, status: result.new_status } : undefined }, result.reason);
+      onConfirmReinstate({ ...coordinator, status: 'active', statusLabel: result.status }, note.trim());
     } });
   };
 

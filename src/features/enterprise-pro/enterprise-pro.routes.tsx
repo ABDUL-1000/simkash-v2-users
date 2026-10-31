@@ -8,12 +8,11 @@ import {
   EpSimInventoryPage,
   DistributeSIMsPage,
   DistributionCompletePage,
-  OrderMoreSimsPage,
-  OrderPlacedPage,
   InventoryHistoryPage,
 } from "./inventory";
 import { MyNetworkPage } from "./network";
 import { EnterpriseProPricingPage } from "./pricing";
+import { epRequestStockPath } from "./utils/epLinks";
 
 export const enterpriseProRoutes: TRouteData[] = [
   { path: "/enterprise-pro/wallet", element: <Navigate to={appPaths.enterpriseWallet} replace />, title: "Enterprise Wallet", isSearchable: false },
@@ -55,13 +54,13 @@ export const enterpriseProRoutes: TRouteData[] = [
   },
   {
     path: appPaths.enterpriseProOrderMoreSims,
-    element: <OrderMoreSimsPage />,
-    title: "Order Wholesale SIMs",
-    isSearchable: true,
+    element: <Navigate to={epRequestStockPath()} replace />,
+    title: "Request SIM Stock",
+    isSearchable: false,
   },
   {
     path: appPaths.enterpriseProOrderPlaced,
-    element: <OrderPlacedPage />,
+    element: <Navigate to={epRequestStockPath()} replace />,
     title: "SIM Order Placed",
     isSearchable: false,
   },

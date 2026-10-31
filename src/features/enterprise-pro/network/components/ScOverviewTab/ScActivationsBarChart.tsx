@@ -1,73 +1,47 @@
 import React, { useState } from "react";
 import { colors } from "@/constants/colors";
-import { useGetEnterpriseActivationsChart } from '../../api/queries';
 import { AppEmptyState } from '@/components/common/AppEmptyState';
-import { EpQueryState } from '../../../components/EpQueryState';
+import type { EnterpriseScComparisonData } from "../../types/api";
 
-export const ScActivationsBarChart: React.FC = () => {
+/** Activations per State Coordinator, from the comparison table. */
+export const ScActivationsBarChart: React.FC<{ rows: EnterpriseScComparisonData["comparison_table"] }> = ({ rows }) => {
   const [showAll, setShowAll] = useState(false);
-
-  const query = useGetEnterpriseActivationsChart();
-  const sorted = query.data?.items ?? [];
+  const sorted = [...rows].sort((a, b) => b.activations - a.activations);
   const displayed = showAll ? sorted : sorted.slice(0, 7);
-  const getBarColor = (color: string) => {
-    if (color === 'orange' || color === 'yellow') return colors.warning;
-    if (color === 'red') return colors.danger;
-    if (color === 'green') return colors.success;
-    return colors.primary;
-  };
+  const max = Math.max(1, ...sorted.map((row) => row.activations));
 
   return (
     <div
       className="rounded-2xl p-5 border bg-white shadow-sm space-y-4"
       style={{ borderColor: colors.border }}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="font-bold text-gray-900 text-sm">{query.data?.title ?? 'Monthly Activations by SC'}</h4>
-          <p className="text-xs text-gray-500">{query.data?.subtitle ?? 'Activations per State Coordinator'}</p>
-        </div>
-        <div className="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#1F3A5F]" /> Blue
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#F59E0B]" /> Orange
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#EF4444]" /> Red
-          </span>
-        </div>
+      <div>
+        <h4 className="font-bold text-gray-900 text-sm">Monthly Activations by SC</h4>
+        <p className="text-xs text-gray-500">Activations per State Coordinator</p>
       </div>
 
       <div className="space-y-3 pt-1">
-        {!query.isSuccess ? <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch}/> : displayed.length === 0 ? <AppEmptyState title="No activation data"/> : null}
-        {displayed.map((sc) => {
-          const pct = Math.max(0, Math.min(sc.percentage, 100));
-          return (
-            <div key={sc.id} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-gray-800">
-                  {sc.name}{" "}
-                  <span className="text-gray-400 font-normal" />
-                </span>
-                <span className="font-bold text-gray-900">
-                  {sc.activations.toLocaleString()}{" "}
-                  <span className="text-[11px] font-normal text-gray-400">acts</span>
-                </span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${pct}%`,
-                    backgroundColor: getBarColor(sc.color_code),
-                  }}
-                />
-              </div>
+        {displayed.length === 0 && <AppEmptyState title="No activation data"/>}
+        {displayed.map((sc) => (
+          <div key={sc.coordinator_id} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-gray-800">{sc.name}</span>
+              <span className="font-bold text-gray-900">
+                {sc.activations?.toLocaleString() ?? "—"}{" "}
+                <span className="text-[11px] font-normal text-gray-400">acts</span>
+              </span>
             </div>
-          );
-        })}
+            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${(sc.activations / max) * 100}%`,
+                  backgroundColor: sc.is_suspended ? colors.danger : colors.primary,
+                }}
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       {sorted.length > 7 && (

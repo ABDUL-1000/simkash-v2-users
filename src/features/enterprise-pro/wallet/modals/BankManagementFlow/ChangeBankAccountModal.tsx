@@ -23,14 +23,14 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({ 
     <AppModal
       open={open}
       onOpenChange={(v) => !v && onClose()}
-      title="Change Payout Bank Account"
+      title={bankAccount.isSet ? "Change Payout Bank Account" : "Add Payout Bank Account"}
       description="Update your corporate settlement account for Enterprise Pro earnings withdrawals."
       size="md"
       footer={null}
     >
       {open && <form onSubmit={handleSubmit} className="space-y-4 pt-2">
         {/* Current Account Strip */}
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+        {bankAccount.isSet && <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-slate-500" />
             <div>
@@ -43,7 +43,7 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({ 
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
             Active
           </span>
-        </div>
+        </div>}
 
         {/* Bank list and account-name verification come from the shared OPay endpoints. */}
         <BankAccountFields onChange={setDetails} />
@@ -56,8 +56,6 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({ 
             account status will be returned after saving your settlement details.
           </div>
         </div>
-
-        {/* The transaction-PIN step was removed: POST /enterprise/wallet/payout-account has no PIN field, so it was never verified. */}
 
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -73,7 +71,7 @@ export const ChangeBankAccountModal: React.FC<ChangeBankAccountModalProps> = ({ 
             disabled={!details}
             className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-sm flex items-center gap-1.5 transition"
           >
-            Submit for Review
+            Save Account
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

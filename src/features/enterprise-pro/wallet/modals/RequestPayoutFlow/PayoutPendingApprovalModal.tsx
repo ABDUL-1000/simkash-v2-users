@@ -1,7 +1,7 @@
 import type { WalletActionResult } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
-import { Clock, PhoneCall, Check } from "lucide-react";
+import { Clock, Check } from "lucide-react";
 import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface PayoutPendingApprovalModalProps {
@@ -9,7 +9,6 @@ interface PayoutPendingApprovalModalProps {
   open: boolean;
   amount: number;
   onClose: () => void;
-  onContactManager?: () => void;
 }
 
 export const PayoutPendingApprovalModal: React.FC<PayoutPendingApprovalModalProps> = ({
@@ -17,10 +16,9 @@ export const PayoutPendingApprovalModal: React.FC<PayoutPendingApprovalModalProp
   open,
   amount,
   onClose,
-  onContactManager,
 }) => {
 
-  const { bankAccount, accountManager } = useEnterpriseWalletData();
+  const { bankAccount } = useEnterpriseWalletData();
   return (
     <AppModal
       open={open}
@@ -37,7 +35,7 @@ export const PayoutPendingApprovalModal: React.FC<PayoutPendingApprovalModalProp
         <div>
           <h4 className="text-base font-bold text-slate-900">Payout Pending Approval</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Your withdrawal request has been submitted and queued for standard high-value enterprise verification.
+            Your withdrawal request has been submitted and is awaiting approval.
           </p>
         </div>
 
@@ -58,24 +56,12 @@ export const PayoutPendingApprovalModal: React.FC<PayoutPendingApprovalModalProp
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Reviewer:</span>
-            <span className="font-semibold text-slate-800">{accountManager.name}</span>
-          </div>
-          <div className="flex justify-between">
             <span className="text-slate-500">Status:</span>
             <span className="font-bold text-amber-700">{result?.status ?? "Pending"}</span>
           </div>
         </div>
 
         <div className="flex gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onContactManager ?? (() => { if (accountManager.phone) window.location.href = `tel:${accountManager.phone}`; })}
-            className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
-          >
-            <PhoneCall className="w-3.5 h-3.5" />
-            Contact Manager
-          </button>
           <button
             type="button"
             onClick={onClose}

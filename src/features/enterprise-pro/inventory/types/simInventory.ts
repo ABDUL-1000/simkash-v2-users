@@ -1,303 +1,101 @@
-// --- Overview Contracts ---
-export interface EnterpriseSimSummaryCards {
-    total_in_stock: number;
-    total_in_stock_formatted: string;
-    pos_sims: {
-        count: number;
-        count_formatted: string;
-        wholesale_price: number;
-        wholesale_formatted: string;
-    };
-    cctv_sims: {
-        count: number;
-        count_formatted: string;
-        wholesale_price: number;
-        wholesale_formatted: string;
-    };
-    gps_sims: {
-        count: number;
-        count_formatted: string;
-        wholesale_price: number;
-        wholesale_formatted: string;
-    };
-    router_sims: {
-        count: number;
-        count_formatted: string;
-        wholesale_price: number;
-        wholesale_formatted: string;
-    };
+export type EpSimType = "pos" | "cctv" | "gps" | "router";
+export type EpSimSelection = Record<EpSimType, string[]>;
+export type StockQuantities = Record<EpSimType, number>;
+export interface InventoryResponse<T> { success: boolean; message: string; data: T }
+
+interface EpSummaryCard { count?: number; label: string; subtext: string; icon?: string; highlight?: boolean }
+
+// --- GET /sim-inventory/overview ---
+export interface EnterpriseStockType {
+  type: EpSimType; label: string; subtitle: string; available?: number; total_received?: number; status: string; status_color: string;
+  used_percentage: number; used_text: string; network_breakdown: Array<{ network: string; count: number; code: string; color: string }>;
 }
-export interface EnterpriseStockHealthCard {
-    sim_type: string;
-    label: string;
-    in_stock: number;
-    in_stock_formatted: string;
-    status: string;
-    status_color: string;
-    subtext: string;
-    action_label?: string;
-}
-export interface EnterpriseCurrentStockLevel {
-    sim_type: string;
-    name: string;
-    wholesale_price: number;
-    retail_price: number;
-    margin_per_sim: number;
-    in_stock: number;
-    distributed_count: number;
-    progress_percentage: number;
-    status: string;
-}
-export interface EnterpriseInvestmentValuation {
-    total_wholesale: number;
-    total_wholesale_formatted: string;
-    retail_value: number;
-    retail_value_formatted: string;
-    potential_margin: number;
-    potential_margin_formatted: string;
-    items?: Array<{
-        sim_type: string;
-        units: number;
-        unit_price: number;
-        total_wholesale_formatted: string;
-    }>;
+export interface EnterpriseStockCoordinator {
+  id: number; name: string; state: string; pos: number; cctv: number; gps: number; router: number; total: number; total_label: string; status: string; status_color: string;
 }
 export interface EnterpriseSimInventoryOverviewData {
-    summary_cards: EnterpriseSimSummaryCards;
-    stock_health_cards: {
-        pos: EnterpriseStockHealthCard;
-        cctv: EnterpriseStockHealthCard;
-        gps: EnterpriseStockHealthCard;
-        router: EnterpriseStockHealthCard;
-    };
-    current_stock_levels: EnterpriseCurrentStockLevel[];
-    investment_valuation: EnterpriseInvestmentValuation;
+  summary_cards: {
+    total_available: EpSummaryCard; distributed: EpSummaryCard; received: EpSummaryCard; pending_requests: EpSummaryCard; scs_low_on_stock: EpSummaryCard;
+  };
+  stock_types: EnterpriseStockType[];
+  how_stock_is_distributed: { total_coordinators: number; total_coordinators_text: string; coordinators: EnterpriseStockCoordinator[] };
+  inventory_health: { overall_health: string; color: string; total_sims: number; total_sims_text: string; breakdown: Array<{ type: string; count?: number; status: string; color: string }> };
+  estimated_days_remaining: {
+    subtitle: string;
+    estimates: Array<{ type: string; days: number; days_text: string; color: string; is_alert: boolean }>;
+    alert_callout?: { message: string; level: string } | null;
+  };
+  scs_need_distribution: {
+    title: string; can_distribute_all: boolean;
+    items: Array<{ coordinator_id: number; name: string; state: string; status: string; subtitle: string; stock: number; level: string; action: string; action_color: string }>;
+  };
+  admin_info: { name: string; role: string; phone: string; region: string; initials: string };
 }
-// --- Order Configuration & Previews ---
-export interface SimTypeOrderConfig {
-    sim_type: string;
-    name: string;
-    wholesale_price: number;
-    wholesale_formatted: string;
-    current_stock: number;
-    stock_status: string;
-    status_color: string;
-    quick_quantities: number[];
-    suggested_quantity?: number;
-    alert_message?: string;
+
+// --- GET /sim-inventory/undistributed, /undistributed/{type}, /available ---
+export interface EpStockSim {
+  id: number; sim_number: string; type: string; type_label: string; network: string; network_code?: string; network_color?: string; status: string; received_at: string;
 }
-export interface EnterpriseOrderContextData {
-    wallet_balance: number;
-    wallet_balance_formatted: string;
-    minimum_order_per_type: number;
-    fulfillment_time: string;
-    sim_types: SimTypeOrderConfig[];
+export interface EpSimListParams { network?: string; search?: string; page: number; limit: number }
+export interface EpSimListData { sims: EpStockSim[]; total: number; page: number; limit: number; total_pages: number }
+export interface EpUndistributedData extends EpSimListData {
+  owner?: { id: number; role: string; name: string };
+  summary: { total_undistributed: number } & StockQuantities;
 }
-export interface OrderPreviewItem {
-    sim_type: string;
-    name: string;
-    quantity: number;
-    unit_price: number;
-    unit_price_formatted: string;
-    total_cost: number;
-    total_cost_formatted: string;
+
+// --- POST /sim-inventory/distribute ---
+export interface EpDistributionPayload { coordinator_id: number; phone: string; sims: Partial<EpSimSelection>; notes?: string }
+interface EpRecipient { user_id: number; agent_id: number; name: string; phone: string; state: string }
+export interface EpDistributionResult {
+  reference: string; recipient: EpRecipient; total_distributed: number; summary: Partial<StockQuantities>;
+  distributions: Partial<EpSimSelection>; distributed_at: string; message: string;
 }
-export interface EnterpriseOrderPreviewData {
-    items: OrderPreviewItem[];
-    total_sims: number;
-    total_cost: number;
-    total_cost_formatted: string;
-    payment_source: string;
-    wallet_balance: number;
-    wallet_balance_formatted: string;
-    is_sufficient_balance: boolean;
-    shortfall: number;
-    shortfall_formatted: string;
-    estimated_delivery: string;
+
+// --- GET /sim-inventory/redistributable(/{type}) + POST /redistribute ---
+export interface EpRedistributableSim {
+  id: number; sim_number: string; type: EpSimType; type_label: string; network: string; network_code: string; network_color: string;
+  status: string; status_label: string; distributed_at: string;
+  current_coordinator: { id: number; user_id: number; name: string; phone: string; state: string };
 }
-// --- Distribution Context & Payloads ---
-export interface EnterpriseDistributeContextData {
-    available_stock: {
-        pos: number;
-        cctv: number;
-        gps: number;
-        router: number;
-        total: number;
-    };
-    default_sc?: {
-        id: number;
-        name: string;
-        initials: string;
-        state: string;
-        aps_count: number;
-        status: string;
-        last_received: string;
-        current_stock: {
-            pos: number;
-            cctv: number;
-            gps: number;
-            router: number;
-            total: number;
-        };
-    };
+export interface EpRedistributableCoordinator {
+  coordinator_id: number; user_id: number; name: string; phone: string; state: string; unactivated_count: number; breakdown: StockQuantities;
 }
-export interface DistributeSingleScPayload {
-    sc_id: number;
-    pos_quantity: number;
-    cctv_quantity: number;
-    gps_quantity: number;
-    router_quantity: number;
-    pin: string;
-    notes?: string;
+export interface EpRedistributableData {
+  sims: EpRedistributableSim[];
+  summary: StockQuantities & { total: number; coordinators_count: number };
+  coordinators: EpRedistributableCoordinator[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
 }
-export interface BulkDistributionItem {
-    sc_id: number;
-    pos_quantity: number;
-    cctv_quantity: number;
-    gps_quantity: number;
-    router_quantity: number;
+export interface EpRedistributableParams { type?: string; coordinatorId?: number; search?: string; page: number; limit: number }
+export interface EpRedistributionPayload { to_coordinator_id: number; phone: string; from_coordinator_id: number; sims: Partial<EpSimSelection>; reason?: string }
+export interface EpRedistributionResult {
+  reference: string; total_redistributed: number; redistributedTo: string; recipient: EpRecipient;
+  previous_coordinators: Array<EpRecipient & { count: number }>;
+  summary: Partial<StockQuantities>; distributions: Partial<EpSimSelection>; redistributed_at: string; message: string;
 }
-export interface DistributeMultipleScPayload {
-    distributions: BulkDistributionItem[];
-    pin: string;
-    notes?: string;
-}
-// --- Ledger History ---
+
+// --- GET /sim-inventory/history and /history/{id} ---
+export interface EpHistoryBreakdown extends StockQuantities { total: number }
 export interface EnterpriseInventoryHistoryRow {
-    id: number;
-    date: string;
-    type: string;
-    description: string;
-    sc_name?: string;
-    pos: string;
-    cctv: string;
-    gps: string;
-    router: string;
-    total: number;
-    total_formatted: string;
-    balance_after: number;
-    reference: string;
+  id: string; event_type: string; event_label: string; event_badge_color: string; sim_type: string; sim_type_label: string; network: string;
+  quantity: number; quantity_delta: number; quantity_formatted: string; party_name: string; party_role: string; party_info: string;
+  reference: string; date: string; time_ago: string; breakdown?: EpHistoryBreakdown;
 }
-export interface EnterpriseInventoryHistoryData {
-    summary_cards: {
-        total_ordered: number;
-        total_ordered_formatted: string;
-        distributed: number;
-        distributed_formatted: string;
-        in_stock: number;
-        in_stock_formatted: string;
-        wholesale_value: number;
-        wholesale_value_formatted: string;
-    };
-    total_records: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-    rows: EnterpriseInventoryHistoryRow[];
-    trends?: {
-        title: string;
-        highlights: {
-            pos: string;
-            cctv: string;
-            gps: string;
-            router: string;
-        };
-    };
-}
-// --- Alerts & SC Overview ---
-export interface EnterpriseStockAlertItem {
-    id: number;
-    sim_type: string;
-    title: string;
-    badge: string;
-    badge_color: string;
-    detail: string;
-    percentage: number;
-    action_label: string;
-}
-export interface EnterpriseScStockOverviewItem {
-    id: number;
-    name: string;
-    state: string;
-    stock_count: number;
-    stock_formatted: string;
-}
-export type StockQuantities = {
-    pos: number;
-    cctv: number;
-    gps: number;
-    router: number;
-};
-export interface InventoryResponse<T> {
-    success: boolean;
-    message: string;
-    data: T;
-}
-export interface OrderPayload {
-    payment_source: 'wallet_earnings' | 'fresh_capital';
-    items: {
-        sim_type: string;
-        quantity: number;
-    }[];
-    notes?: string;
-}
-export interface CreateOrderPayload extends OrderPayload {
-    delivery_address: string;
-}
-export interface OrderResult {
-    order_reference: string;
-    status: string;
-    payment_source: string;
-    total_sims: number;
-    total_cost: number;
-    total_cost_formatted: string;
-    estimated_delivery: string;
-    message?: string;
-}
-export interface SingleDistributionResult {
-    reference: string;
-    status: string;
-    recipient: {
-        sc_id: number;
-        sc_name: string;
-        state: string;
-    };
-    distribution_quantities: StockQuantities & {
-        total: number;
-    };
-    inventory_value: {
-        amount: number;
-        formatted: string;
-    };
-    stock_after_distribution: {
-        sc_stock_projection: string;
-        enterprise_remaining: StockQuantities;
-    };
-}
-export interface BulkDistributionResult {
-    reference: string;
-    status: string;
-    sc_recipients_count: number;
-    total_sims_distributed: number;
-    quantities_by_type: StockQuantities;
-    total_wholesale_value: number;
-    total_wholesale_value_formatted: string;
-}
+export interface EnterpriseInventoryHistoryData { history: EnterpriseInventoryHistoryRow[]; total: number; page: number; limit: number; total_pages?: number }
 export interface HistoryParams {
-    flow?: 'all' | 'orders_in' | 'distributions_out';
-    type?: 'all' | 'pos' | 'cctv' | 'gps' | 'router';
-    search?: string;
-    sort?: 'newest' | 'oldest';
-    page?: number;
-    limit?: number;
+  search?: string; event_type?: "all" | "received" | "distributed" | "returned" | "adjusted"; sim_type?: "all" | EpSimType; partner_id?: number;
+  start_date?: string; end_date?: string; sortBy?: "newest" | "oldest"; page?: number; limit?: number;
 }
-export interface StockAlertsData {
-    count: number;
-    subtext: string;
-    items: EnterpriseStockAlertItem[];
+export interface EpHistoryDetailData extends Omit<EnterpriseInventoryHistoryRow, "breakdown"> {
+  recipient?: { user_id?: number; name: string; phone?: string; state?: string; role?: string };
+  sender?: { name: string; phone?: string; role?: string };
+  time: string; created_at: string; breakdown: EpHistoryBreakdown; total_sims: number;
+  sims: Array<{ id: number; sim_number: string; serial_no?: string; network?: string; status?: string; sim_type: string; sim_type_label: string; date?: string }>;
 }
-export interface ScOverviewData {
-    title: string;
-    subtext: string;
-    items: EnterpriseScStockOverviewItem[];
+
+// --- POST /sim-inventory/request-stock + GET /requests ---
+export interface EpRequisitionPayload { sim_type: EpSimType; quantity: number; network?: string; urgency: "normal" | "urgent"; notes?: string }
+export interface EpRequisitionResult { request_id: number; reference: string; sim_type: string; quantity: number; status: string; requested_at: string; message: string }
+export interface EpStockRequestItem {
+  id: number; reference: string; sim_type: string; quantity: number; status: string; status_color: string; urgency: string; notes: string; requested_at: string; time_ago: string;
 }

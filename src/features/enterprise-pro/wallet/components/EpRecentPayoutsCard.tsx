@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowUpRight, CheckCircle2, XCircle, Clock, ChevronRight } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { useGetEnterpriseRecentPayouts } from "../api/useGetEnterpriseRecentPayouts";
+import { useGetEnterprisePayouts } from "../api/useEnterpriseWallet";
 import { walletPayout } from "../types/adapters";
 import { EpQueryState } from "../../components/EpQueryState";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
@@ -10,14 +10,17 @@ import type { PayoutRecord } from "../types";
 interface EpRecentPayoutsCardProps {
   onViewAllPayouts: () => void;
   onSelectPayout?: (payout: PayoutRecord) => void;
+  totalPaidOut?: string;
 }
 
+/** Latest rows of GET /enterprise/wallet/payouts. */
 export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
   onViewAllPayouts,
   onSelectPayout,
+  totalPaidOut,
 }) => {
-  const query = useGetEnterpriseRecentPayouts();
-  const payouts = (query.data?.items ?? []).map(walletPayout);
+  const query = useGetEnterprisePayouts();
+  const payouts = (query.data ?? []).map(walletPayout);
   return (
     <div
       className="rounded-2xl p-5 border bg-white shadow-sm space-y-4"
@@ -46,8 +49,8 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
       {query.isSuccess && !payouts.length && <AppEmptyState title="No Recent Payouts" description="Your payout requests will appear here." />}
       <div className="divide-y divide-slate-100">
         {payouts.slice(0, 4).map((payout) => {
-          const isPaid = payout.status === "Paid";
-          const isPending = payout.status === "Pending";
+          const isPaid = /success|paid|complete/i.test(payout.status);
+          const isPending = /pending|process/i.test(payout.status);
 
           return (
             <div
@@ -55,9 +58,9 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
               onClick={() => onSelectPayout?.(payout)}
               className="py-2.5 flex items-center justify-between hover:bg-slate-50/70 rounded-lg px-1.5 transition cursor-pointer"
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
+                  className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs ${
                     isPaid
                       ? "bg-emerald-50 text-emerald-600"
                       : isPending
@@ -73,36 +76,33 @@ export const EpRecentPayoutsCard: React.FC<EpRecentPayoutsCardProps> = ({
                     <XCircle className="w-3.5 h-3.5" />
                   )}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-800">
                     {payout.amountFormatted}
                   </div>
-                  <div className="text-[10px] text-slate-500">
-                    {payout.date} · {payout.accountMask}
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {payout.date} · {payout.account}
                   </div>
                 </div>
               </div>
 
-              <div className="text-right">
-                <span
-                  className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                    isPaid
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : isPending
-                      ? "bg-amber-50 text-amber-700 border border-amber-200"
-                      : "bg-rose-50 text-rose-700 border border-rose-200"
-                  }`}
-                >
-                  {payout.status}
-                </span>
-                <div className="text-[10px] text-slate-400 mt-0.5">{payout.timeAgo}</div>
-              </div>
+              <span
+                className={`shrink-0 inline-block px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
+                  isPaid
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : isPending
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-rose-50 text-rose-700 border border-rose-200"
+                }`}
+              >
+                {payout.status}
+              </span>
             </div>
           );
         })}
       </div>
 
-      <p className="text-xs font-semibold" style={{ color: colors.textSecondary }}>{query.data?.total_paid_out_formatted}</p>
+      {totalPaidOut && <p className="text-xs font-semibold" style={{ color: colors.textSecondary }}>Total paid out: {totalPaidOut}</p>}
       <button
         type="button"
         onClick={onViewAllPayouts}

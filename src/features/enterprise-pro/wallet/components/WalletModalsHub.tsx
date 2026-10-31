@@ -3,28 +3,26 @@ import { RequestPayoutModal } from "../modals/RequestPayoutFlow/RequestPayoutMod
 import { ProcessingPayoutModal } from "../modals/RequestPayoutFlow/ProcessingPayoutModal";
 import { PayoutPendingApprovalModal } from "../modals/RequestPayoutFlow/PayoutPendingApprovalModal";
 import { PayoutApprovedModal } from "../modals/RequestPayoutFlow/PayoutApprovedModal";
-import { PayoutFailedModal } from "../modals/RequestPayoutFlow/PayoutFailedModal";
-import { ReinvestSelectTypeModal } from "../modals/ReinvestFlow/ReinvestSelectTypeModal";
-import { ConfirmReinvestmentModal } from "../modals/ReinvestFlow/ConfirmReinvestmentModal";
-import { ProcessingReinvestmentModal } from "../modals/ReinvestFlow/ProcessingReinvestmentModal";
-import { ReinvestmentSuccessModal } from "../modals/ReinvestFlow/ReinvestmentSuccessModal";
-import { InsufficientEarningsModal } from "../modals/ReinvestFlow/InsufficientEarningsModal";
-import { QuickPayBalanceModal } from "../modals/PayBalanceFlow/QuickPayBalanceModal";
-import { ProcessingBalancePaymentModal } from "../modals/PayBalanceFlow/ProcessingBalancePaymentModal";
-import { BalancePaymentSuccessModal } from "../modals/PayBalanceFlow/BalancePaymentSuccessModal";
+import { WithdrawProfitModal } from "../modals/WithdrawProfitModal";
+import { TransactionDetailModal } from "../modals/TransactionDetailModal";
+import { ChangeBankAccountModal } from "../modals/BankManagementFlow/ChangeBankAccountModal";
+import { VerifyingBankModal } from "../modals/BankManagementFlow/VerifyingBankModal";
+import { BankVerificationPendingModal } from "../modals/BankManagementFlow/BankVerificationPendingModal";
+import { AllPayoutsHistoryModal } from "../modals/StatementAndHistory/AllPayoutsHistoryModal";
 import type { useWalletModals } from "../hooks/useWalletModals";
 
 interface WalletModalsHubProps {
   modals: ReturnType<typeof useWalletModals>;
+  onPayoutClose?: () => void;
 }
 
-export const WalletModalsHub: React.FC<WalletModalsHubProps> = ({ modals }) => {
+export const WalletModalsHub: React.FC<WalletModalsHubProps> = ({ modals, onPayoutClose }) => {
   return (
     <>
       {/* Payout Flow */}
       <RequestPayoutModal
         open={modals.payoutModalOpen}
-        onClose={() => modals.setPayoutModalOpen(false)}
+        onClose={() => { modals.setPayoutModalOpen(false); onPayoutClose?.(); }}
         onSubmit={modals.handleStartPayout}
       />
       <ProcessingPayoutModal open={modals.processingPayoutOpen} />
@@ -40,57 +38,32 @@ export const WalletModalsHub: React.FC<WalletModalsHubProps> = ({ modals }) => {
         amount={modals.payoutAmount}
         onClose={() => modals.setPayoutApprovedOpen(false)}
       />
-      <PayoutFailedModal
-        open={modals.payoutFailedOpen}
-        amount={modals.payoutAmount}
-        onClose={() => modals.setPayoutFailedOpen(false)}
-        onRetry={() => {
-          modals.setPayoutFailedOpen(false);
-          modals.setPayoutModalOpen(true);
-        }}
+
+      {/* Withdraw profit to main wallet */}
+      {modals.withdrawOpen && <WithdrawProfitModal onClose={() => modals.setWithdrawOpen(false)} />}
+
+      {/* Bank Account Management */}
+      <ChangeBankAccountModal
+        open={modals.changeBankOpen}
+        onClose={() => modals.setChangeBankOpen(false)}
+        onSubmit={modals.handleStartBankVerification}
+      />
+      <VerifyingBankModal open={modals.verifyingBankOpen} />
+      <BankVerificationPendingModal
+        result={modals.bankResult}
+        open={modals.bankPendingOpen}
+        bank={modals.newBank}
+        acctNo={modals.newAcctNo}
+        acctName={modals.newAcctName}
+        onClose={() => modals.setBankPendingOpen(false)}
       />
 
-      {/* Reinvest Flow */}
-      <ReinvestSelectTypeModal
-        open={modals.reinvestSelectOpen}
-        onClose={() => modals.setReinvestSelectOpen(false)}
-        onProceed={modals.handleStartReinvest}
-      />
-      <ConfirmReinvestmentModal
-        open={modals.confirmReinvestOpen}
-        type={modals.reinvestType}
-        amount={modals.reinvestAmount}
-        onBack={() => {
-          modals.setConfirmReinvestOpen(false);
-          modals.setReinvestSelectOpen(true);
-        }}
-        onConfirm={modals.handleConfirmReinvest}
-      />
-      <ProcessingReinvestmentModal open={modals.processingReinvestOpen} />
-      <ReinvestmentSuccessModal
-        result={modals.reinvestResult}
-        open={modals.reinvestSuccessOpen}
-        type={modals.reinvestType}
-        amount={modals.reinvestAmount}
-        onClose={() => modals.setReinvestSuccessOpen(false)}
-      />
-      <InsufficientEarningsModal
-        open={modals.insufficientEarningsOpen}
-        onClose={() => modals.setInsufficientEarningsOpen(false)}
-      />
-
-      {/* Pay Balance Flow */}
-      <QuickPayBalanceModal
-        open={modals.payBalanceOpen}
-        onClose={() => modals.setPayBalanceOpen(false)}
-        onSubmit={modals.handleStartPayBalance}
-      />
-      <ProcessingBalancePaymentModal open={modals.processingPayBalanceOpen} />
-      <BalancePaymentSuccessModal
-        result={modals.paymentResult}
-        open={modals.payBalanceSuccessOpen}
-        amount={modals.payBalanceAmount}
-        onClose={() => modals.setPayBalanceSuccessOpen(false)}
+      {/* Transaction details & payouts history */}
+      <TransactionDetailModal txn={modals.selectedTxn} onClose={() => modals.setSelectedTxn(null)} />
+      <AllPayoutsHistoryModal
+        open={modals.allPayoutsOpen}
+        onClose={() => modals.setAllPayoutsOpen(false)}
+        onSelectPayout={modals.handleSelectPayoutFromLedger}
       />
     </>
   );

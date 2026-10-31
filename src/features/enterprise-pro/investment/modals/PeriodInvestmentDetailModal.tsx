@@ -53,10 +53,6 @@ export function PeriodInvestmentDetailModal({
             <span>Network commission</span>
             <span className="font-semibold text-emerald-600">₦650,000</span>
           </div>
-          <div className="flex justify-between text-slate-600">
-            <span>Bonus earned</span>
-            <span className="text-slate-500">₦0</span>
-          </div>
           <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-slate-900">
             <span>Total earned</span>
             <span className="text-slate-900">₦{totalEarned.toLocaleString()}</span>

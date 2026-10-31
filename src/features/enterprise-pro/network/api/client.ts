@@ -3,34 +3,34 @@ import { authedHttpClient } from '@/utils/http/auth';
 import { openNotification } from '@/utils/notifications';
 import type { NetworkResponse } from '../types/api';
 
-export const networkOverviewKey = 'enterprise-my-network-sc-overview';
-export const networkRefreshKeys = [networkOverviewKey, 'enterprise-agency-partners', 'enterprise-network-activity-feed',
-  'enterprise-sc-health', 'enterprise-earnings-summary', 'enterprise-top-scs', 'enterprise-activations-chart',
-  'enterprise-overview', 'enterprise-network-tree', 'enterprise-sim-inventory-overview', 'enterprise-distribute-context',
-  'enterprise-sc-overview', 'enterprise-stock-alerts', 'enterprise-valuation', 'enterprise-inventory-history', 'enterprise-order-context'];
+const BASE = '/enterprise/my-state-coordinator/';
+export const networkRefreshKeys = ['enterprise-my-sc-overview', 'enterprise-sc-comparison', 'enterprise-sc-sims', 'enterprise-overview', 'enterprise-sim-inventory-overview'];
 
 export async function networkGet<T>(path: string, params?: object, signal?: AbortSignal): Promise<T> {
-  const { data } = await authedHttpClient.get<NetworkResponse<T>>('/enterprise/my-network/' + path, { params, signal });
-  if (!data.success) throw new Error(data.message || 'Unable to load enterprise network');
+  const { data } = await authedHttpClient.get<NetworkResponse<T>>(BASE + path, { params, signal });
+  if (!data.success) throw new Error(data.message || 'Unable to load State Coordinators');
   return data.data;
 }
 
-export function useNetworkMutation<T, V>(path: string, method: 'post' | 'patch', options?: UseMutationOptions<T, Error, V>) {
+export function useNetworkMutation<T, V>(path: string, options?: UseMutationOptions<T, Error, V>, { silent = false } = {}) {
   const client = useQueryClient();
   return useMutation<T, Error, V>({
     ...options,
+    retry: false,
     mutationFn: async payload => {
-      const { data } = await authedHttpClient[method]<NetworkResponse<T>>('/enterprise/my-network/' + path, payload);
-      if (!data.success) throw new Error(data.message || 'Network request failed');
+      const { data } = await authedHttpClient.post<NetworkResponse<T>>(BASE + path, payload);
+      if (!data.success) throw new Error(data.message || 'Request failed');
       return data.data;
     },
     onSuccess: async (...args) => {
-      await Promise.all(networkRefreshKeys.map(key => client.invalidateQueries({ queryKey: [key] })));
-      openNotification({ state: 'success', title: 'My Network', description: 'Your request completed successfully.' });
+      if (!silent) {
+        await Promise.all(networkRefreshKeys.map(key => client.invalidateQueries({ queryKey: [key] })));
+        openNotification({ state: 'success', title: 'State Coordinators', description: 'Your request completed successfully.' });
+      }
       await options?.onSuccess?.(...args);
     },
     onError: (...args) => {
-      openNotification({ state: 'error', title: 'My Network', description: args[0].message });
+      if (!silent) openNotification({ state: 'error', title: 'State Coordinators', description: args[0].message });
       return options?.onError?.(...args);
     },
     onSettled: (...args) => options?.onSettled?.(...args),

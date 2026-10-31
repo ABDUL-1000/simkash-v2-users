@@ -1,16 +1,13 @@
 import React from "react";
 import { CheckCircle2, AlertTriangle, XCircle, Sparkles } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { useGetEnterpriseScHealth } from '../../api/queries';
-import { EpQueryState } from '../../../components/EpQueryState';
+import type { EpScTab } from "../../types/api";
 
-export const ScHealthSummaryCard: React.FC = () => {
-  const query = useGetEnterpriseScHealth();
-  const health = query.data;
+export const ScHealthSummaryCard: React.FC<{ counts?: Record<EpScTab, number> }> = ({ counts }) => {
   const healthCards = [
     {
       label: "Active",
-      count: health?.active ?? '—',
+      count: counts?.active ?? "—",
       icon: CheckCircle2,
       textColor: "text-emerald-700",
       bgColor: "bg-emerald-50",
@@ -18,17 +15,17 @@ export const ScHealthSummaryCard: React.FC = () => {
       subtitle: "Full operations",
     },
     {
-      label: "Low Stock",
-      count: health?.low_stock ?? '—',
+      label: "At Risk",
+      count: counts?.at_risk ?? "—",
       icon: AlertTriangle,
       textColor: "text-amber-700",
       bgColor: "bg-amber-50",
       borderColor: "border-amber-200",
-      subtitle: "Stock needs attention",
+      subtitle: "Low stock / behind target",
     },
     {
       label: "Suspended",
-      count: health?.suspended ?? '—',
+      count: counts?.suspended ?? "—",
       icon: XCircle,
       textColor: "text-red-700",
       bgColor: "bg-red-50",
@@ -36,8 +33,8 @@ export const ScHealthSummaryCard: React.FC = () => {
       subtitle: "Pending review",
     },
     {
-      label: "New",
-      count: health?.new ?? '—',
+      label: "Pending",
+      count: counts?.pending ?? "—",
       icon: Sparkles,
       textColor: "text-blue-700",
       bgColor: "bg-blue-50",
@@ -56,7 +53,6 @@ export const ScHealthSummaryCard: React.FC = () => {
         <p className="text-xs text-gray-500">Operational status breakdown of all coordinators</p>
       </div>
 
-      <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch}/>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {healthCards.map((item) => {
           const Icon = item.icon;

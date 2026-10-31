@@ -15,10 +15,8 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
     const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const filteredData = coordinators
-        .filter((sc) => sc.status === "active")
         .filter((sc) => sc.name.toLowerCase().includes(search.toLowerCase()) ||
-        sc.state.toLowerCase().includes(search.toLowerCase()) ||
-        sc.zone.toLowerCase().includes(search.toLowerCase()));
+        sc.state.toLowerCase().includes(search.toLowerCase()));
     const { paginationConfig } = useTablePagination({ total: filteredData.length, initialPageSize: 8 });
     const columns: ColumnsType<StateCoordinatorStock> = [
         {
@@ -32,7 +30,7 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
           <div>
             <div className="font-semibold text-xs text-slate-900">{name}</div>
             <div className="text-[11px] text-slate-500">
-              {record.state} ({record.zone})
+              {record.state} · {record.statusLabel}
             </div>
           </div>
         </div>),
@@ -42,8 +40,8 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
             dataIndex: ["onHandStock", "pos"],
             key: "pos",
             align: "center",
-            render: (val: number, record) => (<span className="font-semibold text-xs text-slate-800">
-          {record.breakdownAvailable ? val?.toLocaleString() : "—"}
+            render: (val: number) => (<span className="font-semibold text-xs text-slate-800">
+          {val?.toLocaleString()}
         </span>),
         },
         {
@@ -51,8 +49,8 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
             dataIndex: ["onHandStock", "cctv"],
             key: "cctv",
             align: "center",
-            render: (val: number, record) => (<span className="font-semibold text-xs text-slate-800">
-          {record.breakdownAvailable ? val?.toLocaleString() : "—"}
+            render: (val: number) => (<span className="font-semibold text-xs text-slate-800">
+          {val?.toLocaleString()}
         </span>),
         },
         {
@@ -60,8 +58,8 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
             dataIndex: ["onHandStock", "gps"],
             key: "gps",
             align: "center",
-            render: (val: number, record) => (<span className="font-semibold text-xs text-slate-800">
-          {record.breakdownAvailable ? val?.toLocaleString() : "—"}
+            render: (val: number) => (<span className="font-semibold text-xs text-slate-800">
+          {val?.toLocaleString()}
         </span>),
         },
         {
@@ -69,8 +67,8 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
             dataIndex: ["onHandStock", "router"],
             key: "router",
             align: "center",
-            render: (val: number, record) => (<span className="font-semibold text-xs text-slate-800">
-          {record.breakdownAvailable ? val?.toLocaleString() : "—"}
+            render: (val: number) => (<span className="font-semibold text-xs text-slate-800">
+          {val?.toLocaleString()}
         </span>),
         },
         {
@@ -97,7 +95,8 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
         </div>),
         },
     ];
-    const grandTotal = filteredData.reduce((sum, sc) => sum + sc.onHandStock.total, 0);
+    const sumOf = (key: keyof StateCoordinatorStock["onHandStock"]) => filteredData.reduce((sum, sc) => sum + sc.onHandStock[key], 0);
+    const grandTotal = sumOf("total");
     return (<div className="p-5 bg-white rounded-xl border space-y-4" style={{ borderColor: colors.border }}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3" style={{ borderColor: colors.border }}>
         <div>
@@ -114,17 +113,17 @@ export const ScDistributionMonthTable: React.FC<ScDistributionMonthTableProps> =
         </button>
       </div>
 
-      <DataTable columns={columns} dataSource={filteredData} rowKey="id" searchPlaceholder="Search coordinator by name, state or zone..." onSearch={setSearch} pagination={paginationConfig} scroll={{ x: "max-content" }}/>
+      <DataTable columns={columns} dataSource={filteredData} rowKey="id" searchPlaceholder="Search coordinator by name or state..." onSearch={setSearch} pagination={paginationConfig} scroll={{ x: "max-content" }}/>
 
       <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
         <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
           Stock Overview ({filteredData.length} SCs):
         </span>
         <div className="flex flex-wrap items-center gap-4 text-slate-600 font-medium">
-          <span>POS: <strong className="text-slate-900">{"—"}</strong></span>
-          <span>CCTV: <strong className="text-slate-900">{"—"}</strong></span>
-          <span>GPS: <strong className="text-slate-900">{"—"}</strong></span>
-          <span>Router: <strong className="text-slate-900">{"—"}</strong></span>
+          <span>POS: <strong className="text-slate-900">{sumOf("pos").toLocaleString()}</strong></span>
+          <span>CCTV: <strong className="text-slate-900">{sumOf("cctv").toLocaleString()}</strong></span>
+          <span>GPS: <strong className="text-slate-900">{sumOf("gps").toLocaleString()}</strong></span>
+          <span>Router: <strong className="text-slate-900">{sumOf("router").toLocaleString()}</strong></span>
           <span className="text-blue-700 font-bold bg-blue-100/80 px-2.5 py-0.5 rounded-full">
             Grand Total: {grandTotal.toLocaleString()} SIMs
           </span>

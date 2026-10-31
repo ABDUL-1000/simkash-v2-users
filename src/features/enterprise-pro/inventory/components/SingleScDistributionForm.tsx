@@ -1,75 +1,44 @@
-import { AppEmptyState } from '@/components/common/AppEmptyState';
 import React, { useState } from "react";
-import { ShieldCheck, UserCheck, AlertCircle } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Select } from "antd";
+import { ShieldCheck, UserCheck, Minus, Plus } from "lucide-react";
 import { colors } from "@/constants/colors";
-import { SimQuantityStepperInput } from "./SimQuantityStepperInput";
-import type { StateCoordinatorStock, SimStockItem } from "../types";
+import { useGetEnterpriseUndistributedByType } from "../api";
+import { EP_SIM_LABELS, EP_SIM_TYPES, emptyEpSims } from "../types/adapters";
+import type { EpSimSelection, EpSimType, StockQuantities } from "../types/simInventory";
+import type { EpCoordinatorOption } from "../types";
+
 interface SingleScDistributionFormProps {
-    coordinators: StateCoordinatorStock[];
-    stockItems: SimStockItem[];
-    selectedScId?: string;
-    onSubmit: (payload: {
-        sc: StateCoordinatorStock;
-        pos: number;
-        cctv: number;
-        gps: number;
-        router: number;
-        notes: string;
-        pin: string;
-    }) => void;
+    coordinators: EpCoordinatorOption[];
+    coordinatorsLoading?: boolean;
+    onSearchCoordinators: (search: string) => void;
+    stock: StockQuantities;
+    selectedScId?: number;
+    onSubmit: (payload: { sc: EpCoordinatorOption; sims: EpSimSelection; notes: string }) => void;
 }
-export const SingleScDistributionForm: React.FC<SingleScDistributionFormProps> = ({ coordinators, stockItems, selectedScId, onSubmit, }) => {
-    const [scId, setScId] = useState(selectedScId || coordinators[0]?.id || "");
-    const [pos, setPos] = useState(0);
-    const [cctv, setCctv] = useState(0);
-    const [gps, setGps] = useState(0);
-    const [router, setRouter] = useState(0);
+
+/** Recipient from GET /my-state-coordinator/overview; SIM numbers per type from GET /undistributed/{type}. */
+export const SingleScDistributionForm: React.FC<SingleScDistributionFormProps> = ({ coordinators, coordinatorsLoading, onSearchCoordinators, stock, selectedScId, onSubmit }) => {
+    const [scId, setScId] = useState(selectedScId);
+    const [picked, setPicked] = useState<EpCoordinatorOption>();
+    const [sims, setSims] = useState(emptyEpSims);
     const [notes, setNotes] = useState("");
-    const [pin, setPin] = useState("");
-    const [error, setError] = useState("");
-    const activeScs = coordinators.filter((sc) => sc.status === "active");
-    const currentSc = activeScs.find((c) => c.id === scId) || activeScs[0];
-    const posStock = stockItems.find((s) => s.id === "POS")?.inStock ?? 0;
-    const cctvStock = stockItems.find((s) => s.id === "CCTV")?.inStock ?? 0;
-    const gpsStock = stockItems.find((s) => s.id === "GPS")?.inStock ?? 0;
-    const routerStock = stockItems.find((s) => s.id === "ROUTER")?.inStock ?? 0;
-    const totalSims = pos + cctv + gps + router;
-    const price = (id: SimStockItem['id']) => stockItems.find(s => s.id === id)?.wholesalePrice ?? 0;
-    const totalValue = pos * price('POS') + cctv * price('CCTV') + gps * price('GPS') + router * price('ROUTER');
-    const valid = [pos, cctv, gps, router].every(v => Number.isSafeInteger(v) && v >= 0) && pos <= posStock && cctv <= cctvStock && gps <= gpsStock && router <= routerStock;
+    const currentSc = coordinators.find((c) => c.id === scId) ?? (picked?.id === scId ? picked : undefined);
+    const totalSims = EP_SIM_TYPES.reduce((sum, type) => sum + sims[type].length, 0);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!currentSc)
-            return;
-        if (!valid) {
-            setError("Enter whole quantities within available stock.");
-            return;
-        }
-        if (totalSims <= 0) {
-            setError("Please specify at least 1 SIM card to distribute.");
-            return;
-        }
-        if (!/^\d{4}$/.test(pin)) {
-            setError("Please enter your complete 4-digit security PIN.");
-            return;
-        }
-        setError("");
-        onSubmit({ sc: currentSc, pos, cctv, gps, router, notes, pin });
+        if (currentSc && totalSims > 0)
+            onSubmit({ sc: currentSc, sims, notes });
     };
-    if (activeScs.length === 0)
-        return <AppEmptyState title="No State Coordinators"/>;
     return (<form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-5">
+      <div className="lg:col-span-2 space-y-5 min-w-0">
         <div className="p-5 bg-white rounded-xl border space-y-4" style={{ borderColor: colors.border }}>
           <label className="block text-sm font-bold text-slate-900">
             Select Recipient State Coordinator
           </label>
-          <select value={currentSc?.id??''} onChange={(e) => setScId(e.target.value)} className="w-full p-2.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-900 bg-slate-50 focus:bg-white focus:outline-none focus:border-blue-500">
-            {activeScs.map((sc) => (<option key={sc.id} value={sc.id}>
-                {sc.name} — {sc.state} State ({sc.zone}) · On-Hand: {sc.onHandStock.total} SIMs
-              </option>))}
-          </select>
+          <Select size="large" showSearch allowClear filterOption={false} className="w-full" placeholder="Search SC by name, phone or state" value={currentSc ? scId : undefined} onSearch={onSearchCoordinators}
+            onChange={(value?: number) => { setScId(value); setPicked(coordinators.find((c) => c.id === value)); onSearchCoordinators(""); }} loading={coordinatorsLoading}
+            notFoundContent={coordinatorsLoading ? "Loading coordinators…" : "No State Coordinators found"}
+            options={[...coordinators, ...(picked && !coordinators.some((c) => c.id === picked.id) ? [picked] : [])].map((sc) => ({ value: sc.id, label: `${sc.name} — ${sc.state} · On-Hand: ${sc.stock} SIMs` }))}/>
 
           {currentSc && (<div className="p-3 bg-blue-50/60 rounded-lg border border-blue-100 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
@@ -78,82 +47,75 @@ export const SingleScDistributionForm: React.FC<SingleScDistributionFormProps> =
                 <span className="text-slate-500">({currentSc.phone})</span>
               </div>
               <span className="text-slate-600 font-medium">
-                Current On-Hand: <strong className="text-blue-700">{currentSc.onHandStock.total} SIMs</strong>
+                Current On-Hand: <strong className="text-blue-700">{currentSc.stock} SIMs</strong>
               </span>
             </div>)}
         </div>
 
         <div className="p-5 bg-white rounded-xl border space-y-4" style={{ borderColor: colors.border }}>
-          <h4 className="text-sm font-bold text-slate-900">Specify SIM Quantities to Allocate</h4>
+          <h4 className="text-sm font-bold text-slate-900">Pick the SIMs to Allocate</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SimQuantityStepperInput label="POS SIMs" pricePerUnit={price('POS')} availableStock={posStock} value={pos} onChange={setPos} step={50}/>
-            <SimQuantityStepperInput label="CCTV SIMs" pricePerUnit={price('CCTV')} availableStock={cctvStock} value={cctv} onChange={setCctv} step={25}/>
-            <SimQuantityStepperInput label="GPS SIMs" pricePerUnit={price('GPS')} availableStock={gpsStock} value={gps} onChange={setGps} step={10} isCritical/>
-            <SimQuantityStepperInput label="Router SIMs" pricePerUnit={price('ROUTER')} availableStock={routerStock} value={router} onChange={setRouter} step={10}/>
+            {EP_SIM_TYPES.map((type) => <SimPickerRow key={type} type={type} available={stock[type]} value={sims[type]} onChange={(value) => setSims((previous) => ({ ...previous, [type]: value }))}/>)}
           </div>
 
           <div className="space-y-1.5 pt-2">
             <label className="block text-xs font-semibold text-slate-700">Dispatch Notes / Purpose</label>
-            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Q2 restock for agency partners" className="w-full p-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500"/>
+            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Stock distribution for Q4 rollout" className="w-full p-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500"/>
           </div>
         </div>
       </div>
 
       <div className="p-5 bg-white rounded-xl border space-y-4 h-fit" style={{ borderColor: colors.border }}>
         <h4 className="text-sm font-bold text-slate-900 border-b pb-3" style={{ borderColor: colors.border }}>
-          Distribution Summary & PIN
+          Distribution Summary
         </h4>
 
         <div className="space-y-2 text-xs">
           <div className="flex justify-between text-slate-600">
             <span>Recipient:</span>
-            <strong className="text-slate-900">{currentSc?.name}</strong>
+            <strong className="text-slate-900">{currentSc?.name ?? "—"}</strong>
           </div>
           <div className="flex justify-between text-slate-600">
             <span>Destination:</span>
-            <span className="font-semibold text-slate-800">{currentSc?.state} State</span>
+            <span className="font-semibold text-slate-800">{currentSc ? `${currentSc.state} State` : "—"}</span>
           </div>
           <div className="flex justify-between text-slate-600">
             <span>Total Units:</span>
             <strong className="text-blue-600 font-bold">{totalSims.toLocaleString()} SIMs</strong>
           </div>
-          <div className="flex justify-between text-slate-600">
-            <span>Asset Value:</span>
-            <strong className="text-slate-900">₦{totalValue.toLocaleString()}</strong>
-          </div>
         </div>
 
         <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-[11px] space-y-1 text-slate-600">
           <div className="font-semibold text-slate-800">Remaining Enterprise Reserves:</div>
-          <div>POS: {(posStock - pos).toLocaleString()} · CCTV: {(cctvStock - cctv).toLocaleString()}</div>
-          <div>GPS: {(gpsStock - gps).toLocaleString()} · Router: {(routerStock - router).toLocaleString()}</div>
+          <div>POS: {(stock.pos - sims.pos.length).toLocaleString()} · CCTV: {(stock.cctv - sims.cctv.length).toLocaleString()}</div>
+          <div>GPS: {(stock.gps - sims.gps.length).toLocaleString()} · Router: {(stock.router - sims.router.length).toLocaleString()}</div>
         </div>
 
-        <div className="space-y-2 pt-2 border-t" style={{ borderColor: colors.border }}>
-          <label className="block text-xs font-semibold text-slate-800 text-center">
-            Enter 4-Digit Security PIN to Authorize
-          </label>
-          <div className="flex justify-center">
-            <InputOTP pattern="[0-9]*" maxLength={4} value={pin} onChange={(val) => setPin(val)}>
-              <InputOTPGroup>
-                <InputOTPSlot masked index={0}/>
-                <InputOTPSlot masked index={1}/>
-                <InputOTPSlot masked index={2}/>
-                <InputOTPSlot masked index={3}/>
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-        </div>
-
-        {error && (<div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600 flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0"/>
-            <span>{error}</span>
-          </div>)}
-
-        <button type="submit" disabled={totalSims <= 0 || pin.length < 4} className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-colors">
+        <button type="submit" disabled={totalSims <= 0 || !currentSc} className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-colors">
           <ShieldCheck className="w-4 h-4"/>
-          <span>Authorize & Distribute {totalSims > 0 ? `(${totalSims} SIMs)` : ""}</span>
+          <span>Review & Distribute {totalSims > 0 ? `(${totalSims} SIMs)` : ""}</span>
         </button>
       </div>
     </form>);
 };
+
+function SimPickerRow({ type, available, value, onChange }: { type: EpSimType; available: number; value: string[]; onChange: (sims: string[]) => void }) {
+    const [search, setSearch] = useState("");
+    const query = useGetEnterpriseUndistributedByType(type, { search: search || undefined, page: 1, limit: 100 }, available > 0 || value.length > 0);
+    const options = (query.data?.sims ?? []).map((sim) => ({ value: sim.sim_number, label: `${sim.sim_number} · ${sim.network}` }));
+    const nextFree = options.find((option) => !value.includes(option.value))?.value;
+    return (<div className="p-3 rounded-xl border border-slate-200 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-xs font-bold text-slate-900">{EP_SIM_LABELS[type]}s</div>
+          <div className="text-[11px] text-slate-500">{available.toLocaleString()} available</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" aria-label="Remove one" disabled={!value.length} onClick={() => onChange(value.slice(0, -1))} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Minus className="w-3.5 h-3.5"/></button>
+          <span className="w-8 text-center font-black text-slate-900 text-sm">{value.length}</span>
+          <button type="button" aria-label="Add one" disabled={!nextFree} onClick={() => nextFree && onChange([...value, nextFree])} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Plus className="w-3.5 h-3.5"/></button>
+        </div>
+      </div>
+      {(available > 0 || value.length > 0) && <Select mode="multiple" className="w-full" placeholder={`Pick ${EP_SIM_LABELS[type]} numbers`} value={value} onChange={onChange} filterOption={false} onSearch={setSearch} onBlur={() => setSearch("")} loading={query.isFetching} options={options} maxTagCount="responsive" notFoundContent={query.isFetching ? "Loading SIMs…" : "No matching SIMs"}/>}
+    </div>);
+}

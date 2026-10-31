@@ -1,26 +1,19 @@
-import { useQuery } from '@tanstack/react-query';
-import { networkGet, networkOverviewKey } from './client';
-import type { AgencyPartnerParams, EnterpriseScOverviewData, EnterpriseApDirectoryData, EnterpriseNetworkActivityData,
-  EnterpriseScHealthSummary, EnterpriseEarningsSummary, EnterpriseTopScItem, EnterpriseActivationsChartData } from '../types/api';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { networkGet } from './client';
+import type { EnterpriseScComparisonData, EnterpriseScOverviewData, EnterpriseScOverviewParams, EnterpriseScSimsData, EnterpriseScSimsParams } from '../types/api';
 
-export const useGetEnterpriseScOverview = () => useQuery({
-  queryKey: [networkOverviewKey], queryFn: ({ signal }) => networkGet<EnterpriseScOverviewData>('sc-overview', undefined, signal),
+/** GET /my-state-coordinator/overview */
+export const useGetEnterpriseScOverview = (params: EnterpriseScOverviewParams) => useQuery({
+  queryKey: ['enterprise-my-sc-overview', params], placeholderData: keepPreviousData,
+  queryFn: ({ signal }) => networkGet<EnterpriseScOverviewData>('overview', params, signal),
 });
-export function useGetEnterpriseAgencyPartners(params: AgencyPartnerParams = {}) {
-  const { sc_id = 'all', search = '', status = 'all', page = 1, limit = 6 } = params;
-  const filters = { sc_id, search, status, page, limit };
-  return useQuery({ queryKey: ['enterprise-agency-partners', filters],
-    queryFn: ({ signal }) => networkGet<EnterpriseApDirectoryData>('agency-partners', filters, signal) });
-}
-export const useGetEnterpriseNetworkActivity = () => useQuery({
-  queryKey: ['enterprise-network-activity-feed'],
-  queryFn: ({ signal }) => networkGet<EnterpriseNetworkActivityData>('activity', undefined, signal), refetchInterval: 30000,
+/** GET /my-state-coordinator/comparison */
+export const useGetEnterpriseScComparison = () => useQuery({
+  queryKey: ['enterprise-sc-comparison'],
+  queryFn: ({ signal }) => networkGet<EnterpriseScComparisonData>('comparison', undefined, signal),
 });
-export const useGetEnterpriseScHealth = () => useQuery({ queryKey: ['enterprise-sc-health'],
-  queryFn: ({ signal }) => networkGet<EnterpriseScHealthSummary>('sc-health', undefined, signal) });
-export const useGetEnterpriseEarningsSummary = () => useQuery({ queryKey: ['enterprise-earnings-summary'],
-  queryFn: ({ signal }) => networkGet<EnterpriseEarningsSummary>('earnings-summary', undefined, signal) });
-export const useGetEnterpriseTopScs = () => useQuery({ queryKey: ['enterprise-top-scs'],
-  queryFn: ({ signal }) => networkGet<EnterpriseTopScItem[]>('top-scs', undefined, signal) });
-export const useGetEnterpriseActivationsChart = () => useQuery({ queryKey: ['enterprise-activations-chart'],
-  queryFn: ({ signal }) => networkGet<EnterpriseActivationsChartData>('activations-chart', undefined, signal) });
+/** GET /my-state-coordinator/{id}/undistributed-sims */
+export const useGetEnterpriseScSims = (id: string | number | undefined, params: EnterpriseScSimsParams, enabled = true) => useQuery({
+  queryKey: ['enterprise-sc-sims', id, params], enabled: enabled && Boolean(id), placeholderData: keepPreviousData,
+  queryFn: ({ signal }) => networkGet<EnterpriseScSimsData>(encodeURIComponent(String(id)) + '/undistributed-sims', params, signal),
+});

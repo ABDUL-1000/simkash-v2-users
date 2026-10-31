@@ -1,31 +1,21 @@
 import React from "react";
 
-export type NetworkTabKey = "sc-overview" | "agency-partners" | "activity";
+export type NetworkTabKey = "sc-overview" | "comparison";
 
 export interface EpNetworkTabsNavProps {
   activeTab: NetworkTabKey;
-  onTabChange?: (tab: NetworkTabKey) => void;
-  onChangeTab?: (tab: NetworkTabKey) => void;
+  onTabChange: (tab: NetworkTabKey) => void;
   scCount?: number;
-  apCount?: number;
 }
 
 export const EpNetworkTabsNav: React.FC<EpNetworkTabsNavProps> = ({
   activeTab,
   onTabChange,
-  onChangeTab,
   scCount,
-  apCount,
 }) => {
-  const handleSelect = (key: NetworkTabKey) => {
-    onTabChange?.(key);
-    onChangeTab?.(key);
-  };
-
   const tabs: { key: NetworkTabKey; label: string; count?: number }[] = [
     { key: "sc-overview", label: "SC Overview", count: scCount },
-    { key: "agency-partners", label: "By Agency Partner", count: apCount },
-    { key: "activity", label: "Network Activity" },
+    { key: "comparison", label: "Performance Comparison" },
   ];
 
   return (
@@ -36,7 +26,7 @@ export const EpNetworkTabsNav: React.FC<EpNetworkTabsNavProps> = ({
           <button
             key={tab.key}
             type="button"
-            onClick={() => handleSelect(tab.key)}
+            onClick={() => onTabChange(tab.key)}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
               isActive
                 ? "bg-[#1F3A5F] text-white shadow-xs"

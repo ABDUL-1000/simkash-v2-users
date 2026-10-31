@@ -1,27 +1,27 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, Building2, TrendingUp, Users, DollarSign, Award, Repeat, Package, FileText } from "lucide-react";
+import { Eye, EyeOff, Building2, Wallet, Users, Clock, ArrowDownToLine, FileText } from "lucide-react";
 import { colors } from "@/constants/colors";
-import type { EnterpriseHeroBalanceCard } from "../types/api";
+import type { EnterpriseBalanceCard } from "../types/api";
 
 interface EpWalletBalanceHeroProps {
-  hero: EnterpriseHeroBalanceCard;
+  balance: EnterpriseBalanceCard;
   onRequestPayout: () => void;
-  onReinvest: () => void;
-  onPayBalance: () => void;
-  onOrderSims: () => void;
+  onWithdrawProfit: () => void;
   onStatement: () => void;
+  statementLoading?: boolean;
 }
 
 export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
-  hero,
+  balance,
   onRequestPayout,
-  onReinvest,
-  onPayBalance,
-  onOrderSims,
+  onWithdrawProfit,
   onStatement,
+  statementLoading,
 }) => {
   const [showBalance, setShowBalance] = useState(true);
-
+  const money = (formatted: string) => (showBalance ? formatted : "••••••");
+  const actions = balance.actions;
+  const noProfit = !balance.profit_balance;
 
   return (
     <div
@@ -34,9 +34,9 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
           <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-xs">
             EP
           </div>
-          <span className="font-bold text-xs text-slate-700">{hero.title}</span>
+          <span className="font-bold text-xs text-slate-700">Profit Balance</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-            {hero.tag}
+            {balance.currency}
           </span>
         </div>
         <button
@@ -52,60 +52,44 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
       {/* Main Balance Display */}
       <div>
         <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          {showBalance ? hero.balance_formatted : "••••••••••••"}
+          {showBalance ? balance.profit_balance_formatted : "••••••••••••"}
         </div>
       </div>
 
       {/* Breakdown Sub-strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
         <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
-          <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
+          <Wallet className="w-4 h-4 text-emerald-600 shrink-0" />
           <div>
-            <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.margin_this_month.label}</span>
-            <span className="font-bold text-slate-900">{hero.chips.margin_this_month.formatted}</span>
+            <span className="text-[10px] text-slate-400 block font-medium">Wallet Balance</span>
+            <span className="font-bold text-slate-900">{money(balance.wallet_balance_formatted)}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
           <Users className="w-4 h-4 text-blue-600 shrink-0" />
           <div>
-            <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.network_commission.label}</span>
-            <span className="font-bold text-slate-900">{hero.chips.network_commission.formatted}</span>
+            <span className="text-[10px] text-slate-400 block font-medium">{balance.chips?.ap_network_this_month?.label}</span>
+            <span className="font-bold text-slate-900">{money(balance.chips?.ap_network_this_month?.formatted ?? "—")}</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-2 rounded-xl bg-amber-50/50 border border-amber-100">
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-amber-600 shrink-0" />
-            <div>
-              <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.balance_remaining.label}</span>
-              <span className="font-bold text-amber-600">{hero.chips.balance_remaining.formatted}</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onPayBalance}
-            className="text-[10px] font-bold text-amber-700 hover:underline flex items-center"
-          >
-            Pay down →
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
-          <Award className="w-4 h-4 text-purple-600 shrink-0" />
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-50/50 border border-amber-100">
+          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
           <div>
-            <span className="text-[10px] text-slate-400 block font-medium">{hero.chips.bonus_pending.label}</span>
-            <span className="font-bold text-slate-700">{hero.chips.bonus_pending.formatted}</span>
+            <span className="text-[10px] text-slate-400 block font-medium">{balance.chips?.pending_payout?.label}</span>
+            <span className="font-bold text-amber-600">{money(balance.chips?.pending_payout?.formatted ?? "—")}</span>
           </div>
         </div>
       </div>
 
-      {/* 5 Quick Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-100">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100">
         <button
           type="button"
+          disabled={actions?.can_request_payout === false || noProfit}
           onClick={onRequestPayout}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-100/70 hover:bg-amber-100 text-amber-900 text-xs font-bold transition"
+          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-100/70 hover:bg-amber-100 text-amber-900 text-xs font-bold transition disabled:opacity-50"
         >
           <Building2 className="w-3.5 h-3.5 text-amber-700" />
           <span>Request Payout</span>
@@ -113,38 +97,22 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
 
         <button
           type="button"
-          onClick={onReinvest}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition"
+          disabled={actions?.can_withdraw_profit === false || noProfit}
+          onClick={onWithdrawProfit}
+          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition disabled:opacity-50"
         >
-          <Repeat className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Reinvest</span>
+          <ArrowDownToLine className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Withdraw to Wallet</span>
         </button>
 
         <button
           type="button"
-          onClick={onPayBalance}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-bold transition"
-        >
-          <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-          <span>Pay Balance</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onOrderSims}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition"
-        >
-          <Package className="w-3.5 h-3.5 text-slate-600" />
-          <span>Order SIMs</span>
-        </button>
-
-        <button
-          type="button"
+          disabled={actions?.can_download_statement === false || statementLoading}
           onClick={onStatement}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition col-span-2 sm:col-span-1"
+          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition disabled:opacity-50"
         >
           <FileText className="w-3.5 h-3.5 text-slate-600" />
-          <span>Statement</span>
+          <span>{statementLoading ? "Exporting…" : "Statement"}</span>
         </button>
       </div>
     </div>

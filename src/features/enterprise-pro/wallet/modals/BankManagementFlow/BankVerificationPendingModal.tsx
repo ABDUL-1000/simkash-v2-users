@@ -1,10 +1,10 @@
-import type { EnterprisePayoutAccount } from "../../types/api";
+import type { SavedPayoutAccount } from "../../types/api";
 import React from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Clock, ShieldCheck, ArrowRight } from "lucide-react";
 
 interface BankVerificationPendingModalProps {
-  result?: EnterprisePayoutAccount | null;
+  result?: SavedPayoutAccount | null;
   open: boolean;
   bank: string;
   acctNo: string;
@@ -36,17 +36,13 @@ export const BankVerificationPendingModal: React.FC<BankVerificationPendingModal
         </div>
 
         <div>
-          <h4 className="text-base font-bold text-slate-900">Payout Account {result?.status ?? "Saved"}</h4>
+          <h4 className="text-base font-bold text-slate-900">Payout Account Saved</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Your payout account has been saved. Its current status is {result?.status ?? "unavailable"}.
+            Your payout account has been saved.
           </p>
         </div>
 
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-2">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Account ID:</span>
-            <span className="font-mono font-bold text-slate-800">{result?.id ?? "—"}</span>
-          </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Bank Name:</span>
             <span className="font-semibold text-slate-900">{result?.bank_name ?? bank}</span>
@@ -67,7 +63,7 @@ export const BankVerificationPendingModal: React.FC<BankVerificationPendingModal
 
         <div className="p-2.5 bg-blue-50/50 rounded-lg text-[11px] text-blue-800 flex items-center gap-2 text-left">
           <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-          <span>Future payout requests use your verified account returned by the backend.</span>
+          <span>Future payout requests will be sent to this account.</span>
         </div>
 
         <button

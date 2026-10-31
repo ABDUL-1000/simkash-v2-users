@@ -1,39 +1,36 @@
 import React, { useState } from "react";
+import { Select } from "antd";
 import { AppModal } from "@/components/common/AppModal";
-import { Bell, MessageSquare, Smartphone, Send, Target } from "lucide-react";
+import { Bell, Send } from "lucide-react";
 import type { StateCoordinatorNetwork } from "../../types";
+import { useRemindCoordinator } from "../../api/mutations";
 
 interface SendActivationReminderModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** Preselected coordinator; when absent the modal offers the loaded list. */
   coordinator: StateCoordinatorNetwork | null;
-  onReminderSent: (sc: StateCoordinatorNetwork, channel: string, message: string) => void;
+  coordinators: StateCoordinatorNetwork[];
+  onClose: () => void;
 }
 
-export const SendActivationReminderModal: React.FC<SendActivationReminderModalProps> = ({
-  open,
-  onOpenChange,
-  coordinator,
-  onReminderSent,
-}) => {
-  const [channel, setChannel] = useState<"both" | "whatsapp" | "sms">("both");
+const defaultMessage = (sc?: StateCoordinatorNetwork | null) => {
+  if (!sc) return "Reminder: please review your stock and activations for this month.";
+  if (/low|critical|out/i.test(sc.stockStatus)) return `Stock replenishment reminder: your inventory is below threshold (${sc.stockLabel}).`;
+  return `Hi ${sc.name.split(" ")[0]}, you are at ${(sc.activationsThisMonth ?? 0).toLocaleString()} activations in ${sc.state} this month. Keep pushing activations.`;
+};
 
-  if (!coordinator) return null;
-
-  const target = coordinator.targetActivations || 2000;
-  const current = coordinator.activationsThisMonth;
-  const gap = Math.max(0, target - current);
-
-  const defaultMessage = `Hi ${coordinator.name.split(" ")[0]}, you are currently at ${current.toLocaleString()} activations in ${coordinator.state} State—just ${gap.toLocaleString()} away from your monthly target of ${target.toLocaleString()}! Let's close out strong before month-end to maximize commissions.`;
-  const [message, setMessage] = useState(defaultMessage);
-
+/** POST /my-state-coordinator/remind { coordinator_id, message } */
+export const SendActivationReminderModal: React.FC<SendActivationReminderModalProps> = ({ coordinator, coordinators, onClose }) => {
+  const [selectedId, setSelectedId] = useState(coordinator?.id);
+  const selected = coordinator ?? coordinators.find((sc) => sc.id === selectedId);
+  const [message, setMessage] = useState(defaultMessage(coordinator));
+  const remind = useRemindCoordinator();
   const handleSend = () => {
-    onOpenChange(false);
-    onReminderSent(coordinator, channel, message);
+    if (!selected || !message.trim() || remind.isPending) return;
+    remind.mutate({ coordinator_id: Number(selected.id), message: message.trim() }, { onSuccess: onClose });
   };
 
   return (
-    <AppModal open={open} onOpenChange={onOpenChange} size="md" footer={null}>
+    <AppModal open onOpenChange={(open) => { if (!open && !remind.isPending) onClose(); }} size="md" footer={null}>
       <div className="space-y-4 pt-1 text-xs">
         {/* Header */}
         <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
@@ -41,101 +38,33 @@ export const SendActivationReminderModal: React.FC<SendActivationReminderModalPr
             <Bell className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">Send Activation Reminder</h3>
+            <h3 className="text-base font-bold text-slate-900">Send Reminder</h3>
             <p className="text-xs text-slate-500">
-              Notify {coordinator.name} ({coordinator.state}) of monthly target progress
+              {selected ? `Notify ${selected.name} (${selected.state})` : "Choose a State Coordinator to notify"}
             </p>
           </div>
         </div>
 
-        {/* Target Gap Card */}
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-bold text-slate-700">
-              <Target className="w-3.5 h-3.5 text-blue-600" />
-              Target vs Progress
-            </span>
-            <span className="font-bold text-blue-700">
-              {current.toLocaleString()} / {target.toLocaleString()}
-            </span>
+        {!coordinator && (
+          <div>
+            <label className="text-[11px] font-semibold text-slate-700 block mb-1">State Coordinator</label>
+            <Select showSearch optionFilterProp="label" className="w-full" placeholder="Select a State Coordinator" value={selectedId}
+              onChange={(value: string) => { setSelectedId(value); setMessage(defaultMessage(coordinators.find((sc) => sc.id === value))); }}
+              options={coordinators.map((sc) => ({ value: sc.id, label: `${sc.name} · ${sc.state}` }))} />
           </div>
+        )}
 
-          <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-            <div className="p-2 rounded-lg bg-white border border-slate-200">
-              <span className="text-[10px] text-slate-400 block">CURRENT</span>
-              <span className="text-xs font-bold text-slate-900">{current.toLocaleString()}</span>
-            </div>
-            <div className="p-2 rounded-lg bg-white border border-slate-200">
-              <span className="text-[10px] text-slate-400 block">TARGET</span>
-              <span className="text-xs font-bold text-slate-900">{target.toLocaleString()}</span>
-            </div>
-            <div className="p-2 rounded-lg bg-amber-50 border border-amber-200">
-              <span className="text-[10px] text-amber-700 block">GAP TO GO</span>
-              <span className="text-xs font-bold text-amber-800">{gap.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Delivery Channel */}
         <div>
-          <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-            Delivery Channel
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { key: "both", label: "SMS + WhatsApp", icon: Smartphone },
-              { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
-              { key: "sms", label: "SMS Only", icon: Smartphone },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setChannel(item.key as any)}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl font-medium border transition ${
-                    channel === item.key
-                      ? "bg-[#1F3A5F] text-white border-[#1F3A5F]"
-                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Message editor */}
-        <div>
-          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-            Reminder Message
-          </label>
-          <textarea
-            rows={3}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="w-full p-2.5 border rounded-xl bg-slate-50 text-xs focus:bg-white focus:outline-blue-600 leading-relaxed"
-          />
+          <label className="text-[11px] font-semibold text-slate-700 block mb-1">Message</label>
+          <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} className="w-full px-3 py-2 border rounded-xl bg-slate-50 text-xs focus:bg-white focus:outline-blue-600" />
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="flex-1 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSend}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#1F3A5F] text-white font-bold hover:bg-slate-800 transition"
-          >
+          <button type="button" disabled={remind.isPending} onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button type="button" disabled={!selected || !message.trim() || remind.isPending} onClick={handleSend} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#1F3A5F] text-white font-bold hover:bg-slate-800 disabled:opacity-50">
             <Send className="w-4 h-4" />
-            <span>Dispatch Reminder</span>
+            <span>{remind.isPending ? "Sending…" : "Send Reminder"}</span>
           </button>
         </div>
       </div>

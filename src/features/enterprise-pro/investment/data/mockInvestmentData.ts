@@ -58,12 +58,12 @@ export const earningsTimelineAll: EarningsTimelinePoint[] = [
 ];
 
 export const monthlyEarningsBreakdown: MonthlyEarningsBreakdownPoint[] = [
-  { month: "Apr", simActivations: 2_100_000, dataRecharges: 1_600_000, bonusOverrides: 500_000 },
-  { month: "May", simActivations: 2_350_000, dataRecharges: 1_850_000, bonusOverrides: 600_000 },
-  { month: "Jun", simActivations: 2_400_000, dataRecharges: 2_100_000, bonusOverrides: 650_000 },
-  { month: "Jul", simActivations: 2_600_000, dataRecharges: 2_300_000, bonusOverrides: 720_000 },
-  { month: "Aug", simActivations: 2_750_000, dataRecharges: 2_450_000, bonusOverrides: 780_000 },
-  { month: "Sep", simActivations: 2_900_000, dataRecharges: 2_650_000, bonusOverrides: 850_000 },
+  { month: "Apr", simActivations: 2_100_000, dataRecharges: 1_600_000 },
+  { month: "May", simActivations: 2_350_000, dataRecharges: 1_850_000 },
+  { month: "Jun", simActivations: 2_400_000, dataRecharges: 2_100_000 },
+  { month: "Jul", simActivations: 2_600_000, dataRecharges: 2_300_000 },
+  { month: "Aug", simActivations: 2_750_000, dataRecharges: 2_450_000 },
+  { month: "Sep", simActivations: 2_900_000, dataRecharges: 2_650_000 },
 ];
 
 export const simPerformanceMetrics: SimPerformanceMetric[] = [

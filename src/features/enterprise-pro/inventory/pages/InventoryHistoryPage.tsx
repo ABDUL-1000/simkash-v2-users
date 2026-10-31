@@ -1,43 +1,32 @@
-import React, { useState } from "react";
-import { Download, TrendingUp, Send, Package, Coins } from "lucide-react";
+import React from "react";
+import { TrendingUp, Send, Package, Clock } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
-import { useGetEnterpriseInventoryHistory } from "../api";
-import { EpQueryState } from "../../components/EpQueryState";
+import { useGetEnterpriseSimInventoryOverview } from "../api";
 import { InventoryHistoryTable } from "../components/InventoryHistoryTable";
-import { SimBalanceTrendsChart } from "../components/SimBalanceTrendsChart";
-import { ExportInventoryHistoryModal } from "../modals/ExportInventoryHistoryModal";
 export const InventoryHistoryPage: React.FC = () => {
-    const [showExportModal, setShowExportModal] = useState(false);
-    const query = useGetEnterpriseInventoryHistory();
-    const summary = query.data?.summary_cards;
+    // Summary cards come from the inventory overview (the history list has no summary block).
+    const summary = useGetEnterpriseSimInventoryOverview().data?.summary_cards;
+    const value = (count?: number) => count?.toLocaleString() ?? "—";
     return (<div className="space-y-6 pb-16">
       {/* Header */}
-      <PageHeader title="Inventory History" description="Complete record of SIM card orders and distributions" actions={[
-            {
-                key: "export",
-                label: "Export History",
-                icon: <Download className="w-4 h-4"/>,
-                variant: "outline",
-                onClick: () => setShowExportModal(true),
-            },
-        ]}/>
+      <PageHeader title="Inventory History" description="Complete record of SIM stock received and distributed"/>
 
-      {/* 4 Metric Cards from Image 3 */}
+      {/* 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
           <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
             <TrendingUp className="w-4 h-4"/>
           </div>
-          <span className="text-xs font-semibold text-slate-400 block">Total Ordered</span>
-          <div className="text-2xl font-extrabold text-slate-900">{summary?.total_ordered_formatted ?? "—"}</div>
+          <span className="text-xs font-semibold text-slate-400 block">{summary?.received?.label ?? "Total Received"}</span>
+          <div className="text-2xl font-extrabold text-slate-900">{value(summary?.received?.count)}</div>
         </div>
 
         <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
           <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
             <Send className="w-4 h-4"/>
           </div>
-          <span className="text-xs font-semibold text-slate-400 block">Distributed</span>
-          <div className="text-2xl font-extrabold text-slate-900">{summary?.distributed_formatted ?? "—"}</div>
+          <span className="text-xs font-semibold text-slate-400 block">{summary?.distributed?.label ?? "Distributed"}</span>
+          <div className="text-2xl font-extrabold text-slate-900">{value(summary?.distributed?.count)}</div>
         </div>
 
         <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
@@ -45,26 +34,19 @@ export const InventoryHistoryPage: React.FC = () => {
             <Package className="w-4 h-4"/>
           </div>
           <span className="text-xs font-semibold text-slate-400 block">In Stock</span>
-          <div className="text-2xl font-extrabold text-slate-900">{summary?.in_stock_formatted ?? "—"}</div>
+          <div className="text-2xl font-extrabold text-slate-900">{value(summary?.total_available.count)}</div>
         </div>
 
         <div className="p-5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
           <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-            <Coins className="w-4 h-4"/>
+            <Clock className="w-4 h-4"/>
           </div>
-          <span className="text-xs font-semibold text-slate-400 block">Wholesale Value</span>
-          <div className="text-2xl font-extrabold text-slate-900">{summary?.wholesale_value_formatted ?? "—"}</div>
+          <span className="text-xs font-semibold text-slate-400 block">{summary?.pending_requests.label ?? "Pending Request"}</span>
+          <div className="text-2xl font-extrabold text-slate-900">{value(summary?.pending_requests.count)}</div>
         </div>
       </div>
 
-      {/* Verified SIM Transaction Log Table */}
-      <EpQueryState pending={query.isPending} error={query.error} retry={query.refetch}/>
+      {/* SIM Transaction Log Table */}
       <InventoryHistoryTable />
-
-      {/* Running inventory SIM Balance Trends Chart */}
-      <SimBalanceTrendsChart />
-
-      {/* Export Modal */}
-      <ExportInventoryHistoryModal open={showExportModal} onOpenChange={setShowExportModal}/>
     </div>);
 };

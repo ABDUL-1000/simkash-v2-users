@@ -61,7 +61,6 @@ export interface MonthlyEarningsBreakdownPoint {
   month: string;
   simActivations: number;
   dataRecharges: number;
-  bonusOverrides: number;
 }
 
 export interface SimPerformanceMetric {

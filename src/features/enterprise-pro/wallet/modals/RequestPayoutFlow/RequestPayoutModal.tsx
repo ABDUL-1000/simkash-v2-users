@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Building2, ShieldCheck, ArrowRight, UserCheck } from "lucide-react";
+import { Building2, ShieldCheck, ArrowRight } from "lucide-react";
 import { useEnterpriseWalletData } from "../../hooks/useEnterpriseWalletData";
 
 interface RequestPayoutModalProps {
@@ -16,9 +15,9 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
   onSubmit,
 }) => {
 
-  const { walletBalance, bankAccount, accountManager } = useEnterpriseWalletData();  const [amount, setAmount] = useState<number>(500_000);
+  const { walletBalance, bankAccount } = useEnterpriseWalletData();
+  const [amount, setAmount] = useState<number>(0);
   const [notes, setNotes] = useState("");
-  const [pin, setPin] = useState<string>("");
 
   const quickPills = [
     { label: "₦250k", val: 250_000 },
@@ -29,10 +28,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (amount > 0 && pin.length >= 4) {
-      onSubmit(amount, notes);
-      setPin("");
-    }
+    if (amount > 0) onSubmit(amount, notes);
   };
 
   return (
@@ -50,7 +46,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           <div>
             <span className="text-[11px] text-slate-500 block">Available Payout Balance</span>
             <span className="text-base font-black text-slate-900">
-              ₦{(walletBalance?.totalBalance ?? 0).toLocaleString()}.00
+              ₦{(walletBalance?.totalBalance ?? 0).toLocaleString()}
             </span>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -66,7 +62,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
             </div>
             <div>
               <div className="text-xs font-bold text-slate-900">
-                {bankAccount.bankName} · {bankAccount.accountNumberMask}
+                {bankAccount.isSet ? `${bankAccount.bankName} · ${bankAccount.accountNumberMask}` : "Add a payout account first"}
               </div>
               <div className="text-[11px] text-slate-500">{bankAccount.accountName}</div>
             </div>
@@ -83,7 +79,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           </label>
           <input
             type="number"
-            min={10000}
+            min={1}
             max={walletBalance.totalBalance}
             value={amount || ""}
             onChange={(e) => setAmount(Number(e.target.value))}
@@ -110,49 +106,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           </div>
         </div>
 
-        {/* Security & Manager Notice */}
-        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
-          <UserCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold">Enterprise Security Policy:</span> Payout status is confirmed by the backend. Contact your dedicated manager ({accountManager.name}) for assistance.
-          </div>
-        </div>
-
         <label className="block text-xs font-bold text-slate-700">Optional notes<textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300" /></label>
-        {/* PIN Input */}
-        <div className="space-y-2 text-center pt-1">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-            ENTER 4-DIGIT TRANSACTION PIN
-          </label>
-          <div className="flex justify-center">
-            <InputOTP
-              maxLength={4}
-              value={pin}
-              onChange={(val) => setPin(val)}
-              containerClassName="gap-2.5"
-            >
-              <InputOTPGroup className="gap-2.5">
-                <InputOTPSlot
-                  index={0}
-                  className="size-11 rounded-xl border border-slate-200 bg-slate-50 text-base font-bold text-slate-900 data-[active=true]:border-blue-600 data-[active=true]:ring-2 data-[active=true]:ring-blue-600/20"
-                />
-                <InputOTPSlot
-                  index={1}
-                  className="size-11 rounded-xl border border-slate-200 bg-slate-50 text-base font-bold text-slate-900 data-[active=true]:border-blue-600 data-[active=true]:ring-2 data-[active=true]:ring-blue-600/20"
-                />
-                <InputOTPSlot
-                  index={2}
-                  className="size-11 rounded-xl border border-slate-200 bg-slate-50 text-base font-bold text-slate-900 data-[active=true]:border-blue-600 data-[active=true]:ring-2 data-[active=true]:ring-blue-600/20"
-                />
-                <InputOTPSlot
-                  index={3}
-                  className="size-11 rounded-xl border border-slate-200 bg-slate-50 text-base font-bold text-slate-900 data-[active=true]:border-blue-600 data-[active=true]:ring-2 data-[active=true]:ring-blue-600/20"
-                />
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-        </div>
-
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <button
@@ -164,7 +118,7 @@ export const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           </button>
           <button
             type="submit"
-            disabled={!amount || amount <= 0 || amount > walletBalance.totalBalance || !bankAccount.verified || pin.length < 4}
+            disabled={!amount || amount <= 0 || amount > walletBalance.totalBalance || !bankAccount.isSet}
             className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-sm flex items-center gap-1.5 transition"
           >
             Request ₦{(amount || 0).toLocaleString()} Payout

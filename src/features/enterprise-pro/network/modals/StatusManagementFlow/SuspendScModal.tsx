@@ -27,10 +27,9 @@ export const SuspendScModal: React.FC<SuspendScModalProps> = ({
   const handleConfirm = () => {
     if (update.isPending) return;
     const explanation = note.trim() ? `${reason}: ${note.trim()}` : reason;
-    update.mutate({ status: 'SUSPENDED', reason: explanation }, { onSuccess: result => {
+    update.mutate({ action: 'suspend', reason: explanation }, { onSuccess: result => {
       onOpenChange(false);
-      onConfirmSuspend({ ...coordinator, name: result.name, status: result.new_status.toUpperCase() === 'SUSPENDED' ? 'suspended' : 'active', suspensionReason: result.reason,
-        api: coordinator.api ? { ...coordinator.api, name: result.name, status: result.new_status } : undefined }, result.reason);
+      onConfirmSuspend({ ...coordinator, status: 'suspended', statusLabel: result.status }, explanation);
     } });
   };
 

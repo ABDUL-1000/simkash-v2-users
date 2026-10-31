@@ -1,147 +1,42 @@
-export interface EnterpriseHeroBalanceCard {
-  title: string;
-  balance: number;
-  balance_formatted: string;
-  tag: string;
+export interface WalletResponse<T> { success: boolean; message: string; data: T }
+
+// GET /enterprise/wallet/overview
+export interface EnterpriseBalanceCard {
+  commission_balance: number; commission_balance_formatted: string;
+  profit_balance: number; profit_balance_formatted: string;
+  wallet_balance: number; wallet_balance_formatted: string;
+  currency: string; currency_symbol: string;
   chips: {
-    margin_this_month: { amount: number; formatted: string; label: string };
-    network_commission: { amount: number; formatted: string; label: string };
-    balance_remaining: { amount: number; formatted: string; label: string };
-    bonus_pending: { amount: number; formatted: string; label: string };
+    ap_network_this_month: { amount: number; formatted: string; label: string };
+    pending_payout: { amount: number; formatted: string; label: string };
   };
+  actions: { can_request_payout: boolean; can_withdraw_profit: boolean; can_download_statement: boolean; can_view_history: boolean; can_manage_bank: boolean };
 }
+export interface EnterpriseStatCard { amount: number; formatted: string; label: string; subtext: string }
+export interface EnterpriseStatsCards { total_earned: EnterpriseStatCard; total_paid_out: EnterpriseStatCard; best_month: EnterpriseStatCard }
+export interface EnterpriseWalletOverviewData { balance_card: EnterpriseBalanceCard; stats_cards: EnterpriseStatsCards }
 
-export interface EnterpriseBalanceWarningBanner {
-  balance_remaining: number;
-  balance_remaining_formatted: string;
-  initial_principal?: number;
-  paid_amount: number;
-  percent_paid: number;
-  percent_owed: number;
-}
-
-export interface EnterpriseMiddleKpiCards {
-  earned_this_month: { amount: number; formatted: string; subtext: string };
-  total_paid_out: { amount: number; formatted: string; subtext: string };
-  sim_orders_paid: { amount: number; formatted: string; subtext: string };
-  balance_paid_down: { amount: number; formatted: string; subtext: string };
-}
-
-export interface EnterprisePayoutAccount {
-  id?: number;
-  bank_name: string;
-  bank_code?: string;
-  account_number?: string;
-  account_number_masked: string;
-  account_name: string;
-  is_verified?: boolean;
-  status: string;
-}
-
-export interface EnterpriseAccountManager {
-  name: string;
-  phone: string;
-  email: string;
-}
-
-export interface EnterpriseWalletOverviewData {
-  hero_balance_card: EnterpriseHeroBalanceCard;
-  balance_warning_banner: EnterpriseBalanceWarningBanner;
-  middle_kpi_cards: EnterpriseMiddleKpiCards;
-  payout_account: EnterprisePayoutAccount;
-  account_manager: EnterpriseAccountManager;
-}
-
+// GET /enterprise/wallet/transactions
+export type WalletCategory = "all" | "commission" | "payout" | "transfer" | "bill_payment";
 export interface EnterpriseTransactionItem {
-  id: number;
-  category: "margin_earnings" | "network_commission" | "payouts" | "sim_orders" | "balance_payments" | string;
-  title: string;
-  description: string;
-  amount: number;
-  amount_formatted: string;
-  flow: "in" | "out";
-  date_formatted: string;
-  reference: string;
-  status: string;
+  id: string; reference: string; title: string; subtitle: string; category: string; category_label: string; flow: "credit" | "debit";
+  amount: number; amount_formatted: string; status: string; time: string; created_at: string; date_group: string;
 }
+export interface EnterpriseTransactionsResponseData { items: EnterpriseTransactionItem[]; total: number; page: number; limit: number; total_pages: number }
 
-export interface EnterpriseTransactionGroup {
-  header: "THIS WEEK" | "EARLIER THIS MONTH" | "LAST MONTH (MAY)" | string;
-  transactions: EnterpriseTransactionItem[];
-}
+// GET/POST /enterprise/wallet/payout-account
+export interface EnterprisePayoutAccount { is_set?: boolean; bank_name: string; bank_code?: string; account_number: string; account_name: string; verified?: boolean }
+export interface SaveEnterprisePayoutAccountPayload { bank_name: string; bank_code: string; account_number: string; account_name: string }
 
-export interface EnterpriseTransactionsResponseData {
-  active_category: string;
-  active_timeframe: string;
-  total_records: number;
-  category_counts: {
-    all: number;
-    margin_earnings: number;
-    network_commission: number;
-    payouts: number;
-    sim_orders: number;
-    balance_payments: number;
-  };
-  groups: EnterpriseTransactionGroup[];
-}
+// POST /enterprise/wallet/request-payout, GET /enterprise/wallet/payouts
+export interface RequestEnterprisePayoutPayload { amount: number; notes?: string }
+export interface EnterprisePayoutResult { request_id: number; reference: string; amount: number; status: string; account_name: string; bank_name: string; account_number: string }
+export interface EnterprisePayoutItem { id: number; reference: string; amount: number; amount_formatted: string; status: string; date: string; account: string }
 
-export interface EnterpriseRecentPayoutItem {
-  id: number;
-  amount: number;
-  amount_formatted: string;
-  date_formatted: string;
-  status: string;
-  status_color: string;
-}
+// POST /enterprise/wallet/withdraw-profit
+export interface EnterpriseWithdrawProfitResult { withdrawn_amount: number; profit_balance: number; wallet_balance: number; reference: string }
 
-export interface EnterpriseRecentPayoutsData {
-  title: string;
-  total_paid_out: number;
-  total_paid_out_formatted: string;
-  items: EnterpriseRecentPayoutItem[];
-}
-
-export interface EnterpriseStatementSummaryData {
-  period: string;
-  opening_balance: number;
-  closing_balance: number;
-  total_credit: number;
-  total_debit: number;
-  transactions_count: number;
-}
-
-export interface EnterpriseActivityBreakdownData {
-  title: string;
-  total_inflows: number;
-  total_inflows_formatted: string;
-  total_outflows: number;
-  total_outflows_formatted: string;
-  net_profit: number;
-  net_profit_formatted: string;
-}
-
-export interface RequestEnterprisePayoutPayload {
-  amount: number;
-  notes?: string;
-}
-
-export interface EnterpriseReinvestPayload {
-  amount: number;
-  destination: "stock" | string;
-}
-
-export interface EnterprisePayBalancePayload {
-  amount: number;
-}
-
-export interface SaveEnterprisePayoutAccountPayload {
-  bank_name: string;
-  bank_code: string;
-  account_number: string;
-  account_name: string;
-}
-
-export interface WalletResponse<T> { success: boolean; message: string; data: T; }
-export type WalletCategory = 'all' | 'margin_earnings' | 'network_commission' | 'payouts' | 'sim_orders' | 'balance_payments';
-export type WalletTimeframe = 'today' | 'this_week' | 'this_month' | 'all_time' | 'custom';
-export interface WalletActionResult { reference: string; amount?: number; amount_formatted?: string; amount_paid?: number; amount_paid_formatted?: string; remaining_balance?: number; remaining_balance_formatted?: string; destination?: string; bank_name?: string; account_number_masked?: string; account_name?: string; status?: string; }
+/** Receipt shape used by the payout result modals. */
+export interface WalletActionResult { reference: string; amount?: number; amount_formatted?: string; amount_paid_formatted?: string; bank_name?: string; account_number_masked?: string; account_name?: string; status?: string }
+/** Saved-account shape used by the bank result modal. */
+export interface SavedPayoutAccount { id?: number; bank_name: string; account_number: string; account_number_masked: string; account_name: string; status: string }

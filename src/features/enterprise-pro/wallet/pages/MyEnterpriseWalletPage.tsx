@@ -1,62 +1,61 @@
-import { useGetEnterpriseWalletOverview } from "../api/useGetEnterpriseWalletOverview";
+import { useGetEnterpriseWalletOverview, useExportEnterpriseTransactions } from "../api/useEnterpriseWallet";
 import { EpQueryState } from "../../components/EpQueryState";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
-import { useState } from "react";
-import type { SimOrderDraft } from "../../types";
-import { OrderMoreSimsModal } from "../../modals/OrderMoreSimsModal";
-import { ConfirmSimOrderModal } from "../../modals/ConfirmSimOrderModal";
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/PageHeader";
-import { ArrowUpRight, Repeat, FileText } from "lucide-react";
+import { ArrowUpRight, ArrowDownToLine, FileText } from "lucide-react";
 import { EpWalletBalanceHero } from "../components/EpWalletBalanceHero";
-import { EpBalanceWarningBanner } from "../components/EpBalanceWarningBanner";
 import { EpWalletMetricCards } from "../components/EpWalletMetricCards";
 import { EpTransactionHistoryList } from "../components/EpTransactionHistoryList";
 import { EpPayoutAccountCard } from "../components/EpPayoutAccountCard";
-import { EpMonthlyEarningsChart } from "../components/EpMonthlyEarningsChart";
 import { EpRecentPayoutsCard } from "../components/EpRecentPayoutsCard";
-import { EpWalletActivitySummary } from "../components/EpWalletActivitySummary";
-import { EpDebtSummarySidebar } from "../components/EpDebtSummarySidebar";
 import { WalletModalsHub } from "../components/WalletModalsHub";
-import { WalletSecondaryModalsHub } from "../components/WalletSecondaryModalsHub";
 import { useWalletModals } from "../hooks/useWalletModals";
 
 export const MyEnterpriseWalletPage: React.FC = () => {
-  const modals = useWalletModals();
+  // Deep link from the dashboard: ?payout=1
+  const [params, setParams] = useSearchParams();
+  const modals = useWalletModals(params.get("payout") === "1");
   const overview = useGetEnterpriseWalletOverview();
-  const [orderOpen, setOrderOpen] = useState(false);
-  const [orderDraft, setOrderDraft] = useState<SimOrderDraft | null>(null);
+  const exporter = useExportEnterpriseTransactions();
   if (overview.isPending || overview.isError) return <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch} />;
-  if (!overview.data) return <AppEmptyState title="No Enterprise Wallet Data" description="Your wallet data is not available yet." />;
+  if (!overview.data?.balance_card) return <AppEmptyState title="No Enterprise Wallet Data" description="Your wallet data is not available yet." />;
+  const { balance_card: balance, stats_cards: stats } = overview.data;
+  const downloadStatement = () => exporter.mutate({ category: "all" });
+  const noProfit = !balance.profit_balance;
 
   return (
     <div className="space-y-6 pb-16">
       {/* Page Header */}
       <PageHeader
         title="My Enterprise Wallet"
-        description="Isolated enterprise wallet balance, automated margin yield, reinvestments, debt amortizations, and corporate bank withdrawals."
+        description="Profit balance, spendable wallet balance, transaction history and bank withdrawals."
         extra={
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => modals.setStatementModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition shadow-xs"
+              disabled={exporter.isPending || balance.actions?.can_download_statement === false}
+              onClick={downloadStatement}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition shadow-xs disabled:opacity-50"
             >
               <FileText className="w-3.5 h-3.5 text-slate-500" />
               <span>Statement</span>
             </button>
             <button
               type="button"
-              onClick={() => modals.setReinvestSelectOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition shadow-xs"
+              disabled={balance.actions?.can_withdraw_profit === false || noProfit}
+              onClick={() => modals.setWithdrawOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition shadow-xs disabled:opacity-50"
             >
-              <Repeat className="w-3.5 h-3.5" />
-              <span>Reinvest</span>
+              <ArrowDownToLine className="w-3.5 h-3.5" />
+              <span>Withdraw to Wallet</span>
             </button>
             <button
               type="button"
+              disabled={balance.actions?.can_request_payout === false || noProfit}
               onClick={() => modals.setPayoutModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm disabled:opacity-50"
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
               <span>Request Payout</span>
@@ -67,56 +66,38 @@ export const MyEnterpriseWalletPage: React.FC = () => {
 
       {/* Main Balance Hero with Eye Toggle & Action Pills */}
       <EpWalletBalanceHero
-        hero={overview.data.hero_balance_card}
+        balance={balance}
         onRequestPayout={() => modals.setPayoutModalOpen(true)}
-        onReinvest={() => modals.setReinvestSelectOpen(true)}
-        onPayBalance={() => modals.setPayBalanceOpen(true)}
-        onOrderSims={() => setOrderOpen(true)}
-        onStatement={() => modals.setStatementModalOpen(true)}
+        onWithdrawProfit={() => modals.setWithdrawOpen(true)}
+        onStatement={downloadStatement}
+        statementLoading={exporter.isPending}
       />
 
-      {/* Amber Debt Alert Banner */}
-      <EpBalanceWarningBanner
-        banner={overview.data.balance_warning_banner}
-        onPayDown={() => modals.setPayBalanceOpen(true)}
-      />
-
-      {/* 4-Card Metrics Strip */}
-      <EpWalletMetricCards cards={overview.data.middle_kpi_cards} />
+      {/* Metrics Strip */}
+      {stats && <EpWalletMetricCards cards={stats} />}
 
       {/* 2-Column Responsive Workspace Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Column (Transactions Ledger) */}
-        <div className="lg:col-span-2 space-y-6">
-          <EpTransactionHistoryList
-            onSelectTransaction={modals.handleSelectTransaction}
-            onDownloadStatement={() => modals.setStatementModalOpen(true)}
-          />
+        <div className="lg:col-span-2 space-y-6 min-w-0">
+          <EpTransactionHistoryList onSelectTransaction={modals.setSelectedTxn} />
         </div>
 
-        {/* Right Column (Bank Account, Earnings, Activity & Debt) */}
-        <div className="space-y-6">
+        {/* Right Column (Bank Account & Payouts) */}
+        <div className="space-y-6 min-w-0">
           <EpPayoutAccountCard
             onChangeBankAccount={() => modals.setChangeBankOpen(true)}
           />
-          <EpMonthlyEarningsChart />
           <EpRecentPayoutsCard
+            totalPaidOut={stats?.total_paid_out?.formatted}
             onViewAllPayouts={() => modals.setAllPayoutsOpen(true)}
-            onSelectPayout={(payout) => modals.handleSelectPayoutFromLedger(payout)}
-          />
-          <EpWalletActivitySummary />
-          <EpDebtSummarySidebar
-            banner={overview.data.balance_warning_banner}
-            onPayBalance={() => modals.setPayBalanceOpen(true)}
+            onSelectPayout={modals.handleSelectPayoutFromLedger}
           />
         </div>
       </div>
 
-      <OrderMoreSimsModal open={orderOpen} onOpenChange={setOrderOpen} onPreviewOrder={draft => { setOrderDraft(draft); setOrderOpen(false); }} />
-      {orderDraft && <ConfirmSimOrderModal open onOpenChange={open => { if (!open) setOrderDraft(null); }} order={orderDraft} onEdit={() => { setOrderDraft(null); setOrderOpen(true); }} />}
-      {/* Modal Dialog Hubs */}
-      <WalletModalsHub modals={modals} />
-      <WalletSecondaryModalsHub modals={modals} />
+      {/* Modal Dialog Hub */}
+      <WalletModalsHub modals={modals} onPayoutClose={() => { if (params.get("payout")) setParams({}, { replace: true }); }} />
     </div>
   );
 };

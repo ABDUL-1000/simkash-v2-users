@@ -1,89 +1,74 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { UserPlus, Download } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
-import { appPaths } from "@/app/router/paths";
+import { useDebouncedValue } from "@/features/corporate-agent/inventory/api/useDebouncedValue";
 import { EpNetworkTabsNav, type NetworkTabKey } from "../components/EpNetworkTabsNav";
 import { ScOverviewTabView } from "../components/ScOverviewTab/ScOverviewTabView";
-import { ApOverviewTabView } from "../components/ApOverviewTab/ApOverviewTabView";
-import { NetworkActivityTab } from "../components/NetworkActivityTab/NetworkActivityTab";
+import { ScComparisonTab } from "../components/ScComparisonTab";
 import {
   NetworkModalsManager,
   type NetworkModalsState,
 } from "../components/NetworkModalsManager";
 import { useGetEnterpriseScOverview } from '../api/queries';
+import { useExportStateCoordinators } from '../api/exportEnterpriseNetworkReport';
 import { coordinatorFromApi } from '../types/adapters';
+import type { EpScTab } from '../types/api';
 import { EpQueryState } from '../../components/EpQueryState';
-import { openNotification } from '@/utils/notifications';
+import { epDistributePath } from '../../utils/epLinks';
 import type { StateCoordinatorNetwork } from "../types";
+
+const PAGE_SIZE = 8;
 
 export const MyNetworkPage: React.FC = () => {
   const navigate = useNavigate();
+  // Deep link from the dashboard: ?onboard=1
+  const [params, setParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<NetworkTabKey>("sc-overview");
-  const overview = useGetEnterpriseScOverview();
+  const [scTab, setScTab] = useState<EpScTab>("all");
+  const [search, setSearch] = useState("");
+  const [state, setState] = useState("");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const debouncedState = useDebouncedValue(state.trim());
+  const overview = useGetEnterpriseScOverview({ tab: scTab, search: debouncedSearch || undefined, state: debouncedState || undefined, page, limit: PAGE_SIZE });
+  const exporter = useExportStateCoordinators();
   const coordinators = (overview.data?.coordinators ?? []).map(coordinatorFromApi);
-  const [selectedApScId, setSelectedApScId] = useState('all');
 
   const [modalState, setModalState] = useState<NetworkModalsState>({
     activeSc: null,
-    isOpenActiveSc: false,
-    isOpenSuspendedSc: false,
-    isOpenOnboard: false,
+    isOpenDetails: false,
+    isOpenOnboard: params.get("onboard") === "1",
     isOpenInviteSent: false,
-    isOpenInviteFailed: false,
-    isOpenSetRate: false,
-    isOpenConfirmRate: false,
-    isOpenRateSuccess: false,
     isOpenSuspend: false,
     isOpenSuspendedSuccess: false,
     isOpenReinstate: false,
     isOpenReinstatedSuccess: false,
     isOpenSendReminder: false,
-    isOpenReminderSuccess: false,
-    isOpenExport: false,
-    isOpenExportProgress: false,
-    onboardData: null,
     onboardResult: null,
-    pendingNewRate: 0.1,
-    reminderChannel: "both",
-    exportConfig: null,
   });
 
   const updateModalState = (patch: Partial<NetworkModalsState>) => {
+    if (patch.isOpenOnboard === false && params.get("onboard")) setParams({}, { replace: true });
     setModalState((prev) => ({ ...prev, ...patch }));
   };
 
-  const handleSelectSc = (sc: StateCoordinatorNetwork) => {
-    if (sc.status === "suspended") {
-      updateModalState({ activeSc: sc, isOpenSuspendedSc: true });
-    } else {
-      updateModalState({ activeSc: sc, isOpenActiveSc: true });
-    }
-  };
-
-  const handleDistributeSim = (sc: StateCoordinatorNetwork) => {
-    navigate(`${appPaths.enterpriseProSimDistribute}?scId=${sc.id}`);
-  };
-
-  const handleViewAps = (sc: StateCoordinatorNetwork) => {
-    setSelectedApScId(sc.id);
-    setActiveTab('agency-partners');
-    updateModalState({ isOpenActiveSc: false, isOpenSuspendedSc: false });
-  };
+  const handleSelectSc = (sc: StateCoordinatorNetwork) => updateModalState({ activeSc: sc, isOpenDetails: true });
 
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header */}
       <PageHeader
         title="My Network"
-        description="Monitor State Coordinators, Agency Partners, commission rates, and real-time territory performance."
+        description="Monitor State Coordinators, stock alerts, and territory performance."
         actions={[
           {
             key: "export",
-            label: "Export Network Report",
+            label: exporter.isPending ? "Exporting…" : "Export Network Report",
             icon: <Download className="w-4 h-4" />,
             variant: "default",
-            onClick: () => updateModalState({ isOpenExport: true }),
+            disabled: exporter.isPending,
+            onClick: () => exporter.mutate(),
           },
           {
             key: "onboard",
@@ -99,42 +84,41 @@ export const MyNetworkPage: React.FC = () => {
       <EpNetworkTabsNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        scCount={overview.data?.totals.sc_count ?? 0}
-        apCount={overview.data?.totals.aps_count ?? 0}
+        scCount={overview.data?.network_summary?.total_scs}
       />
 
       {/* Tab 1: SC Overview */}
-      {activeTab === "sc-overview" && (overview.isSuccess ? (
+      {activeTab === "sc-overview" && (overview.data ? (
         <ScOverviewTabView
-          kpis={overview.data.summary_cards}
-          totals={overview.data.totals}
+          data={overview.data}
           coordinators={coordinators}
+          tab={scTab}
+          onTabChange={(value) => { setScTab(value); setPage(1); }}
+          search={search}
+          onSearchChange={(value) => { setSearch(value); setPage(1); }}
+          state={state}
+          onStateChange={(value) => { setState(value); setPage(1); }}
+          page={page}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+          loading={overview.isFetching}
           onSelectSc={handleSelectSc}
           onOnboardSc={() => updateModalState({ isOpenOnboard: true })}
-          onExportReport={() => updateModalState({ isOpenExport: true })}
-          onSendReminder={() => openNotification({ state: 'info', title: 'Activation Reminder', description: 'Reminder delivery is not available from the supplied network API yet.' })}
-          onDistributeSims={() => navigate(appPaths.enterpriseProSimDistribute)}
+          onExportReport={() => exporter.mutate()}
+          exporting={exporter.isPending}
+          onSendReminder={() => updateModalState({ activeSc: null, isOpenSendReminder: true })}
+          onDistributeSims={(id) => navigate(epDistributePath(id))}
         />
       ) : <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch}/>)}
 
-      {/* Tab 2: Agency Partners */}
-      {activeTab === "agency-partners" && (
-        <ApOverviewTabView
-          selectedScId={selectedApScId}
-          onScChange={setSelectedApScId}
-          onExportReport={() => updateModalState({ isOpenExport: true })}
-        />
-      )}
+      {/* Tab 2: Performance Comparison */}
+      {activeTab === "comparison" && <ScComparisonTab onDistribute={(id) => navigate(epDistributePath(id))} />}
 
-      {/* Tab 3: Network Activity */}
-      {activeTab === "activity" && <NetworkActivityTab />}
-
-      {/* All 16 Modals Manager */}
       <NetworkModalsManager
         state={modalState}
+        coordinators={coordinators}
         onUpdateState={updateModalState}
-        onDistributeSim={handleDistributeSim}
-        onViewAps={handleViewAps}
+        onDistributeSim={(sc) => navigate(epDistributePath(sc.id))}
       />
     </div>
   );

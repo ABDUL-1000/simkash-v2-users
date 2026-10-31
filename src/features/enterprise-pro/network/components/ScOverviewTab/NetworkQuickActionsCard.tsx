@@ -5,6 +5,7 @@ import { colors } from "@/constants/colors";
 interface NetworkQuickActionsCardProps {
   onOnboardSc: () => void;
   onExportReport: () => void;
+  exporting?: boolean;
   onSendReminder: () => void;
   onDistributeSims: () => void;
 }
@@ -12,6 +13,7 @@ interface NetworkQuickActionsCardProps {
 export const NetworkQuickActionsCard: React.FC<NetworkQuickActionsCardProps> = ({
   onOnboardSc,
   onExportReport,
+  exporting,
   onSendReminder,
   onDistributeSims,
 }) => {
@@ -52,16 +54,17 @@ export const NetworkQuickActionsCard: React.FC<NetworkQuickActionsCardProps> = (
           className="w-full flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-gray-800 transition font-medium text-xs border border-slate-200"
         >
           <Bell className="w-4 h-4 text-slate-600" />
-          <span>Send Activation Reminder</span>
+          <span>Send Reminder</span>
         </button>
 
         <button
           type="button"
+          disabled={exporting}
           onClick={onExportReport}
-          className="w-full flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-gray-800 transition font-medium text-xs border border-slate-200"
+          className="w-full flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-gray-800 transition font-medium text-xs border border-slate-200 disabled:opacity-50"
         >
           <Download className="w-4 h-4 text-slate-600" />
-          <span>Export Network Report</span>
+          <span>{exporting ? "Exporting…" : "Export Network Report"}</span>
         </button>
       </div>
     </div>

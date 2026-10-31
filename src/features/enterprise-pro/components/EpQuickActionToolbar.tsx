@@ -1,51 +1,44 @@
-import { TrendingUp, RefreshCw, Landmark, Package, Percent, Users } from "lucide-react";
+import { Wallet, Send, Package, Percent, Users, UserPlus } from "lucide-react";
 import { colors } from "@/constants/colors";
 
 interface EpQuickActionToolbarProps {
-  onMyInvestment: () => void;
-  onReinvest: () => void;
-  onPayBalance: () => void;
-  onOrderSims: () => void;
+  onWallet: () => void;
+  onOrderStock: () => void;
+  onDistribute: () => void;
   onSetPrices: () => void;
   onMyNetwork: () => void;
+  onOnboard: () => void;
 }
 
 export function EpQuickActionToolbar({
-  onMyInvestment,
-  onReinvest,
-  onPayBalance,
-  onOrderSims,
+  onWallet,
+  onOrderStock,
+  onDistribute,
   onSetPrices,
   onMyNetwork,
+  onOnboard,
 }: EpQuickActionToolbarProps) {
   const actions = [
     {
-      label: "My Investment",
-      icon: TrendingUp,
-      onClick: onMyInvestment,
+      label: "My Wallet",
+      icon: Wallet,
+      onClick: onWallet,
       iconColor: "text-blue-600",
       bgColor: "bg-blue-50/80",
     },
     {
-      label: "Reinvest",
-      icon: RefreshCw,
-      onClick: onReinvest,
-      iconColor: "text-emerald-600",
-      bgColor: "bg-emerald-50/80",
-    },
-    {
-      label: "Pay Balance",
-      icon: Landmark,
-      onClick: onPayBalance,
-      iconColor: "text-amber-600",
-      bgColor: "bg-amber-50/80",
-    },
-    {
-      label: "Order SIMs",
+      label: "Order Stock",
       icon: Package,
-      onClick: onOrderSims,
+      onClick: onOrderStock,
       iconColor: "text-slate-700",
       bgColor: "bg-slate-100",
+    },
+    {
+      label: "Distribute",
+      icon: Send,
+      onClick: onDistribute,
+      iconColor: "text-emerald-600",
+      bgColor: "bg-emerald-50/80",
     },
     {
       label: "Set Prices",
@@ -60,6 +53,13 @@ export function EpQuickActionToolbar({
       onClick: onMyNetwork,
       iconColor: "text-blue-600",
       bgColor: "bg-blue-50/80",
+    },
+    {
+      label: "Onboard SC",
+      icon: UserPlus,
+      onClick: onOnboard,
+      iconColor: "text-amber-600",
+      bgColor: "bg-amber-50/80",
     },
   ];
 

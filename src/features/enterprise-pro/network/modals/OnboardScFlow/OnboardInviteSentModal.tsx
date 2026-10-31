@@ -14,9 +14,6 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
   onOpenChange,
   data,
 }) => {
-  const totalSims = data
-    ? data.initial_sim_allocation.pos + data.initial_sim_allocation.cctv + data.initial_sim_allocation.gps + data.initial_sim_allocation.router
-    : 0;
   if (!data) return null;
 
   return (
@@ -27,7 +24,7 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
         </div>
 
         <div>
-          <h3 className="text-base font-bold text-slate-900">Onboarding Invite Sent!</h3>
+          <h3 className="text-base font-bold text-slate-900">State Coordinator Onboarded!</h3>
           <p className="text-xs text-slate-500 mt-1">
             {data.message ?? `State Coordinator ${data.fullname} onboarded successfully.`}
           </p>
@@ -41,7 +38,7 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Assigned Territory</span>
-              <span className="font-semibold text-slate-900">{data.state} State</span>
+              <span className="font-semibold text-slate-900">{[data.lga, data.state].filter(Boolean).join(", ")}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Status</span>
@@ -49,14 +46,14 @@ export const OnboardInviteSentModal: React.FC<OnboardInviteSentModalProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Initial Allocation</span>
-              <span className="font-bold text-blue-700">{totalSims} SIMs</span>
+              <span className="font-bold text-blue-700">{data.initial_stock ?? 0} SIMs</span>
             </div>
           </div>
         )}
 
         <div className="flex items-center gap-1.5 justify-center text-emerald-700 bg-emerald-50 py-1.5 px-3 rounded-lg text-[11px] font-medium">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Coordinator Code: {data.sc_code}</span>
+          <span>Coordinator ID: {data.coordinator_id}</span>
         </div>
 
         <button

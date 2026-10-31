@@ -1,90 +1,25 @@
-export type TransactionCategory =
-  | "all"
-  | "margin"
-  | "commission"
-  | "payout"
-  | "sim-order"
-  | "balance-pay";
-
-export type TransactionType =
-  | "margin"
-  | "commission"
-  | "payout"
-  | "sim-order"
-  | "balance-pay"
-  | "bonus"
-  | "failed-payout";
-
 export interface TransactionItem {
   id: string;
   ref: string;
-  type: TransactionType;
+  category: string;
+  categoryLabel: string;
   title: string;
   subtitle: string;
-  timeAgo: string;
-  date: string;
+  time: string;
+  dateGroup: string;
+  createdAt: string;
   amount: number;
-  amountFormatted?: string;
+  amountFormatted: string;
   isOutflow: boolean;
   status: string;
-  meta?: {
-    simCount?: number;
-    wholesaleRate?: number;
-    networkRate?: string;
-    bankName?: string;
-    accountMask?: string;
-    balanceBefore?: number;
-    balanceAfter?: number;
-    failureReason?: string;
-  };
 }
 
 export interface PayoutRecord {
-  amountFormatted?: string;
   id: string;
+  reference: string;
   date: string;
   amount: number;
-  bank: string;
-  accountMask: string;
+  amountFormatted: string;
+  account: string;
   status: string;
-  timeAgo: string;
-}
-
-export interface WalletBalanceData {
-  totalBalance: number;
-  marginThisMonth: number;
-  networkCommissionThisMonth: number;
-  balanceRemaining: number;
-  bonusPending: number;
-  bonusTargetPct: number;
-  initialInvestment: number;
-  earnedThisMonth: number;
-  totalPaidOut: number;
-  simOrdersPaid: number;
-  balancePaidDown: number;
-  earningsInTotal: number;
-  payoutsOutTotal: number;
-  simOrdersTotal: number;
-  balancePayTotal: number;
-  netWalletPosition: number;
-}
-
-export interface BankAccountDetails {
-  bankName: string;
-  accountNumberMask: string;
-  accountNumberFull?: string;
-  accountName: string;
-  status: "Verified" | "Under Review" | "Action Required";
-}
-
-export interface AccountManagerInfo {
-  name: string;
-  role: string;
-  phone: string;
-  whatsapp: string;
-}
-
-export interface MonthlyEarningsBar {
-  month: string;
-  amount: number;
 }

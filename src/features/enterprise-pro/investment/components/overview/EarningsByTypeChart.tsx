@@ -24,7 +24,7 @@ export const EarningsByTypeChart: React.FC = () => {
             Monthly Earnings by Stream
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Breakdown across activations, continuous data recharges & bonuses
+            Breakdown across activations & continuous data recharges
           </p>
         </div>
       </div>
@@ -75,13 +75,6 @@ export const EarningsByTypeChart: React.FC = () => {
               name="Data Recharges"
               stackId="a"
               fill="#10b981"
-              radius={[0, 0, 0, 0]}
-            />
-            <Bar
-              dataKey="bonusOverrides"
-              name="Bonus Overrides"
-              stackId="a"
-              fill="#f59e0b"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

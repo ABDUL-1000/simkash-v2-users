@@ -1,158 +1,132 @@
+import { useState } from "react";
 import { colors } from "@/constants/colors";
-import type { EnterpriseOverviewData } from "../types/dashboard";
+import type { EnterpriseOverviewData, EpValueCard } from "../types/dashboard";
 
-import { TrendingUp, Users, Landmark, Percent, ArrowUpRight, ChevronRight, Eye } from "lucide-react";
+import { Coins, Package, Smartphone, UserCheck, Users, Eye, EyeOff } from "lucide-react";
 
 interface EpMetricsHeaderProps {
   overview: EnterpriseOverviewData;
-  onOrderMore: () => void;
-  onReinvest: () => void;
-  onPayDown: () => void;
-  onViewRoi: () => void;
+  onOrderStock: () => void;
+  onRequestPayout: () => void;
+  onViewOwnActs: () => void;
+  onViewNetworkActs: () => void;
+  onViewCoordinators: () => void;
+  onViewWallet: () => void;
+  onViewStock: () => void;
 }
+
+const display = (value: number | string) => (typeof value === "number" ? value.toLocaleString() : value);
 
 export function EpMetricsHeader({
   overview,
-  onOrderMore,
-  onReinvest,
-  onPayDown,
-  onViewRoi,
+  onOrderStock,
+  onRequestPayout,
+  onViewOwnActs,
+  onViewNetworkActs,
+  onViewCoordinators,
+  onViewWallet,
+  onViewStock,
 }: EpMetricsHeaderProps) {
   const { top_cards: top, secondary_cards: secondary } = overview;
+  const [profitVisible, setProfitVisible] = useState(true);
+  const profit = top?.my_profit;
+  // Cards render only when the API returns them.
+  const secondaryCards: Array<{ key: string; card?: EpValueCard; icon: typeof Coins; tone: string; value: string; onClick: () => void }> = [
+    { key: "own", card: secondary?.my_own_acts, icon: Smartphone, tone: "bg-blue-50 text-blue-600", value: "", onClick: onViewOwnActs },
+    { key: "network", card: secondary?.sc_network_acts, icon: Users, tone: "bg-emerald-50 text-emerald-600", value: "text-emerald-600", onClick: onViewNetworkActs },
+    { key: "scs", card: secondary?.state_coordinators, icon: UserCheck, tone: "bg-purple-50 text-purple-600", value: "text-purple-600", onClick: onViewCoordinators },
+    { key: "profit", card: secondary?.total_profit, icon: Coins, tone: "bg-amber-50 text-amber-600", value: "text-amber-600", onClick: onViewWallet },
+    { key: "stock", card: secondary?.sims_in_stock, icon: Package, tone: "bg-slate-100 text-slate-700", value: "", onClick: onViewStock },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Top 5 Summary KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* 1. Principal Invested */}
+        {/* 1. My Acts Today */}
         <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <p className="text-[11px] font-semibold text-slate-500">Principal Invested</p>
+          <p className="text-[11px] font-semibold text-slate-500">My Acts Today</p>
           <p className="mt-1 text-2xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
-            {top.principal_invested.amount_formatted}
+            {(top?.my_acts_today?.activations ?? 0).toLocaleString()}
           </p>
-          <p className="text-[10px] text-slate-400 mt-1">{top.principal_invested.sims_formatted}</p>
-          <p className="text-[11px] font-bold text-amber-600 mt-0.5">{top.principal_invested.badge_text}</p>
+          <p className="text-[11px] font-bold text-emerald-600 mt-1">{top?.my_acts_today?.profit_formatted}</p>
+          <p className="text-[10px] mt-0.5" style={{ color: top?.my_acts_today?.comparison?.direction === "down" ? colors.danger : undefined }}>{top?.my_acts_today?.comparison?.text}</p>
         </div>
 
-        {/* 2. Total Earned */}
+        {/* 2. Network Today */}
         <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <p className="text-[11px] font-semibold text-slate-500">Total Earned</p>
+          <p className="text-[11px] font-semibold text-slate-500">Network Today</p>
           <p className="mt-1 text-2xl font-black tracking-tight text-emerald-600">
-            {top.total_earned.amount_formatted}
+            {(top?.network_today?.activations ?? 0).toLocaleString()}
           </p>
-          <p className="text-[10px] text-slate-400 mt-1">Margin + Network Commission</p>
-          <p className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-            <ArrowUpRight className="size-3" style={{ color: top.total_earned.growth.direction === "down" ? colors.danger : colors.success, transform: top.total_earned.growth.direction === "down" ? "rotate(90deg)" : undefined }} /> {top.total_earned.growth.label}
-          </p>
+          <p className="text-[11px] font-bold text-emerald-600 mt-1">{top?.network_today?.profit_formatted}</p>
+          <p className="text-[10px] font-semibold text-slate-500">{top?.network_today?.partner_commission_formatted}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{top?.network_today?.comparison?.text}</p>
         </div>
 
-        {/* 3. My Network */}
+        {/* 3. This Month */}
         <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <p className="text-[11px] font-semibold text-slate-500">My Network</p>
+          <p className="text-[11px] font-semibold text-slate-500">This Month</p>
           <p className="mt-1 text-2xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
-            {top.my_network.network_label}
+            {(top?.this_month?.total_activations ?? 0).toLocaleString()}
           </p>
-          <p className="text-[10px] text-slate-400 mt-1">{top.my_network.activations_formatted}</p>
-          <p className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-            <ArrowUpRight className="size-3" /> {top.my_network.sc_count} State Coordinators
-          </p>
+          <p className="text-[10px] text-slate-400 mt-1">{top?.this_month?.subtitle}</p>
         </div>
 
-        {/* 4. SIM Stock */}
+        {/* 4. My Stock */}
         <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-slate-500">SIM Stock</p>
-            <Eye className="size-3.5 text-slate-400" />
-          </div>
+          <p className="text-[11px] font-semibold text-slate-500">My Stock</p>
           <p className="mt-1 text-2xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
-            {top.sim_stock.total_available_formatted}
+            {(top?.my_stock?.total_available ?? 0).toLocaleString()}
           </p>
-          <p className="text-[10px] text-slate-400 mt-1">{top.sim_stock.subtext}</p>
-          <p className="text-[10px]" style={{ color: colors.textSecondary }}>POS {top.sim_stock.breakdown.pos.toLocaleString()} · CCTV {top.sim_stock.breakdown.cctv.toLocaleString()} · GPS {top.sim_stock.breakdown.gps.toLocaleString()} · Router {top.sim_stock.breakdown.router.toLocaleString()}</p>
+          <p className="text-[10px] text-slate-400 mt-1">{top?.my_stock?.subtext_available}</p>
+          <p className="text-[10px]" style={{ color: colors.textSecondary }}>{top?.my_stock?.subtext_scs}</p>
           <button
-            onClick={onOrderMore}
+            type="button"
+            onClick={onOrderStock}
             className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 mt-0.5"
           >
-            Order More →
+            Order Stock →
           </button>
         </div>
 
-        {/* 5. Wallet Balance */}
+        {/* 5. My Profit */}
         <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <p className="text-[11px] font-semibold text-slate-500">Wallet Balance</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold text-slate-500">My Profit</p>
+            <button type="button" aria-label={profitVisible ? "Hide profit" : "Show profit"} onClick={() => setProfitVisible(!profitVisible)} className="text-slate-400 hover:text-slate-600">
+              {profitVisible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+            </button>
+          </div>
           <p className="mt-1 text-2xl font-black tracking-tight" style={{ color: colors.textPrimary }}>
-            {top.wallet_balance.amount_formatted}
+            {profitVisible ? profit?.amount_formatted ?? "—" : "₦••••••"}
           </p>
-          <p className="text-[10px] text-slate-400 mt-1">{top.wallet_balance.subtext}</p>
+          <p className="text-[10px] text-slate-400 mt-1">{profit?.period_text}</p>
           <button
-            onClick={onReinvest}
-            className="mt-1.5 rounded-lg bg-blue-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-xs hover:bg-blue-700 transition"
+            type="button"
+            onClick={onRequestPayout}
+            disabled={!profit?.can_request_payout || (profit?.amount ?? 0) <= 0}
+            className="mt-1.5 rounded-lg bg-blue-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-xs hover:bg-blue-700 transition disabled:opacity-50"
           >
-            Reinvest
+            Request Payout
           </button>
         </div>
       </div>
 
-      {/* Secondary 4 KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Margin Earnings */}
-        <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <div className="flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <Percent className="size-4" />
-          </div>
-          <p className="mt-3 text-xl font-black" style={{ color: colors.textPrimary }}>
-            {secondary.margin_earnings.amount_formatted}
-          </p>
-          <p className="text-xs font-bold text-slate-700 mt-0.5">Margin Earnings</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{secondary.margin_earnings.badge}</p>
-        </div>
-
-        {/* Network Commission */}
-        <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <Users className="size-4" />
-          </div>
-          <p className="mt-3 text-xl font-black text-emerald-600">
-            {secondary.network_commission.amount_formatted}
-          </p>
-          <p className="text-xs font-bold text-slate-700 mt-0.5">Network Commission</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{secondary.network_commission.badge}</p>
-        </div>
-
-        {/* Balance Remaining */}
-        <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <div className="flex size-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-            <Landmark className="size-4" />
-          </div>
-          <p className="mt-3 text-xl font-black text-amber-600">
-            {secondary.balance_remaining.amount_formatted}
-          </p>
-          <p className="text-xs font-bold text-slate-700 mt-0.5">Balance Remaining</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{secondary.balance_remaining.badge}</p>
-          <button
-            onClick={onPayDown}
-            className="mt-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-0.5"
-          >
-            Pay Down <ChevronRight className="size-3" />
+      {/* Secondary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {secondaryCards.map(({ key, card, icon: Icon, tone, value, onClick }) => card && (
+          <button type="button" key={key} onClick={onClick} className="rounded-2xl border p-4 bg-white shadow-2xs text-left transition hover:shadow-md" style={{ borderColor: colors.border }}>
+            <div className={`flex size-8 items-center justify-center rounded-xl ${tone}`}>
+              <Icon className="size-4" />
+            </div>
+            <p className={`mt-3 text-xl font-black ${value}`} style={value ? undefined : { color: colors.textPrimary }}>
+              {display(card.value ?? 0)}
+            </p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">{card.label}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">{card.subtext}</p>
           </button>
-        </div>
-
-        {/* ROI This Month */}
-        <div className="rounded-2xl border p-4 bg-white shadow-2xs" style={{ borderColor: colors.border }}>
-          <div className="flex size-8 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-            <TrendingUp className="size-4" />
-          </div>
-          <p className="mt-3 text-xl font-black text-purple-600">
-            {secondary.roi_this_month.percentage_formatted}
-          </p>
-          <p className="text-xs font-bold text-slate-700 mt-0.5">ROI This Month</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{secondary.roi_this_month.badge}</p>
-          <button
-            onClick={onViewRoi}
-            className="mt-1 text-[11px] font-bold text-purple-600 hover:text-purple-700 flex items-center gap-0.5"
-          >
-            View Full Analysis <ChevronRight className="size-3" />
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );

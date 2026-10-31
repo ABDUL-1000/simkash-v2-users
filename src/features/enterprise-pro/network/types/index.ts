@@ -1,4 +1,3 @@
-import type { EnterpriseCoordinatorItem } from './api';
 export type ScStatus = "active" | "suspended" | "new";
 
 export interface StateCoordinatorNetwork {
@@ -6,63 +5,19 @@ export interface StateCoordinatorNetwork {
   name: string;
   initials: string;
   phone: string;
-  email: string;
   state: string;
-  zone: string;
+  joinedDate: string;
+  lastActive: string;
   apsCount: number;
   activationsThisMonth: number;
-  retailPerSim: number;
-  marginPerSim: number;
-  totalMargin: number;
-  commissionRate: number; // e.g. 8% -> 0.08
-  commissionEarned: number;
-  totalEarnings: number;
-  simStock: number;
+  stockCount: number;
+  stockLabel: string;
+  stockStatus: string;
   status: ScStatus;
-  suspendedDate?: string;
-  suspensionReason?: string;
-  targetActivations?: number;
-  activeApCount?: number;
-  api?: EnterpriseCoordinatorItem;
-}
-
-export type ApStatus = "active" | "low_stock" | "out_of_stock" | "suspended";
-
-export interface AgencyPartnerNetwork {
-  id: string;
-  name: string;
-  state: string;
-  scId: string;
-  scName: string;
-  simsSold: number;
-  activations: number;
-  commission: number;
-  status: ApStatus;
-  phone?: string;
-  commissionFormatted?: string;
-}
-
-export interface NetworkSummaryKPIs {
-  totalScs: number;
-  activeScs: number;
-  suspendedScs: number;
-  newScs: number;
-  lowStockScs: number;
-  totalAps: number;
-  activationsThisMonth: number;
-  marginThisMonth: number;
-  networkCommission: number;
-}
-
-export interface OnboardScFormData {
-  fullName: string;
-  phone: string;
-  email: string;
-  state: string;
-  lga: string;
-  commissionRate: number;
-  posSims: number;
-  cctvSims: number;
-  gpsSims: number;
-  routerSims: number;
+  statusLabel: string;
+  atRisk: boolean;
+  target?: { current: number; target: number; percentage: number; text: string };
+  canRemind: boolean;
+  canDistribute: boolean;
+  canSuspend: boolean;
 }
