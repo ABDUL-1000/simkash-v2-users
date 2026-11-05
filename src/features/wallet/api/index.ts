@@ -4,3 +4,4 @@ export * from "./useGetWalletSummary";
 export * from "./useGetWalletTransactions";
 export * from "./useGetTransactionDetail";
 export * from "./useDepositWallet";
+export * from "./useGetVirtualAccounts";

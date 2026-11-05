@@ -2,6 +2,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Layers } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
+import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 import { appPaths } from "@/app/router/paths";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { useEnterpriseBasicState } from "../hooks/useEnterpriseBasicState";
@@ -48,6 +50,7 @@ export const EnterpriseBasicDashboardPage: React.FC = () => {
         title={`Welcome back, ${displayName}`}
         description="Monitor your inventory, customer activations, and earnings."
         actions={[
+          { key: "topup", render: () => <AgentTopUpButton /> },
           {
             key: "notifications",
             label: "Notifications",
@@ -69,6 +72,8 @@ export const EnterpriseBasicDashboardPage: React.FC = () => {
           },
         ]}
       />
+
+      <AgentVirtualAccountsCard />
 
       {/* Financed Top Instalment Alert Banner */}
       {!isUpfront && (

@@ -8,6 +8,14 @@ export interface VirtualAccount {
   provider: string;
 }
 
+/** One row of GET /user/wallet/virtual-account. */
+export interface FundingVirtualAccount extends VirtualAccount {
+  id: number;
+  account_type?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface WalletData {
   id: number;
   user_id: number;

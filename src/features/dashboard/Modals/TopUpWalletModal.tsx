@@ -4,16 +4,21 @@ import { AppModal } from "@/components/common/AppModal";
 import { openNotification } from "@/utils/notifications";
 import { useDepositWallet } from "@/features/wallet/api/useDepositWallet";
 import { useGetWallet } from "@/features/wallet/api/useGetWallet";
+import { VirtualAccountsList } from "@/features/wallet/components/VirtualAccountsList";
 
 interface TopUpWalletModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentBalance?: number;
+  /** Agents: also list their funding accounts from GET /user/wallet/virtual-account. */
+  showVirtualAccounts?: boolean;
+  /** Where OPay returns after checkout; defaults to the user dashboard. */
+  returnPath?: string;
 }
 
 const PRESET_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000];
 
-export function TopUpWalletModal({ open, onOpenChange, currentBalance }: TopUpWalletModalProps) {
+export function TopUpWalletModal({ open, onOpenChange, currentBalance, showVirtualAccounts = false, returnPath = "/dashboard" }: TopUpWalletModalProps) {
   const { wallet } = useGetWallet();
   const [amount, setAmount] = useState("5000");
   const [selectedPreset, setSelectedPreset] = useState<number | null>(5000);
@@ -33,7 +38,7 @@ export function TopUpWalletModal({ open, onOpenChange, currentBalance }: TopUpWa
     }
 
     depositMutation.mutate(
-      { amount: parsedAmount, returnUrl: `${window.location.origin}/dashboard` },
+      { amount: parsedAmount, returnUrl: `${window.location.origin}${returnPath}` },
       {
         onSuccess: (response) => {
           const cashierUrl = response.data?.cashierUrl;
@@ -55,6 +60,12 @@ export function TopUpWalletModal({ open, onOpenChange, currentBalance }: TopUpWa
           <span className="flex items-center gap-1.5 font-bold text-[#2563EB]"><Wallet className="size-4" /> Current Balance</span>
           <span className="font-extrabold text-[#0F152A]">₦{balance.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
+
+        {showVirtualAccounts && open && <div className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">Fund by Bank Transfer</p>
+          <VirtualAccountsList />
+          <div className="flex items-center gap-3 pt-1 text-[10px] font-bold uppercase tracking-wider text-[#8C909B]"><span className="h-px flex-1 bg-[#E2ECF6]" />Or pay with OPay checkout<span className="h-px flex-1 bg-[#E2ECF6]" /></div>
+        </div>}
 
         <div className="space-y-2">
           <label htmlFor="wallet-topup-amount" className="text-[11px] font-bold uppercase tracking-wider text-[#8C909B]">Enter Amount</label>

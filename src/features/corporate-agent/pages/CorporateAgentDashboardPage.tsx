@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
+import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 import { AppModal } from "@/components/common/AppModal";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { APP_COLORS } from "@/constants/colors";
@@ -35,11 +37,13 @@ export default function CorporateAgentDashboardPage() {
   const goPartners = () => navigate(appPaths.agencyPartner);
   return <div className="min-h-screen pb-16 pt-4 px-4 sm:px-6 lg:px-8 space-y-6" style={{ backgroundColor: APP_COLORS.backgrounds.base }}>
     <PageHeader title="Corporate Agent Dashboard" description="Corporate activations, network oversight, and SIM distribution" actions={[
+      { key: "topup", render: () => <AgentTopUpButton /> },
       { key: "onboard", label: "Onboard AP", onClick: goOnboard },
       { key: "distribute", label: "Distribute Stock", variant: "secondary", onClick: goDistribute },
       { key: "request", label: "Request Stock from Admin", variant: "outline", onClick: goRequestStock },
       { key: "payout", label: "Request Payout", variant: "outline", disabled: !canPayout, onClick: goPayout },
     ]} />
+    <AgentVirtualAccountsCard />
     {/* Mock company/region and notification dot remain commented: the dashboard contract does not provide identity/notifications. */}
     <CaQueryState loading={overview.isLoading} error={overview.error} empty={!data} retry={() => void overview.refetch()}>{data && <>
       <CaHeaderTopKpiRow kpis={data.top_cards} onRequestPayout={goPayout} />

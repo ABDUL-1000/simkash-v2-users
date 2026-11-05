@@ -5,7 +5,6 @@ import { WalletHeroCard } from "../components/WalletHeroCard";
 import { DeviceSimsSection } from "../components/DeviceSimsSection";
 import { QuickServicesSection } from "../components/QuickServicesSection";
 import { RecentTransactionsSection } from "../components/RecentTransactionsSection";
-import { ZeroLimitSimSection } from "../components/ZeroLimitSimSection";
 import { TopUpWalletModal } from "../Modals/TopUpWalletModal";
 import { MoreServicesModal } from "../Modals/MoreServicesModal";
 import { BuyAirtimeModal } from "@/features/bill-payments/Modals/BuyAirtimeModal";
@@ -52,9 +51,7 @@ export default function DashboardPage() {
       <WalletHeroCard
         onTopUpClick={() => setTopUpModalOpen(true)}
         onMoreClick={() => setMoreServicesModalOpen(true)}
-        onAirtimeClick={() => setActiveBillModal("airtime")}
-        onSendClick={() => navigate("/transactions")}
-        onWithdrawClick={() => navigate("/wallet-payouts")}
+        onServiceClick={openService}
       />
       <VirtualAccountCard />
 
@@ -73,7 +70,7 @@ export default function DashboardPage() {
       <RecentTransactionsSection />
 
       {/* ZeroLimit SIM Banner */}
-      <ZeroLimitSimSection />
+      {/* <ZeroLimitSimSection /> */}
 
       {/* Dashboard Management Modals */}
       <TopUpWalletModal

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Layers, PlusCircle, Send, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
+import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { appPaths } from "@/app/router/paths";
 import { colors } from "@/constants/colors";
@@ -44,10 +46,13 @@ export function EnterpriseProDashboardPage() {
         title={`Welcome back, ${displayName}`}
         description="Manage your SIM inventory, pricing margins, and State Coordinator network"
         actions={[
+          { key: "topup", render: () => <AgentTopUpButton /> },
           { key: "order", label: "Order Stock", variant: "outline", onClick: goOrderStock },
           { key: "distribute", label: "Distribute to SCs", onClick: goDistribute },
         ]}
       />
+
+      <AgentVirtualAccountsCard />
 
       {/* KPI Metrics Strip */}
       <EpMetricsHeader

@@ -1,25 +1,23 @@
 import { useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff, LayoutGrid, PhoneCall, Plus } from "lucide-react";
+import { Eye, EyeOff, LayoutGrid, Plus } from "lucide-react";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
+import { CARD_SERVICES } from "../moreServices";
 
 interface WalletHeroCardProps {
   onTopUpClick: () => void;
   onMoreClick: () => void;
-  onSendClick?: () => void;
-  onWithdrawClick?: () => void;
-  onAirtimeClick?: () => void;
+  /** The first few services sit on the card (Send and Withdraw were removed); the rest are in More. */
+  onServiceClick: (serviceId: string) => void;
 }
 
 export function WalletHeroCard({
   onTopUpClick,
   onMoreClick,
-  onSendClick,
-  onWithdrawClick,
-  onAirtimeClick,
+  onServiceClick,
 }: WalletHeroCardProps) {
   const { wallet } = useGetAuthUser();
   const [showWalletBalance, setShowWalletBalance] = useState(true);
-  const [showPayLaterCredit, setShowPayLaterCredit] = useState(true);
+  // const [showPayLaterCredit, setShowPayLaterCredit] = useState(true);
 
   const balance = wallet?.balance ?? 50000;
   const formattedBalance = `₦${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -46,8 +44,8 @@ export function WalletHeroCard({
             </div>
           </div>
 
-          {/* Actions Row */}
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          {/* Actions Row: Top Up, the first services, More */}
+          <div className="flex flex-wrap items-start gap-4 sm:gap-6">
             <button
               type="button"
               onClick={onTopUpClick}
@@ -59,38 +57,19 @@ export function WalletHeroCard({
               <span className="text-xs font-medium text-[#0F152A]">Top Up</span>
             </button>
 
-            <button
-              type="button"
-              onClick={onSendClick}
-              className="group flex flex-col items-center gap-1.5"
-            >
-              <div className="flex size-11 items-center justify-center rounded-xl bg-[#EFF4F8] text-[#2450F6] transition group-hover:bg-[#2450F6] group-hover:text-white">
-                <ArrowUpRight className="size-5" />
-              </div>
-              <span className="text-xs font-medium text-[#0F152A]">Send</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onWithdrawClick}
-              className="group flex flex-col items-center gap-1.5"
-            >
-              <div className="flex size-11 items-center justify-center rounded-xl bg-[#EBFFF8] text-[#10B981] transition group-hover:bg-[#10B981] group-hover:text-white">
-                <ArrowDownLeft className="size-5" />
-              </div>
-              <span className="text-xs font-medium text-[#0F152A]">Withdraw</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onAirtimeClick}
-              className="group flex flex-col items-center gap-1.5"
-            >
-              <div className="flex size-11 items-center justify-center rounded-xl bg-[#FFF7F8] text-[#EF4444] transition group-hover:bg-[#EF4444] group-hover:text-white">
-                <PhoneCall className="size-5" />
-              </div>
-              <span className="text-xs font-medium text-[#0F152A]">Airtime</span>
-            </button>
+            {CARD_SERVICES.map((service) => (
+              <button
+                key={service.id}
+                type="button"
+                onClick={() => onServiceClick(service.id)}
+                className="group flex flex-col items-center gap-1.5"
+              >
+                <div className={`flex size-11 items-center justify-center rounded-xl text-xl transition group-hover:scale-105 ${service.bg}`}>
+                  {service.icon}
+                </div>
+                <span className="text-xs font-medium text-[#0F152A]">{service.title}</span>
+              </button>
+            ))}
 
             <button
               type="button"
@@ -106,7 +85,7 @@ export function WalletHeroCard({
         </div>
 
         {/* Right Side: PayLater Credit */}
-        <div className="space-y-4 md:pl-6">
+        {/* <div className="space-y-4 md:pl-6">
           <div>
             <span className="text-xs font-medium text-[#8C909B]">PayLater Credit</span>
             <div className="mt-1 flex items-center gap-2">
@@ -123,8 +102,9 @@ export function WalletHeroCard({
               </button>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
+
     </div>
   );
 }

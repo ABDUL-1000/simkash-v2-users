@@ -4,6 +4,8 @@ import { TransactionSuccessModal } from "@/components/common/TransactionSuccessM
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import type { CommissionRole, WithdrawCommissionResult } from "../api";
 import { WithdrawCommissionModal } from "./WithdrawCommissionModal";
+import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
+import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 
 const naira = (value: number) => `₦${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -40,8 +42,11 @@ export function WalletBalanceCards({ role, show = "both" }: WalletBalanceCardsPr
         <h2 className="text-2xl font-black text-[#0F152A] sm:text-3xl">{value(balance)}</h2>
         {show === "balance" ? <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
           <p className="text-[11px] font-medium text-[#8C909B]">Commission available: <strong className="text-[#10B981]">{value(commission)}</strong></p>
-          {moveButton}
-        </div> : <p className="text-[11px] font-medium text-[#8C909B]">Available for bills, airtime and purchases</p>}
+          <div className="flex flex-wrap items-center gap-2"><AgentTopUpButton compact currentBalance={balance} />{moveButton}</div>
+        </div> : <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+          <p className="text-[11px] font-medium text-[#8C909B]">Available for bills, airtime and purchases</p>
+          <AgentTopUpButton compact currentBalance={balance} />
+        </div>}
       </div>
 
       {/* Commission balance */}
@@ -54,6 +59,7 @@ export function WalletBalanceCards({ role, show = "both" }: WalletBalanceCardsPr
         </div>
       </div>}
     </div>
+    {show === "both" && <AgentVirtualAccountsCard />}
 
     <WithdrawCommissionModal open={withdrawOpen} onOpenChange={setWithdrawOpen} role={role} commissionBalance={commission} walletBalance={balance} onSuccess={setResult} />
     <TransactionSuccessModal

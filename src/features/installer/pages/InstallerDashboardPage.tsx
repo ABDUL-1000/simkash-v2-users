@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Wallet, Bell } from "lucide-react";
 import { message } from "antd";
 import { PageHeader } from "@/components/common/PageHeader";
+import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
+import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 import { APP_COLORS } from "@/constants/colors";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import type { InstallerJob, InstallerCompletedJob } from "../types";
@@ -65,6 +67,7 @@ export default function InstallerDashboardPage() {
         title={`Welcome back, ${displayName}`}
         description="Track your assigned CCTV & Solar installations, payouts, and customer reviews"
         actions={[
+          { key: "topup", render: () => <AgentTopUpButton /> },
           {
             key: "notifications",
             label: "Notifications",
@@ -86,6 +89,8 @@ export default function InstallerDashboardPage() {
           },
         ]}
       />
+
+      <AgentVirtualAccountsCard />
 
       {/* Top KPI Metric Strip */}
       <InstallerStatsHeader onRequestPayout={() => openModal("requestPayoutOpen")} />
