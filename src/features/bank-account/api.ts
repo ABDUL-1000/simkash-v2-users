@@ -4,17 +4,32 @@ import { useAuthStore } from "@/store/authStore";
 import type { ApiResponse } from "@/features/auth/types/api";
 import type { Bank, VerifiedBankAccount, VerifyBankAccountPayload } from "./types";
 
+/** A bank row as the API may send it: `{ bankCode, bankName }` (current) or `{ code, name }` (older). */
+type RawBank = { bankCode?: string; bankName?: string; code?: string; name?: string };
+
 // Shared OPay bank endpoints, used by every dashboard that sets up a payout account.
 export const getBanksApi = async (countryCode = "NG"): Promise<Bank[]> => {
-  const { data } = await authedHttpClient.get<ApiResponse<Bank[]>>("/user/payment/banks", { params: { countryCode } });
+  const { data } = await authedHttpClient.get<ApiResponse<RawBank[] | { bankList?: RawBank[] }>>("/user/payment/banks", { params: { countryCode } });
   if (!data.success) throw new Error(data.message);
-  return data.data ?? [];
+  // The list now comes wrapped as data.bankList; accept a bare array too.
+  const rows = Array.isArray(data.data) ? data.data : data.data?.bankList ?? [];
+  return rows
+    .map((bank) => ({ code: String(bank.bankCode ?? bank.code ?? ""), name: String(bank.bankName ?? bank.name ?? "") }))
+    .filter((bank) => bank.code && bank.name);
 };
 
 export const verifyBankAccountApi = async (payload: VerifyBankAccountPayload): Promise<VerifiedBankAccount> => {
-  const { data } = await authedHttpClient.post<ApiResponse<VerifiedBankAccount>>("/user/payment/verify-account", payload);
+  const { data } = await authedHttpClient.post<ApiResponse<Partial<VerifiedBankAccount> & { accountName?: string; accountNumber?: string; bankCode?: string }>>("/user/payment/verify-account", payload);
   if (!data.success) throw new Error(data.message);
-  return data.data;
+  // Accept snake_case or camelCase, and fall back to what was submitted.
+  const result = data.data ?? {};
+  const account_name = result.account_name ?? result.accountName ?? "";
+  if (!account_name) throw new Error(data.message || "Could not resolve the account name");
+  return {
+    account_name,
+    account_number: result.account_number ?? result.accountNumber ?? payload.account_number,
+    bank_code: result.bank_code ?? result.bankCode ?? payload.bank_code,
+  };
 };
 
 /** Supported banks, sorted by name. Cached for the session — the list rarely changes. */
