@@ -87,7 +87,7 @@ export const EpWalletBalanceHero: React.FC<EpWalletBalanceHeroProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100">
         <button
           type="button"
-          disabled={actions?.can_request_payout === false || noProfit}
+          disabled={!balance.wallet_balance}
           onClick={onRequestPayout}
           className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-100/70 hover:bg-amber-100 text-amber-900 text-xs font-bold transition disabled:opacity-50"
         >

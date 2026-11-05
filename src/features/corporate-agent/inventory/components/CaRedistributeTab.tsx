@@ -8,6 +8,8 @@ import { CaConfirmRedistributionModal as ConfirmRedistributionModal } from "../M
 import type { CaRedistType as RedistType, CaRedistributableSim as RedistributableSim, CaRedistributionResult as RedistributionResult } from "../types/inventory";
 import { CA_REDIST_TYPES as REDIST_TYPES, CA_REDIST_LABELS as REDIST_TYPE_LABELS, emptyCaRedist as emptyRedistSelection } from "../types/adapters";
 import { CaRedistributableTable as ScRedistributableTable } from "./CaRedistributableTable";
+import { simTagProps, useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
+import { simFilterOption, simOptions } from "@/utils/simSearch";
 
 const TYPE_ICON_BG: Record<RedistType, string> = { pos: "bg-[#EFF4F8] text-[#2563EB]", cctv: "bg-[#EBFFF8] text-[#10B981]", gps: "bg-purple-50 text-purple-600", router: "bg-amber-50 text-amber-600", cctv_device: "bg-[#F1F5F9] text-[#0F152A]" };
 
@@ -211,10 +213,13 @@ export function CaRedistributeTab({ initialFromId, onRedistributed }: CaRedistri
 function RedistTypeRow({ type, partnerId, available, value, onChange }: {
   type: RedistType; partnerId: number; available: number; value: string[]; onChange: (sims: string[]) => void;
 }) {
-  const [search, setSearch] = useState("");
-  const { data, isFetching } = useGetScRedistributableSims({ type, partnerId, search: search || undefined, page: 1, limit: 100 });
-  const options = (data?.sims ?? []).map((sim) => ({ value: sim.sim_number, label: `${sim.sim_number} · ${sim.network}` }));
-  const nextFree = options.find((option) => !value.includes(option.value))?.value;
+  const pool = useSimSearchState();
+  const base = useGetScRedistributableSims({ type, partnerId, search: undefined, page: 1, limit: pool.limit });
+  const found = useGetScRedistributableSims({ type, partnerId, search: pool.debouncedSearch || undefined, page: 1, limit: 100 });
+  const isFetching = base.isFetching || found.isFetching;
+  const options = simOptions(base.data?.sims, found.data?.sims);
+  const quantity = useSimQuantity({ options, value, onChange, available, grow: pool.grow });
+  const hasMore = (base.data?.sims?.length ?? 0) < available;
 
   return (
     <div className="p-4 space-y-2">
@@ -227,9 +232,9 @@ function RedistTypeRow({ type, partnerId, available, value, onChange }: {
           <p className="text-[11px] font-medium pt-0.5 text-[#66738C]">{available} unactivated with this AP</p>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" disabled={value.length === 0} onClick={() => onChange(value.slice(0, -1))} className="flex size-8 items-center justify-center rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-40">-</button>
-          <span className="w-8 text-center text-base font-black text-[#0F152A]">{value.length}</span>
-          <button type="button" disabled={!nextFree} onClick={() => nextFree && onChange([...value, nextFree])} className="flex size-8 items-center justify-center rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-40">+</button>
+          <button type="button" disabled={value.length === 0} onClick={quantity.remove} className="flex size-8 items-center justify-center rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-40">-</button>
+          <input aria-label="Quantity" inputMode="numeric" value={value.length} onFocus={(e) => e.target.select()} onChange={(e) => quantity.setCount(Number(e.target.value.replace(/\D/g, "")))} className="w-12 text-base font-black text-[#0F152A] bg-transparent text-center outline-none focus:ring-2 focus:ring-blue-100 rounded-lg" />
+          <button type="button" disabled={!quantity.canAdd} onClick={quantity.add} className="flex size-8 items-center justify-center rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-40">+</button>
         </div>
       </div>
       <Select
@@ -238,12 +243,11 @@ function RedistTypeRow({ type, partnerId, available, value, onChange }: {
         placeholder={`Pick ${REDIST_TYPE_LABELS[type]} numbers`}
         value={value}
         onChange={onChange}
-        filterOption={false}
-        onSearch={setSearch}
-        onBlur={() => setSearch("")}
+        filterOption={simFilterOption}
+        {...pool.selectProps(hasMore)}
         loading={isFetching}
         options={options}
-        maxTagCount="responsive"
+        {...simTagProps}
         notFoundContent={isFetching ? "Loading SIMs…" : "No matching SIMs"}
       />
     </div>

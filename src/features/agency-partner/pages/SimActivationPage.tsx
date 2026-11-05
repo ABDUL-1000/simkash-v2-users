@@ -17,6 +17,7 @@ import {
 import { appPaths } from "@/app/router/paths";
 import { AgentStatCard } from "@/components/common/AgentStatCard";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { SimNumberSelect } from "@/components/common/SimNumberSelect";
 import { ActionSuccessModal, type DetailItem } from "@/features/state-coordinator/modals/ActionSuccessModal";
 import { PreviewActivationModal, type ActivationPreviewData } from "../../dashboard/Modals/PreviewActivationModal";
 import { ActivationDetailsModal, type ActivationRecord } from "../../dashboard/Modals/ActivationDetailsModal";
@@ -448,17 +449,13 @@ export function SimActivationPage() {
                   SIM NUMBER
                 </label>
                 <div className="relative">
-                  <select
-                    required
+                  <SimNumberSelect
                     value={simNumber}
-                    onChange={(e) => { setSimNumber(e.target.value); resetCustomer(); }}
+                    sims={networkSims}
+                    loading={typeSimsQuery.isLoading}
                     disabled={typeSimsQuery.isLoading || networkSims.length === 0}
-                    className={`w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 font-mono text-xs font-black text-[#0F152A] focus:outline-hidden disabled:opacity-60 ${selectedSim ? "border-[#10B981]" : "border-[#E2ECF6]"}`}
-                  >
-                    <option value="">{networkSims.length ? "Select an available SIM" : "No SIMs available"}</option>
-                    {networkSims.map(sim => <option key={sim.id} value={sim.sim_number}>{sim.sim_number} · {sim.network}</option>)}
-                  </select>
-                  {selectedSim && <Check className="pointer-events-none absolute right-3.5 top-3 size-4 text-[#10B981] stroke-[3]" />}
+                    onChange={(next) => { setSimNumber(next); resetCustomer(); }}
+                  />
                 </div>
                 {selectedSim && (
                   <span className="text-[10px] font-bold text-[#10B981]">

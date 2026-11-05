@@ -5,7 +5,7 @@ import { openNotification } from "@/utils/notifications";
 import type { ApiResponse } from "@/features/auth/types/api";
 import { QUERY_KEY_AUTH_USER } from "@/features/auth/api/useGetAuthUser";
 import type {
-  CaPayoutAccountData, CaPayoutAccountPayload, CaPayoutResult, CaPayoutsData, CaPinAmountPayload, CaTransactionParams,
+  CaPayoutAccountData, CaPayoutAccountPayload, CaPayoutsData, CaPinAmountPayload, CaTransactionParams,
   CaTransactionsData, CaWalletOverview, CaWithdrawProfitResult,
 } from "./types";
 
@@ -60,8 +60,6 @@ export const useGetCaPayoutAccount = (enabled = true) => useWalletQuery<CaPayout
 
 /** POST /wallet/payout-account */
 export const useSaveCaPayoutAccount = (options?: Options<CaPayoutAccountPayload, unknown>) => useWalletMutation<CaPayoutAccountPayload, unknown>("/payout-account", options);
-/** POST /wallet/request-payout { amount, pin } */
-export const useCaRequestPayout = (options?: Options<CaPinAmountPayload, CaPayoutResult>) => useWalletMutation<CaPinAmountPayload, CaPayoutResult>("/request-payout", options);
 /** POST /wallet/withdraw-profit { amount, pin } — moves profit into the main wallet. */
 export const useCaWithdrawProfit = (options?: Options<CaPinAmountPayload, CaWithdrawProfitResult>) => useWalletMutation<CaPinAmountPayload, CaWithdrawProfitResult>("/withdraw-profit", options);
 

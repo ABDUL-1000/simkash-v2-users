@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, Search, ShieldCheck } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { SimNumberSelect } from "@/components/common/SimNumberSelect";
 import { useGetUnactivatedSims, useVerifyCustomerForSim } from "../api";
 
 /** A selected SIM + verified customer, handed to the confirm step. */
@@ -101,15 +102,14 @@ export function QuickActivateSimModal({
           <label className="text-xs font-extrabold text-[#0F152A]">
             SIM Number
           </label>
-          <select
+          <SimNumberSelect
             value={simNumber}
+            sims={sims}
+            loading={loadingSims}
             disabled={loadingSims}
-            onChange={(e) => { setSimNumber(e.target.value); verify.reset(); }}
-            className="w-full rounded-2xl border border-[#E2ECF6] bg-white p-3.5 text-xs text-[#0F152A] outline-none focus:border-[#2563EB] font-mono disabled:opacity-60"
-          >
-            <option value="">{loadingSims ? "Loading your stock…" : sims.length ? "Select an available SIM" : "No SIMs of this type in stock"}</option>
-            {sims.map(sim => <option key={sim.id} value={sim.sim_number}>{sim.sim_number} · {sim.network}</option>)}
-          </select>
+            emptyText="No SIMs of this type in stock"
+            onChange={(next) => { setSimNumber(next); verify.reset(); }}
+          />
           {selectedSim && <p className="text-[10px] text-[#8C909B]">Network: <strong className="text-[#0F152A]">{selectedSim.network}</strong> · Commission ₦{selectedSim.partner_commission.toLocaleString()}</p>}
         </div>
 

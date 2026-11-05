@@ -32,10 +32,6 @@ export const useSetPartnerPayoutAccount = () => {
   const client = useQueryClient();
   return useMutation({ mutationFn: async (payload: Record<string, unknown>) => (await authedHttpClient.post("/partner/wallet/payout-account", payload)).data, onSuccess: () => { void client.invalidateQueries({ queryKey: ["partner-payout-account"] }); openNotification({ state: "success", title: "Payout Account Saved" }); }, onError: notifyError });
 };
-export const useRequestPartnerPayout = () => {
-  const client = useQueryClient();
-  return useMutation({ mutationFn: async (payload: Record<string, unknown>) => (await authedHttpClient.post("/partner/wallet/request-payout", payload)).data, onSuccess: () => { void client.invalidateQueries({ queryKey: ["partner-wallet-overview"] }); void client.invalidateQueries({ queryKey: ["partner-wallet-transactions"] }); void client.invalidateQueries({ queryKey: ["ap-dashboard-summary"] }); void client.invalidateQueries({ queryKey: ["ap-commission-month"] }); openNotification({ state: "success", title: "Payout Requested" }); }, onError: notifyError });
-};
 export const useRetryTransaction = () => {
   const client = useQueryClient();
   return useMutation({ mutationFn: async (id: string) => (await authedHttpClient.post(`/partner/wallet/transactions/${id}/retry`)).data, onSuccess: () => { void client.invalidateQueries({ queryKey: ["partner-wallet-transactions"] }); void client.invalidateQueries({ queryKey: ["partner-wallet-overview"] }); openNotification({ state: "success", title: "Transaction Retry Started" }); }, onError: notifyError });

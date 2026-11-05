@@ -1,1 +1,0 @@
-export { useRequestRmPayout } from "./wallet";

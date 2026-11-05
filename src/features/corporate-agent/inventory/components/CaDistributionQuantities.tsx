@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Select } from "antd";
 import { Minus, Plus, CreditCard, Video, MapPin, Wifi } from "lucide-react";
 import { APP_COLORS } from "@/constants/colors";
 import { useGetCaUndistributedSims } from "../api/useCaInventory";
 import type { CaSimSelection, CaSimType, CaStockSummary } from "../types/inventory";
 import { CA_SIM_LABELS, CA_SIM_TYPES } from "../types/adapters";
+import { simTagProps, useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
+import { simFilterOption, simOptions } from "@/utils/simSearch";
 
 const TYPE_STYLE: Record<CaSimType, { icon: ReactNode; bg: string }> = {
   pos: { icon: <CreditCard className="w-4 h-4" />, bg: "bg-blue-50 text-blue-600" },
@@ -28,14 +30,13 @@ export function CaDistributionQuantities({ selectedType, sims, onChange, stock }
 }
 
 function SimTypeRow({ type, available, autoFocus, value, onChange }: { type: CaSimType; available: number; autoFocus: boolean; value: string[]; onChange: (sims: string[]) => void }) {
-  const [search, setSearch] = useState("");
-  const query = useGetCaUndistributedSims({ type, search: search || undefined, page: 1, limit: 100 }, available > 0 || value.length > 0);
-  const options = (query.data?.sims ?? []).map(sim => ({ value: sim.sim_number, label: `${sim.sim_number} · ${sim.network}` }));
-  const free = options.filter(option => !value.includes(option.value)).map(option => option.value);
-  const resize = (count: number) => {
-    const target = Math.max(0, Math.min(count, value.length + free.length));
-    onChange(target <= value.length ? value.slice(0, target) : [...value, ...free.slice(0, target - value.length)]);
-  };
+  const pool = useSimSearchState();
+  const base = useGetCaUndistributedSims({ type, search: undefined, page: 1, limit: pool.limit }, available > 0 || value.length > 0);
+  const found = useGetCaUndistributedSims({ type, search: pool.debouncedSearch || undefined, page: 1, limit: 100 }, available > 0 || value.length > 0);
+  const isFetching = base.isFetching || found.isFetching;
+  const options = simOptions(base.data?.sims, found.data?.sims);
+  const quantity = useSimQuantity({ options, value, onChange, available, grow: pool.grow });
+  const hasMore = (base.data?.sims?.length ?? 0) < available;
   return (
     <div className="p-3 rounded-2xl border bg-white space-y-2" style={{ borderColor: APP_COLORS.greys.stroke }}>
       <div className="flex items-center justify-between">
@@ -47,11 +48,11 @@ function SimTypeRow({ type, available, autoFocus, value, onChange }: { type: CaS
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" disabled={!value.length} onClick={() => resize(value.length - 1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40">
+          <button type="button" disabled={!value.length} onClick={quantity.remove} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40">
             <Minus className="w-3.5 h-3.5" />
           </button>
-          <input autoFocus={autoFocus} aria-label={`${CA_SIM_LABELS[type]} quantity`} type="number" min={0} max={available} step={1} value={value.length} onChange={e => resize(Math.floor(Number(e.target.value) || 0))} className="w-10 text-center font-black text-slate-900 text-sm" />
-          <button type="button" disabled={!free.length} onClick={() => resize(value.length + 1)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40">
+          <input autoFocus={autoFocus} aria-label={`${CA_SIM_LABELS[type]} quantity`} inputMode="numeric" value={value.length} onFocus={e => e.target.select()} onChange={e => quantity.setCount(Number(e.target.value.replace(/\D/g, "")))} className="w-10 text-center font-black text-slate-900 text-sm" />
+          <button type="button" disabled={!quantity.canAdd} onClick={quantity.add} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40">
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -62,13 +63,12 @@ function SimTypeRow({ type, available, autoFocus, value, onChange }: { type: CaS
         placeholder={`Pick ${CA_SIM_LABELS[type]} numbers`}
         value={value}
         onChange={onChange}
-        filterOption={false}
-        onSearch={setSearch}
-        onBlur={() => setSearch("")}
-        loading={query.isFetching}
+        filterOption={simFilterOption}
+        {...pool.selectProps(hasMore)}
+        loading={isFetching}
         options={options}
-        maxTagCount="responsive"
-        notFoundContent={query.isFetching ? "Loading SIMs…" : "No matching SIMs"}
+        {...simTagProps}
+        notFoundContent={isFetching ? "Loading SIMs…" : "No matching SIMs"}
       />}
     </div>
   );

@@ -21,7 +21,8 @@ import {
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { CardGridSkeleton } from "@/components/loaders/CardGridSkeleton";
 import { TransactionSuccessModal } from "@/components/common/TransactionSuccessModal";
-import { ScRequestPayoutModal } from "../modals/ScRequestPayoutModal";
+import { WalletPayoutModal } from "@/features/payout/WalletPayoutModal";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { ScChangeBankModal } from "../modals/ScChangeBankModal";
 import { ScTransactionDetailsModal } from "../modals/ScTransactionDetailsModal";
 import { ScDownloadStatementModal } from "../modals/ScDownloadStatementModal";
@@ -64,6 +65,8 @@ export function ScWalletPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showBalance, setShowBalance] = useState(true);
 
+  // Payouts withdraw from the main wallet balance.
+  const { balance: walletBalance } = useMainWalletBalance();
   // Modals state — "?payout=1" (from the dashboard) opens Request Payout directly.
   const [requestPayoutOpen, setRequestPayoutOpen] = useState(() => searchParams.get("payout") === "1");
   const [changeBankOpen, setChangeBankOpen] = useState(false);
@@ -148,7 +151,7 @@ export function ScWalletPage() {
 
         <button
           type="button"
-          disabled={!actions.can_request_payout}
+          disabled={walletBalance <= 0}
           onClick={() => openPayout(true)}
           className="flex items-center justify-center gap-2 rounded-xl bg-[#F59E0B] px-5 py-2.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-amber-600 active:scale-[0.98] disabled:opacity-50"
         >
@@ -219,7 +222,7 @@ export function ScWalletPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-2">
           <button
             type="button"
-            disabled={!actions.can_request_payout}
+            disabled={walletBalance <= 0}
             onClick={() => openPayout(true)}
             className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-[#FFFBEB] p-4 text-center border border-[#F59E0B]/20 transition hover:bg-amber-100/50 disabled:opacity-50"
           >
@@ -651,28 +654,8 @@ export function ScWalletPage() {
       </div>
 
       {/* --- MODALS --- */}
-      {/* 1. Request Payout Modal — POST /state-coordinator/wallet/request-payout */}
-      <ScRequestPayoutModal
-        open={requestPayoutOpen}
-        onOpenChange={openPayout}
-        available={balance.commission_balance}
-        pendingLabel={balance.chips.pending_payout.amount > 0 ? `${balance.chips.pending_payout.formatted} ${balance.chips.pending_payout.label}` : undefined}
-        bankAccount={bankAccount}
-        onChangeBankClick={() => setChangeBankOpen(true)}
-        onSuccess={(result) => {
-          setSuccessModalConfig({
-            open: true,
-            title: "Payout Requested!",
-            subtitle: "Your withdrawal request has been submitted for processing.",
-            details: [
-              { label: "Amount", value: `₦${result.amount.toLocaleString()}` },
-              { label: "Destination", value: `${result.bank_account.bank_name} (****${result.bank_account.account_number.slice(-4)})` },
-              { label: "Reference", value: result.reference },
-              { label: "Status", value: result.status },
-            ],
-          });
-        }}
-      />
+      {/* 1. Request Payout — POST /user/wallet/request-payout (shared by all agents) */}
+      <WalletPayoutModal open={requestPayoutOpen} onOpenChange={openPayout} onAddAccount={() => setChangeBankOpen(true)} />
 
       {/* 2. Change Bank Modal — shared bank list + account verification */}
       <ScChangeBankModal

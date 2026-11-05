@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Archive, ArrowDownToLine, ClipboardList, Download, Layers, Plus, Share2, TriangleAlert } from "lucide-react";
 import { useExportRmInventoryHistory, useGetRmSimInventoryOverview } from "../api/inventory";
 import { RmQueryState } from "../components/dashboard/RmDashboardPrimitives";
@@ -30,7 +31,8 @@ const cardOrder = ["received", "distributed", "total_available", "pending_reques
 export function RegionalManagerInventoryPage() {
   const query = useGetRmSimInventoryOverview();
   const exporter = useExportRmInventoryHistory();
-  const [tab, setTab] = useState<Tab>("available");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => inventoryTabs.find(item => item.key === params.get("tab"))?.key ?? "available");
   const [requesting, setRequesting] = useState(false);
   return <main className="mx-auto w-full min-w-0 max-w-400 space-y-5 p-4 sm:p-6" style={{ color: rmFlow.ink }}>
     <header className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: rmFlow.border }}>

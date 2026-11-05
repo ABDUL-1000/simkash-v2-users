@@ -3,8 +3,8 @@ import { authedHttpClient } from '@/utils/http/auth';
 import { openNotification } from '@/utils/notifications';
 import { QUERY_KEY_AUTH_USER } from '@/features/auth/api/useGetAuthUser';
 import type {
-  EnterprisePayoutAccount, EnterprisePayoutItem, EnterprisePayoutResult, EnterpriseTransactionsResponseData, EnterpriseWalletOverviewData, EnterpriseWithdrawProfitResult,
-  RequestEnterprisePayoutPayload, SaveEnterprisePayoutAccountPayload, WalletCategory, WalletResponse,
+  EnterprisePayoutAccount, EnterprisePayoutItem, EnterpriseTransactionsResponseData, EnterpriseWalletOverviewData, EnterpriseWithdrawProfitResult,
+  SaveEnterprisePayoutAccountPayload, WalletCategory, WalletResponse,
 } from '../types/api';
 
 const BASE = '/enterprise/wallet/';
@@ -46,8 +46,6 @@ export const useGetEnterprisePayouts = (enabled = true) => useQuery({ queryKey: 
 
 /** POST /wallet/payout-account */
 export const useSaveEnterprisePayoutAccount = (options?: UseMutationOptions<EnterprisePayoutAccount, Error, SaveEnterprisePayoutAccountPayload>) => useWalletMutation<EnterprisePayoutAccount, SaveEnterprisePayoutAccountPayload>('payout-account', options);
-/** POST /wallet/request-payout { amount, notes } */
-export const useRequestEnterprisePayout = (options?: UseMutationOptions<EnterprisePayoutResult, Error, RequestEnterprisePayoutPayload>) => useWalletMutation<EnterprisePayoutResult, RequestEnterprisePayoutPayload>('request-payout', options);
 /** POST /wallet/withdraw-profit { amount } */
 export const useEnterpriseWithdrawProfit = (options?: UseMutationOptions<EnterpriseWithdrawProfitResult, Error, { amount: number }>) => useWalletMutation<EnterpriseWithdrawProfitResult, { amount: number }>('withdraw-profit', options);
 

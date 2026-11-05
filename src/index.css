@@ -152,3 +152,11 @@
     margin: 0 !important;
   }
 }
+
+/* Phones: iOS zooms the page when a focused input is under 16px, which happens on every searchable Select (e.g. SIM pickers). */
+@media (max-width: 640px) {
+  .ant-select .ant-select-input,
+  .ant-select input {
+    font-size: 16px !important;
+  }
+}

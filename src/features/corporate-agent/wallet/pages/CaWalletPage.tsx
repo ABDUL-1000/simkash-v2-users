@@ -11,6 +11,8 @@ import { CaQueryState } from "../../components/CaQueryState";
 import { useExportCaTransactions, useGetCaWalletOverview, useGetCaWalletTransactions } from "../api";
 import type { CaTransactionCategory, CaTransactionPeriod } from "../types";
 import { CaPinAmountModal } from "../modals/CaPinAmountModal";
+import { WalletPayoutModal } from "@/features/payout/WalletPayoutModal";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { CaPayoutAccountModal } from "../modals/CaPayoutAccountModal";
 import { CaPayoutsHistoryModal } from "../modals/CaPayoutsHistoryModal";
 
@@ -35,6 +37,8 @@ export function CaWalletPage() {
   const transactions = useGetCaWalletTransactions({ category, period, search: debounced || undefined, page: pagination.page, limit: pagination.pageSize });
   const exporter = useExportCaTransactions();
   const data = overview.data;
+  // Payouts withdraw from the main wallet balance (POST /user/wallet/request-payout).
+  const { balance: walletBalance } = useMainWalletBalance();
   const balance = data?.balance_card;
   const actions = balance?.actions;
   const money = (formatted?: string) => (hidden ? "₦••••••" : formatted ?? "—");
@@ -44,7 +48,7 @@ export function CaWalletPage() {
 
   return <main className="mx-auto w-full min-w-0 max-w-[1440px] space-y-5 p-4 sm:p-6">
     <PageHeader title="My Wallet" description="Profit balance, payouts and transaction history" actions={[
-      { key: "payout", label: "Request Payout", disabled: !actions?.can_request_payout || !balance?.profit_balance, onClick: () => setModal("payout") },
+      { key: "payout", label: "Request Payout", disabled: walletBalance <= 0, onClick: () => setModal("payout") },
       { key: "profit", label: "Withdraw to Wallet", variant: "secondary", disabled: actions?.can_withdraw_profit === false || !balance?.profit_balance, onClick: () => setModal("profit") },
       { key: "account", label: "Payout Account", variant: "outline", disabled: actions ? !actions.can_manage_bank : false, onClick: () => setModal("account") },
       { key: "history", label: "Payout History", variant: "outline", disabled: actions ? !actions.can_view_history : false, onClick: () => setModal("history") },
@@ -163,8 +167,8 @@ export function CaWalletPage() {
       </>}</aside>
     </div>
 
-    {(modal === "payout" || modal === "profit") && <CaPinAmountModal mode={modal} available={balance?.profit_balance ?? 0} walletBalance={balance?.wallet_balance ?? 0}
-      payoutAccount={data?.payout_account} onClose={close} onManageBank={() => setModal("account")} />}
+    <WalletPayoutModal open={modal === "payout"} onOpenChange={(open) => { if (!open) close(); }} onAddAccount={() => setModal("account")} />
+    {modal === "profit" && <CaPinAmountModal mode="profit" available={balance?.profit_balance ?? 0} walletBalance={balance?.wallet_balance ?? 0} onClose={close} />}
     {modal === "account" && <CaPayoutAccountModal onClose={close} />}
     {modal === "history" && <CaPayoutsHistoryModal onClose={close} />}
   </main>;

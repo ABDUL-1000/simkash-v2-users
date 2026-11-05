@@ -70,6 +70,7 @@ export const appPaths = {
     format: "/regional-manager/state-coordinators/:coordinatorId",
     path: `/regional-manager/state-coordinators/${coordinatorId ?? ""}`,
   }),
+  rmDistributeSims: "/sim-inventory/rm/distribute",
   rmRedistributeSims: "/sim-inventory/rm/redistribute",
   rmNetworkActivity: "/dashboard/regional-manager/network-activity",
   rmNetworkPerformance: "/dashboard/regional-manager/performance",

@@ -21,8 +21,6 @@ function useScMutation<T>(endpoint: string) {
 export const useScDistribute = () => useScMutation<ScDistributionPayload>(scEndpoints.distribute);
 export const useScOnboardPartner = () => useScMutation<ScOnboardPayload>(scEndpoints.onboardPartner);
 export const useScSavePayoutAccount = () => useScMutation<ScPayoutAccountPayload>(scEndpoints.payoutAccount);
-export const useScRequestPayout = (source: "dashboard" | "wallet") =>
-  useScMutation<{ amount: number }>(source === "dashboard" ? scEndpoints.dashboardPayout : scEndpoints.walletPayout);
 
 export const useScExportStatement = () => useMutation({
   mutationFn: async (params: ScTransactionFilters) => {

@@ -1,6 +1,7 @@
 import { Button, Progress } from "antd";
 import { Bell, ChartColumn, CheckCircle, Package, Shuffle, TrendingUp, Trophy, Upload, UserPlus, XCircle, AlertTriangle } from "lucide-react";
 import { colors } from "@/constants/colors";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { useGetRmSimInventoryOverview } from "../../api/inventory";
 import type { RmDashboardOverviewData } from "../../types/api";
@@ -11,6 +12,8 @@ export function RmDashboardWidgets({ data, onRequest, onDistribute, onPayout, on
   onOnboard: () => void; onRemind: () => void; onRedistribute: () => void; onReports: () => void;
 }) {
   const query = useGetRmSimInventoryOverview();
+  // Payouts withdraw from the main wallet balance.
+  const { balance: walletBalance } = useMainWalletBalance();
   const health = data.network_health;
   const commission = data.commission_this_month;
   const tones = [colors.blues.primary, colors.success, colors.primary, colors.warning];
@@ -34,7 +37,7 @@ export function RmDashboardWidgets({ data, onRequest, onDistribute, onPayout, on
       <p className="mt-2 text-xs" style={{ color: colors.texts.muted }}>Distributed to SCs this week</p><p className="text-xs font-semibold">{data.primary_cards.my_stock.distributed_this_week_text}</p>
       <div className="mt-3 text-center"><Button onClick={onDistribute} style={{ color: colors.success, borderColor: colors.success }}>Distribute Stock</Button></div>
     </RmPanel>
-    <RmPanel title="Commission This Month"><RmInfoRows rows={[["Network activations", commission.network_activations.toLocaleString()], ["Commission rate", commission.commission_rate_text], ["Total earned", <strong style={{ color: colors.success }}>{commission.total_earned_formatted}</strong>]]} /><div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs" style={{ color: colors.warning }}><span>Pending payout: {commission.pending_payout_formatted}</span><Button type="text" size="small" style={{ color: colors.warning }} disabled={!data.primary_cards.my_commission.can_request_payout} onClick={onPayout}>Request Payout</Button></div></RmPanel>
+    <RmPanel title="Commission This Month"><RmInfoRows rows={[["Network activations", commission.network_activations.toLocaleString()], ["Commission rate", commission.commission_rate_text], ["Total earned", <strong style={{ color: colors.success }}>{commission.total_earned_formatted}</strong>]]} /><div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs" style={{ color: colors.warning }}><span>Pending payout: {commission.pending_payout_formatted}</span><Button type="text" size="small" style={{ color: colors.warning }} disabled={walletBalance <= 0} onClick={onPayout}>Request Payout</Button></div></RmPanel>
     <RmPanel title="Network Health"><div>{healthRows.map(row => <div key={row.label} className="flex items-center gap-2 border-b py-2 last:border-0" style={{ borderColor: colors.border }}><row.icon size={16} style={{ color: row.color }} /><div className="min-w-0 flex-1 text-xs"><p style={{ color: colors.texts.muted }}>{row.label}</p><strong>{row.value}</strong></div><RmStatus value={row.status} /></div>)}</div></RmPanel>
     <RmPanel title="Quick Actions"><div className="rm-action-stack">{[
       { label: "Onboard New SC", icon: UserPlus, action: onOnboard, color: colors.blues.primary, filled: true },

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BonusTrackerCard } from "@/features/bonus-tracker";
 import { WalletBalanceCards } from "@/features/commission-wallet";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
@@ -38,6 +39,8 @@ export function StateCoordinatorDashboardPage() {
   const [showCommission, setShowCommission] = useState(true);
 
   const { data, isLoading, error, refetch } = useScDashboard();
+  // Payouts withdraw from the main wallet balance.
+  const { balance: walletBalance } = useMainWalletBalance();
   const partnersQuery = useScPartners({ page: 1, limit: 8 });
   const activationsQuery = useScActivations({ page: 1, limit: 8 });
   const partners = partnersQuery.data?.partners ?? [];
@@ -175,7 +178,7 @@ export function StateCoordinatorDashboardPage() {
           </h2>
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <span className="text-[11px] font-medium text-[#8C909B] truncate">{data.my_commission.period_text}</span>
-            {data.my_commission.can_request_payout && <button
+            {walletBalance > 0 && <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -512,7 +515,7 @@ export function StateCoordinatorDashboardPage() {
 
             <div className="flex items-center justify-between gap-2 flex-wrap pt-1 text-xs border-t border-[#E2ECF6]">
               <span className="text-[11px] text-[#8C909B]">Pending payout: {commission.pending_payout_formatted}</span>
-              {commission.can_request_payout && <button
+              {walletBalance > 0 && <button
                 type="button"
                 onClick={goPayout}
                 className="text-xs font-extrabold text-[#D9990D] hover:underline"

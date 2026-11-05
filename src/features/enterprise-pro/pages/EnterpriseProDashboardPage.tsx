@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Layers, PlusCircle, Send, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
 import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
@@ -27,6 +28,8 @@ export function EnterpriseProDashboardPage() {
   const [feedTab, setFeedTab] = useState<"all" | "mine">("all");
   const showFeed = (tab: "all" | "mine") => { setFeedTab(tab); document.getElementById("ep-activations")?.scrollIntoView({ behavior: "smooth", block: "start" }); };
 
+  // Payouts withdraw from the main wallet balance (POST /user/wallet/request-payout).
+  const { balance: walletBalance } = useMainWalletBalance();
   if (overview.isPending || overview.isError) return <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch} />;
   if (!overview.data) return <AppEmptyState title="No Enterprise Data" description="Your enterprise dashboard data is not available yet." />;
 
@@ -37,7 +40,7 @@ export function EnterpriseProDashboardPage() {
   const goPayout = () => navigate(epPayoutPath());
   const goNetwork = () => navigate(appPaths.enterpriseProNetwork);
   const goWallet = () => navigate(appPaths.enterpriseWallet);
-  const canPayout = Boolean(top?.my_profit?.can_request_payout && (top.my_profit.amount ?? 0) > 0);
+  const canPayout = walletBalance > 0;
 
   return (
     <div className="space-y-6 pb-12">

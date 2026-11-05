@@ -8,7 +8,8 @@ import { RmCoordinatorPicker, RmDesignedDistribute } from "../../Modals/dashboar
 import { RmAvatar, RmBadge, RmFlowModal } from "../../Modals/flow/RmFlow";
 import { rmFlow } from "../../Modals/flow/rmFlowTokens";
 import { RmSimNumberSelect } from "../../Modals/flow/RmSimPicker";
-import { activeTypes, firstName, resizeSims, rmSimMeta, sumQuantities, useRmCoordinatorStock, useRmOwnStock, useRmSimOptions } from "../../Modals/flow/rmStock";
+import { useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
+import { activeTypes, firstName, rmSimMeta, sumQuantities, useRmCoordinatorStock, useRmOwnStock, useRmSimOptions } from "../../Modals/flow/rmStock";
 import type { RmSimType } from "../../types/dashboard";
 import { RmStatus } from "../dashboard/RmDashboardPrimitives";
 
@@ -26,11 +27,12 @@ function Stepper({ value, max, onChange }: { value: number; max: number; onChang
 
 /** Stepper + SIM-number select for one type, fed by GET /sim-inventory/undistributed. */
 function SimStepper({ type, enabled, value, onChange }: { type: RmSimType; enabled: boolean; value: string[]; onChange: (sims: string[]) => void }) {
-  const [search, setSearch] = useState("");
-  const { options, loading } = useRmSimOptions({ kind: "own" }, type, search, enabled);
+  const pool = useSimSearchState();
+  const { options, loading, available, hasMore } = useRmSimOptions({ kind: "own" }, type, pool, enabled);
+  const quantity = useSimQuantity({ options, value, onChange, available, grow: pool.grow });
   return <div className="space-y-2">
-    <Stepper value={value.length} max={enabled ? Math.max(value.length, options.length) : 0} onChange={count => onChange(resizeSims(value, count, options))} />
-    {enabled && options.length > 0 && <div className="w-64 max-w-full"><RmSimNumberSelect type={type} source={{ kind: "own" }} value={value} onChange={onChange} options={options} loading={loading} onSearch={setSearch} /></div>}
+    <Stepper value={value.length} max={enabled ? Math.max(value.length, available) : 0} onChange={quantity.setCount} />
+    {enabled && options.length > 0 && <div className="w-64 max-w-full"><RmSimNumberSelect type={type} source={{ kind: "own" }} value={value} onChange={onChange} options={options} loading={loading} selectProps={pool.selectProps(hasMore)} /></div>}
   </div>;
 }
 

@@ -2,6 +2,7 @@ import { Cctv, CreditCard, MapPin, Router, type LucideIcon } from "lucide-react"
 import { APP_COLORS } from "@/constants/colors";
 import { rmSimTypes, useGetRmRedistributableSims, useGetRmSimInventoryOverview, useGetRmUndistributedSims, type RmTypeQuantities } from "../../api/inventory";
 import type { RmSimType } from "../../types/dashboard";
+import { simOptions } from "@/utils/simSearch";
 
 export const rmSimMeta: Record<RmSimType, { label: string; device: string; short: string; icon: LucideIcon; color: string; bg: string }> = {
   pos: { label: "POS SIM", device: "POS Terminal", short: "POS", icon: CreditCard, color: APP_COLORS.blues.primary, bg: APP_COLORS.blues.surfaceLight },
@@ -36,13 +37,23 @@ export const stockTone = (stock: number) => stock === 0 ? { color: APP_COLORS.re
 export type RmSimSource = { kind: "own" } | { kind: "redistributable"; coordinatorId?: number };
 
 /** SIM-number options for one type (first 100 matches of the search). */
-export function useRmSimOptions(source: RmSimSource, type: string, search: string, enabled = true) {
-  const params = { type, search: search || undefined, page: 1, limit: 100 };
-  const own = useGetRmUndistributedSims(params, enabled && source.kind === "own");
+export function useRmSimOptions(source: RmSimSource, type: RmSimType, pool: { limit: number; debouncedSearch: string }, enabled = true) {
+  // First page + debounced server search, merged; the picker also filters locally (see simFilterOption).
+  const base = { type, search: undefined, page: 1, limit: pool.limit };
+  const searched = { ...base, limit: 100, search: pool.debouncedSearch || undefined };
+  const isOwn = source.kind === "own";
   const coordinatorId = source.kind === "redistributable" ? source.coordinatorId : undefined;
-  const redistributable = useGetRmRedistributableSims({ ...params, coordinator_id: coordinatorId }, enabled && source.kind === "redistributable" && Boolean(coordinatorId));
-  const sims = source.kind === "own" ? own.data?.sims ?? [] : redistributable.data?.sims ?? [];
-  return { options: sims.map(sim => ({ value: sim.sim_number, label: `${sim.sim_number} · ${sim.network}` })), loading: source.kind === "own" ? own.isFetching : redistributable.isFetching };
+  const canRedistribute = enabled && source.kind === "redistributable" && Boolean(coordinatorId);
+  const own = useGetRmUndistributedSims(base, enabled && isOwn);
+  const ownFound = useGetRmUndistributedSims(searched, enabled && isOwn);
+  const redistributable = useGetRmRedistributableSims({ ...base, coordinator_id: coordinatorId }, canRedistribute);
+  const redistributableFound = useGetRmRedistributableSims({ ...searched, coordinator_id: coordinatorId }, canRedistribute);
+  const options = isOwn ? simOptions(own.data?.sims, ownFound.data?.sims) : simOptions(redistributable.data?.sims, redistributableFound.data?.sims);
+  const first = isOwn ? own.data : redistributable.data;
+  // Full count of this type (summary), so the stepper and scrolling can go beyond the loaded page.
+  const available = Math.max(Number(first?.summary?.[type] ?? 0) || 0, options.length);
+  const loaded = first?.sims?.length ?? 0;
+  return { options, available, hasMore: loaded < available, loading: isOwn ? own.isFetching || ownFound.isFetching : redistributable.isFetching || redistributableFound.isFetching };
 }
 
 /** Stepper count → SIM list: grows with the next unselected options, shrinks from the end. */

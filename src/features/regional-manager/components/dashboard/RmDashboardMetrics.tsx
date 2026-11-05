@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Button } from "antd";
 import { Eye, EyeOff, Package, Smartphone, Users, UserCheck } from "lucide-react";
 import { colors } from "@/constants/colors";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import type { RmDashboardOverviewData } from "../../types/api";
 
 export function RmDashboardMetrics({ data, onPayout }: { data: RmDashboardOverviewData; onPayout: () => void }) {
   const [hidden, setHidden] = useState(false);
   const cards = data.primary_cards;
+  // Payouts withdraw from the main wallet balance.
+  const { balance: walletBalance } = useMainWalletBalance();
   const icons = [Users, UserCheck, Smartphone, Package];
   const tones = [colors.blues.primary, colors.success, colors.primary, colors.warning];
   const surfaces = [colors.blues.surfaceLight, colors.greens.light, colors.blues.surfaceLight, colors.ambers.light];
@@ -15,7 +18,7 @@ export function RmDashboardMetrics({ data, onPayout }: { data: RmDashboardOvervi
       <div><p>Today</p><div className="rm-amount">{cards.today.activations.toLocaleString()}</div><p style={{ color: colors.success }}>{cards.today.commission_formatted} network commission</p><p className="mt-1" style={{ color: cards.today.comparison.direction === "down" ? colors.danger : colors.success }}>{cards.today.comparison.text}</p></div>
       <div><p>This Month</p><div className="rm-amount">{cards.this_month.activations_formatted}</div><p>{cards.this_month.subtitle}</p><p className="mt-1" style={{ color: colors.blues.primary }}>{cards.this_month.target.text}</p></div>
       <div><p>My Stock</p><div className="rm-amount">{cards.my_stock.available.toLocaleString()}</div><p>{cards.my_stock.subtitle}</p><p className="mt-1">{cards.my_stock.distributed_this_week_text}</p></div>
-      <div><p>My Commission <button type="button" aria-label={hidden ? "Show commission" : "Hide commission"} onClick={() => setHidden(!hidden)} className="ml-1 inline-flex align-middle">{hidden ? <EyeOff size={13} /> : <Eye size={13} />}</button></p><div className="rm-amount">{hidden ? "••••••" : cards.my_commission.formatted}</div><p>{cards.my_commission.subtitle}</p><Button className="mt-2" size="small" style={{ background: colors.warning, borderColor: colors.warning, color: colors.texts.whiteFixed }} disabled={!cards.my_commission.can_request_payout} onClick={onPayout}>Request payout</Button></div>
+      <div><p>My Commission <button type="button" aria-label={hidden ? "Show commission" : "Hide commission"} onClick={() => setHidden(!hidden)} className="ml-1 inline-flex align-middle">{hidden ? <EyeOff size={13} /> : <Eye size={13} />}</button></p><div className="rm-amount">{hidden ? "••••••" : cards.my_commission.formatted}</div><p>{cards.my_commission.subtitle}</p><Button className="mt-2" size="small" style={{ background: colors.warning, borderColor: colors.warning, color: colors.texts.whiteFixed }} disabled={walletBalance <= 0} onClick={onPayout}>Request payout</Button></div>
     </div>
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{Object.entries(data.summary_cards).map(([key, card], index) => {
       const Icon = icons[index] ?? Package;

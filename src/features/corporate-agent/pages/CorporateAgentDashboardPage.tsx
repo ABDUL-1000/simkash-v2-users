@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { PageHeader } from "@/components/common/PageHeader";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { AgentTopUpButton } from "@/features/wallet/components/AgentTopUpButton";
 import { AgentVirtualAccountsCard } from "@/features/wallet/components/AgentVirtualAccountsCard";
 import { AppModal } from "@/components/common/AppModal";
@@ -29,7 +30,9 @@ export default function CorporateAgentDashboardPage() {
   const [feedFilter, setFeedFilter] = useState<"all" | "mine">("all");
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const data = overview.data;
-  const canPayout = Boolean(data?.top_cards.my_profit?.can_request_payout && data.top_cards.my_profit.amount > 0 && !overview.error);
+  // Payouts withdraw from the main wallet balance (POST /user/wallet/request-payout).
+  const { balance: walletBalance } = useMainWalletBalance();
+  const canPayout = walletBalance > 0;
   const goDistribute = () => navigate(caDistributePath());
   const goRequestStock = () => navigate(caRequestStockPath());
   const goPayout = () => navigate(caPayoutPath());

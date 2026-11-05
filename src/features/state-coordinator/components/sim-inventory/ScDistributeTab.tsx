@@ -7,6 +7,8 @@ import { useGetAgentStockHistory, useGetScAgentDetail } from "../../api/agents";
 import { ConfirmDistributionModal } from "../../modals/ConfirmDistributionModal";
 import type { InventoryDistributionResult, SimType } from "../../types/operations";
 import { SC_SIM_TYPES, SIM_TYPE_LABELS, emptySimSelection } from "../../utils/simTypes";
+import { simTagProps, useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
+import { simFilterOption, simOptions } from "@/utils/simSearch";
 
 const TYPE_ICON_BG: Record<SimType, string> = { pos: "bg-[#EFF4F8] text-[#2563EB]", cctv: "bg-[#EBFFF8] text-[#10B981]", gps: "bg-purple-50 text-purple-600", router: "bg-amber-50 text-amber-600" };
 
@@ -297,10 +299,13 @@ export function ScDistributeTab({ initialPartnerId, onDistributed }: ScDistribut
 function SimTypeRow({ type, available, value, partnerName, onChange }: {
   type: SimType; available: number; value: string[]; partnerName?: string; onChange: (sims: string[]) => void;
 }) {
-  const [search, setSearch] = useState("");
-  const { data, isFetching } = useGetScUndistributedSims({ type, search: search || undefined, page: 1, limit: 100 }, available > 0);
-  const options = (data?.sims ?? []).map((sim) => ({ value: sim.sim_number, label: `${sim.sim_number} · ${sim.network}` }));
-  const nextFree = options.find((option) => !value.includes(option.value))?.value;
+  const pool = useSimSearchState();
+  const base = useGetScUndistributedSims({ type, search: undefined, page: 1, limit: pool.limit }, available > 0);
+  const found = useGetScUndistributedSims({ type, search: pool.debouncedSearch || undefined, page: 1, limit: 100 }, available > 0);
+  const isFetching = base.isFetching || found.isFetching;
+  const options = simOptions(base.data?.sims, found.data?.sims);
+  const quantity = useSimQuantity({ options, value, onChange, available, grow: pool.grow });
+  const hasMore = (base.data?.sims?.length ?? 0) < available;
   const Icon = type === "pos" ? Smartphone : Package;
   const tone = available === 0 ? "text-[#EF4444]" : available < 5 ? "text-[#F59E0B]" : "text-[#66738C]";
 
@@ -328,18 +333,16 @@ function SimTypeRow({ type, available, value, partnerName, onChange }: {
           <button
             type="button"
             disabled={value.length === 0}
-            onClick={() => onChange(value.slice(0, -1))}
+            onClick={quantity.remove}
             className="flex size-8 items-center justify-center rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-40"
           >
             -
           </button>
-          <span className="w-8 text-center text-base font-black text-[#0F152A]">
-            {value.length}
-          </span>
+          <input aria-label="Quantity" inputMode="numeric" value={value.length} onFocus={(e) => e.target.select()} onChange={(e) => quantity.setCount(Number(e.target.value.replace(/\D/g, "")))} className="w-12 text-base font-black text-[#0F152A] bg-transparent text-center outline-none focus:ring-2 focus:ring-blue-100 rounded-lg" />
           <button
             type="button"
-            disabled={!nextFree}
-            onClick={() => nextFree && onChange([...value, nextFree])}
+            disabled={!quantity.canAdd}
+            onClick={quantity.add}
             className="flex size-8 items-center justify-center rounded-xl bg-[#F8FAFC] border border-[#E2ECF6] font-bold text-[#0F152A] hover:bg-[#EFF4F8] disabled:opacity-40"
           >
             +
@@ -352,12 +355,11 @@ function SimTypeRow({ type, available, value, partnerName, onChange }: {
         placeholder={`Pick ${SIM_TYPE_LABELS[type]} numbers`}
         value={value}
         onChange={onChange}
-        filterOption={false}
-        onSearch={setSearch}
-        onBlur={() => setSearch("")}
+        filterOption={simFilterOption}
+        {...pool.selectProps(hasMore)}
         loading={isFetching}
         options={options}
-        maxTagCount="responsive"
+        {...simTagProps}
         notFoundContent={isFetching ? "Loading SIMs…" : "No matching SIMs"}
       />}
     </div>

@@ -1,7 +1,7 @@
 import { useRmMutation, useRmQuery, type RmMutationOptions } from "./dashboardClient";
 import { rmPaginated } from "./normalize";
 import type { RmCoordinatorDetailData, RmDashboardOverviewData } from "../types/api";
-import type { RmActivitiesData, RmApsData, RmCoordinatorParams, RmCoordinatorsData, RmDistributePayload, RmListParams, RmOnboardScPayload, RmPayoutPayload, RmProfilePayload, RmQuickDistributePayload, RmRedistributePayload, RmReminderPayload, RmStockHistoryData, RmStockRequestPayload, RmSuspendPayload } from "../types/dashboard";
+import type { RmActivitiesData, RmApsData, RmCoordinatorParams, RmCoordinatorsData, RmDistributePayload, RmListParams, RmOnboardScPayload, RmProfilePayload, RmQuickDistributePayload, RmRedistributePayload, RmReminderPayload, RmStockHistoryData, RmStockRequestPayload, RmSuspendPayload } from "../types/dashboard";
 
 export const useGetRmDashboardOverview = () => useRmQuery<RmDashboardOverviewData>("rm-dashboard-overview", "/overview");
 export const useGetRmStateCoordinators = (params: RmCoordinatorParams, enabled = true) => useRmQuery<RmCoordinatorsData>("rm-state-coordinators", "/state-coordinators", params, enabled, undefined,
@@ -14,7 +14,6 @@ export const useGetRmCoordinatorStockHistory = (id: number) => useRmQuery<RmStoc
 
 export const useRmDistributeStock = (options?: RmMutationOptions<RmDistributePayload>) => useRmMutation("/distribute", options);
 export const useRmRedistributeStock = (options?: RmMutationOptions<RmRedistributePayload>) => useRmMutation("/redistribute", options);
-export const useRmRequestPayout = (options?: RmMutationOptions<RmPayoutPayload>) => useRmMutation("/request-payout", options);
 export const useRmOnboardSc = (options?: RmMutationOptions<RmOnboardScPayload>) => useRmMutation("/onboard-sc", options);
 export const useRmRequestStockFromAdmin = (options?: RmMutationOptions<RmStockRequestPayload>) => useRmMutation("/request-stock-from-admin", options);
 export const useRmSendBonusReminder = (options?: RmMutationOptions<RmReminderPayload>) => useRmMutation("/send-bonus-reminder", options);

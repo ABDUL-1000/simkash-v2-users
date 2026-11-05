@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Check, Plus, RefreshCw } from "lucide-react";
+import { Popconfirm } from "antd";
+import { Check, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { useDeleteBankAccount } from "@/features/payout/api";
 import { useGetUserProfile } from "../api/useGetUserProfile";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { ChangeBankAccountModal } from "../Modals/ChangeBankAccountModal";
@@ -7,6 +9,7 @@ import { ChangeBankAccountModal } from "../Modals/ChangeBankAccountModal";
 export function BankAccountTab() {
   const { bankAccounts, isLoading } = useGetUserProfile();
   const [changeBankOpen, setChangeBankOpen] = useState(false);
+  const removeAccount = useDeleteBankAccount();
 
   const defaultAccount = bankAccounts.find((acc) => acc.is_default) || bankAccounts[0];
 
@@ -75,10 +78,18 @@ export function BankAccountTab() {
                         </p>
                       </div>
                     </div>
-                    <span className="self-start sm:self-auto rounded-full bg-[#EBFFF8] px-3 py-0.5 text-xs font-bold text-[#10B981] flex items-center gap-1 shrink-0">
-                      <Check className="size-3" />{" "}
-                      {account.status === "active" ? "Verified" : account.status}
-                    </span>
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <span className="rounded-full bg-[#EBFFF8] px-3 py-0.5 text-xs font-bold text-[#10B981] flex items-center gap-1">
+                        <Check className="size-3" />{" "}
+                        {account.status === "active" ? "Verified" : account.status}
+                      </span>
+                      {/* DELETE /user/wallet/bank-accounts/{id} */}
+                      <Popconfirm title="Remove this bank account?" description="It will no longer be available for payouts." okText="Remove" okButtonProps={{ danger: true, loading: removeAccount.isPending }} onConfirm={() => removeAccount.mutateAsync(account.id).catch(() => undefined)}>
+                        <button type="button" aria-label={`Remove ${account.bank_name} account`} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[#EF4444] hover:bg-red-50">
+                          <Trash2 className="size-3.5" /> Remove
+                        </button>
+                      </Popconfirm>
+                    </div>
                   </div>
 
                   <div className="border-t border-[#E2ECF6] pt-3 text-xs space-y-0.5">

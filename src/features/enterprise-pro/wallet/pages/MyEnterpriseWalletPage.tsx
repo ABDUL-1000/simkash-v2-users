@@ -12,6 +12,7 @@ import { EpPayoutAccountCard } from "../components/EpPayoutAccountCard";
 import { EpRecentPayoutsCard } from "../components/EpRecentPayoutsCard";
 import { WalletModalsHub } from "../components/WalletModalsHub";
 import { useWalletModals } from "../hooks/useWalletModals";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 
 export const MyEnterpriseWalletPage: React.FC = () => {
   // Deep link from the dashboard: ?payout=1
@@ -19,6 +20,8 @@ export const MyEnterpriseWalletPage: React.FC = () => {
   const modals = useWalletModals(params.get("payout") === "1");
   const overview = useGetEnterpriseWalletOverview();
   const exporter = useExportEnterpriseTransactions();
+  // Payouts withdraw from the main wallet balance (POST /user/wallet/request-payout).
+  const { balance: walletBalance } = useMainWalletBalance();
   if (overview.isPending || overview.isError) return <EpQueryState pending={overview.isPending} error={overview.error} retry={overview.refetch} />;
   if (!overview.data?.balance_card) return <AppEmptyState title="No Enterprise Wallet Data" description="Your wallet data is not available yet." />;
   const { balance_card: balance, stats_cards: stats } = overview.data;
@@ -53,7 +56,7 @@ export const MyEnterpriseWalletPage: React.FC = () => {
             </button>
             <button
               type="button"
-              disabled={balance.actions?.can_request_payout === false || noProfit}
+              disabled={walletBalance <= 0}
               onClick={() => modals.setPayoutModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm disabled:opacity-50"
             >

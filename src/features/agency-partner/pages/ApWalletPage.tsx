@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { WalletBalanceCards } from "@/features/commission-wallet";
+import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import type { ColumnsType } from "antd/es/table";
 import { Select, Tag } from "antd";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -8,7 +9,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { colors } from "@/constants/colors";
 import { useBulkRetryFailedTransactions, useExportPartnerTransactions, useGetPartnerTransactions, useGetPartnerWallet, useRetryTransaction } from "../api";
 import type { PartnerTransactionItem } from "../types/api";
-import { RequestPayoutModal } from "../modals/RequestPayoutModal";
+import { WalletPayoutModal } from "@/features/payout/WalletPayoutModal";
 import { PayoutAccountModal } from "../modals/PayoutAccountModal";
 import { PartnerTransactionDetailModal } from "../modals/PartnerTransactionDetailModal";
 
@@ -36,6 +37,8 @@ export function ApWalletPage() {
   const moneySummary = list.result?.summary;
   const sidebar = list.result?.sidebar;
   const summary = wallet.wallet;
+  // Payouts withdraw from the main wallet balance.
+  const { balance: walletBalance } = useMainWalletBalance();
 
   const columns: ColumnsType<PartnerTransactionItem> = [
     { title: "Reference", dataIndex: "reference", key: "reference", render: (value: string) => <span className="font-mono text-xs" style={{ color: colors.textSecondary }}>{value}</span> },
@@ -56,7 +59,7 @@ export function ApWalletPage() {
 
   return <main className="mx-auto w-full min-w-0 max-w-[1440px] space-y-5 p-4 sm:p-6">
     <PageHeader title="Commission Wallet" description="Track earnings, bonuses, payout requests, and transaction movements" actions={[
-      { key: "payout", label: "Request Payout", disabled: !summary?.can_request_payout, onClick: () => setPayoutOpen(true) },
+      { key: "payout", label: "Request Payout", disabled: walletBalance <= 0, onClick: () => setPayoutOpen(true) },
       { key: "account", label: "Payout Account", variant: "outline", onClick: () => setAccountOpen(true) },
       { key: "export", label: "Export CSV", variant: "outline", loading: exporter.isPending, onClick: () => exporter.mutate({ period, category, status, search }) },
       ...(hasFailedRetry ? [{ key: "retry", label: "Retry Failed", variant: "outline" as const, loading: bulkRetry.isPending, onClick: () => bulkRetry.mutate() }] : []),
@@ -73,7 +76,7 @@ export function ApWalletPage() {
       <section className="space-y-2 rounded-xl border bg-white p-4 text-xs" style={{ borderColor: colors.border }}><h3 className="text-sm font-bold" style={{ color: colors.textPrimary }}>Recent Commissions</h3>{sidebar.recent_commissions.length ? sidebar.recent_commissions.map(item => <div key={item.id} className="flex justify-between gap-2"><div className="min-w-0"><p className="truncate font-semibold" style={{ color: colors.textPrimary }}>{item.title}</p><p style={{ color: colors.textSecondary }}>{item.time_ago}</p></div><strong style={{ color: colors.success }}>{item.formatted_amount}</strong></div>) : <p style={{ color: colors.textSecondary }}>No commissions yet.</p>}</section>
       <section className="space-y-2 rounded-xl border bg-white p-4 text-xs" style={{ borderColor: colors.border }}><h3 className="text-sm font-bold" style={{ color: sidebar.total_failed_count ? colors.danger : colors.textPrimary }}>Failed Transactions ({sidebar.total_failed_count})</h3>{sidebar.failed_transactions.length ? sidebar.failed_transactions.map(item => <div key={item.id} className="flex items-center justify-between gap-2"><button type="button" onClick={() => setTransactionId(item.id)} className="min-w-0 text-left"><p className="truncate font-semibold" style={{ color: colors.textPrimary }}>{item.title}</p><p style={{ color: colors.textSecondary }}>{item.reference} · {item.date_time}</p></button>{item.can_retry && <button type="button" disabled={retryMutation.isPending} onClick={() => retryMutation.mutate(item.id)} className="shrink-0 font-semibold disabled:opacity-50" style={{ color: colors.primary }}>Retry</button>}</div>) : <p style={{ color: colors.textSecondary }}>No failed transactions.</p>}</section>
     </div>}
-    <RequestPayoutModal open={payoutOpen} onOpenChange={setPayoutOpen} availableBalance={summary?.commission_balance.amount ?? 0} />
+    <WalletPayoutModal open={payoutOpen} onOpenChange={setPayoutOpen} onAddAccount={() => setAccountOpen(true)} />
     <PayoutAccountModal open={accountOpen} onOpenChange={setAccountOpen} />
     <PartnerTransactionDetailModal id={transactionId} open={Boolean(transactionId)} onOpenChange={(open) => { if (!open) setTransactionId(undefined); }} />
   </main>;

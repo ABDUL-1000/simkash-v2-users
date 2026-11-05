@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { simTagProps, useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
 import { Select } from "antd";
 import type { RmSimType } from "../../types/dashboard";
 import { RmStepperRow } from "./RmFlow";
+import { simFilterOption } from "@/utils/simSearch";
 import {
-  resizeSims,
   rmSimMeta,
   useRmSimOptions,
   type RmSimSource,
@@ -17,7 +18,7 @@ export function RmSimNumberSelect({
   onChange,
   options,
   loading,
-  onSearch,
+  selectProps,
 }: {
   type: RmSimType;
   source?: RmSimSource;
@@ -25,7 +26,7 @@ export function RmSimNumberSelect({
   onChange: (sims: string[]) => void;
   options: Array<{ value: string; label: string }>;
   loading: boolean;
-  onSearch: (search: string) => void;
+  selectProps: ReturnType<ReturnType<typeof useSimSearchState>["selectProps"]>;
 }) {
   return (
     <Select
@@ -34,12 +35,11 @@ export function RmSimNumberSelect({
       placeholder={`Pick ${rmSimMeta[type].label} numbers`}
       value={value}
       onChange={onChange}
-      filterOption={false}
-      onSearch={onSearch}
-      onBlur={() => onSearch("")}
+      filterOption={simFilterOption}
+      {...selectProps}
       loading={loading}
       options={options}
-      maxTagCount="responsive"
+      {...simTagProps}
       notFoundContent={
         loading
           ? "Loading SIMs…"
@@ -69,8 +69,9 @@ export function RmSimPickerRow({
   after?: ReactNode;
   disabled?: boolean;
 }) {
-  const [search, setSearch] = useState("");
-  const { options, loading } = useRmSimOptions(source, type, search, !disabled);
+  const pool = useSimSearchState();
+  const { options, loading, available, hasMore } = useRmSimOptions(source, type, pool, !disabled);
+  const quantity = useSimQuantity({ options, value, onChange, available, grow: pool.grow });
   const meta = rmSimMeta[type];
   return (
     <div className="pb-1">
@@ -82,9 +83,9 @@ export function RmSimPickerRow({
         hint={hint}
         after={after}
         disabled={disabled}
-        max={disabled ? 0 : Math.max(value.length, options.length)}
+        max={disabled ? 0 : Math.max(value.length, available)}
         value={value.length}
-        onChange={(count) => onChange(resizeSims(value, count, options))}
+        onChange={quantity.setCount}
       />
       {!disabled && options.length > 0 && (
         <div className="pb-1 pl-13">
@@ -95,7 +96,7 @@ export function RmSimPickerRow({
             onChange={onChange}
             options={options}
             loading={loading}
-            onSearch={setSearch}
+            selectProps={pool.selectProps(hasMore)}
           />
         </div>
       )}

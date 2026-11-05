@@ -27,9 +27,8 @@ import {
 } from "../api";
 import { ActionSuccessModal, type DetailItem } from "@/features/state-coordinator/modals/ActionSuccessModal";
 import { ApActivateSimFlow } from "../modals/ApActivateSimFlow";
-import { ApRequestPayoutModal, type PartnerPayoutResult } from "../modals/ApRequestPayoutModal";
+import { WalletPayoutModal } from "@/features/payout/WalletPayoutModal";
 import { PayoutAccountModal } from "../modals/PayoutAccountModal";
-import { AwaitingApprovalPayoutModal } from "../modals/AwaitingApprovalPayoutModal";
 import { AllActivationsModal } from "../modals/AllActivationsModal";
 import { ApMoreActionsModal } from "../modals/ApMoreActionsModal";
 import { LowSimStockModal } from "../modals/LowSimStockModal";
@@ -94,8 +93,6 @@ export function AgencyPartnerDashboardPage() {
   // Modals state
   const [quickActivateModalOpen, setQuickActivateModalOpen] = useState(false);
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
-  const [awaitingApprovalModalOpen, setAwaitingApprovalModalOpen] = useState(false);
-  const [payoutResult, setPayoutResult] = useState<PartnerPayoutResult | null>(null);
   const [payoutAccountOpen, setPayoutAccountOpen] = useState(false);
   const [requestStockModalOpen, setRequestStockModalOpen] = useState(false);
   const [allActivationsModalOpen, setAllActivationsModalOpen] = useState(false);
@@ -511,42 +508,8 @@ export function AgencyPartnerDashboardPage() {
       <ApActivateSimFlow open={quickActivateModalOpen} onOpenChange={setQuickActivateModalOpen} />
 
       {/* 4. Request Payout Modal (Image 5) */}
-      <ApRequestPayoutModal
-        open={payoutModalOpen}
-        onOpenChange={setPayoutModalOpen}
-        onChangeBank={() => setPayoutAccountOpen(true)}
-        onRequestSuccess={(result) => {
-          setPayoutResult(result);
-          setAwaitingApprovalModalOpen(true);
-        }}
-      />
+      <WalletPayoutModal open={payoutModalOpen} onOpenChange={setPayoutModalOpen} onAddAccount={() => setPayoutAccountOpen(true)} />
       <PayoutAccountModal open={payoutAccountOpen} onOpenChange={setPayoutAccountOpen} />
-      {/* 5. Awaiting Approval Payout Modal — shows the submitted payout */}
-      <AwaitingApprovalPayoutModal
-        open={awaitingApprovalModalOpen}
-        onOpenChange={setAwaitingApprovalModalOpen}
-        amount={payoutResult ? `₦${payoutResult.amount.toLocaleString()}` : undefined}
-        bankName={payoutResult?.bank_account.bank_name}
-        accountNumber={payoutResult ? `****${payoutResult.bank_account.account_number.slice(-4)}` : undefined}
-        requestedDate={new Date().toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-        reference={payoutResult?.reference}
-        statusLabel={payoutResult?.status}
-        onContactSupport={() => {
-          triggerSuccessModal(
-            "Contacting Support",
-            "Support ticket initialized for payout review.",
-            "Support 💬"
-          );
-        }}
-        onDone={() => {
-          triggerSuccessModal(
-            "Payout Under Review",
-            "Your payout request is being processed by admin.",
-            "Pending Payout ⏳"
-          );
-        }}
-      />
-
       {/* 6. All Activations Drawer Modal (New Image 2) */}
       <AllActivationsModal
         open={allActivationsModalOpen}

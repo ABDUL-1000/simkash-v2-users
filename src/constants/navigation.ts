@@ -206,6 +206,11 @@ export const userNavigation: NavigationSection[] = [
             href: appPaths.rmSimInventory,
           },
           {
+            id: "rm-distribute-sims",
+            label: "Distribute SIMs",
+            href: appPaths.rmDistributeSims,
+          },
+          {
             id: "rm-redistribute-sims",
             label: "Redistribute SIMs",
             href: appPaths.rmRedistributeSims,

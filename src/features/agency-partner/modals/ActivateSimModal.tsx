@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Search, ShieldCheck } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
+import { SimNumberSelect } from "@/components/common/SimNumberSelect";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { colors } from "@/constants/colors";
 import { useGetUnactivatedSims, useVerifyCustomerForSim, useActivateDeviceSim } from "../api";
@@ -22,9 +23,14 @@ export function ActivateSimModal({ open, onOpenChange, onActivated, initialSim }
     return { sim_number: initialSim.simNumber, sim_type: initialSim.simType, network: initialSim.network };
   }, [sims, simNumber, initialSim]);
 
-  useEffect(() => {
-    if (open && initialSim?.simNumber) { setSimNumber(initialSim.simNumber); setVerification(null); }
-  }, [open, initialSim]);
+  // Preselect the SIM the modal was opened for. Adjusting state during render (not in an effect)
+  // avoids an extra render pass: https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const preselect = open && initialSim?.simNumber ? initialSim : null;
+  const [preselected, setPreselected] = useState(preselect);
+  if (preselect !== preselected) {
+    setPreselected(preselect);
+    if (preselect) { setSimNumber(preselect.simNumber); setVerification(null); }
+  }
 
   const close = (value: boolean) => {
     if (!value) { setVerification(null); setActivated(null); setPin(""); setPhone(""); setSimNumber(""); verify.reset(); activate.reset(); }
@@ -49,7 +55,7 @@ export function ActivateSimModal({ open, onOpenChange, onActivated, initialSim }
   return <AppModal open={open} onOpenChange={close} title={activated ? "SIM Activated" : "Activate Customer SIM"} description={activated ? "The activation is complete." : "Verify the customer before confirming the activation."} size="md" footer={activated ? <button type="button" onClick={() => close(false)} className="w-full rounded-xl bg-[#2563EB] px-4 py-3 text-sm font-bold text-white">Done</button> : null}>
     {activated ? <div className="space-y-4 text-center"><CheckCircle2 className="mx-auto size-12" style={{ color: colors.success }} /><p className="font-bold text-[#0F152A]">{activated.customer.fullname} is now active</p><div className="rounded-xl bg-[#F8FAFC] p-4 text-left text-xs"><p>SIM: <strong>{activated.sim_number}</strong></p><p className="mt-2">Reference: <strong>{activated.transaction_reference}</strong></p><p className="mt-2">Commission earned: <strong>₦{activated.partner_commission_earned.toLocaleString()}</strong></p><p className="mt-2">Activated: <strong>{new Date(activated.activated_at).toLocaleString()}</strong></p></div></div> : <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-xs font-semibold text-[#0F152A]">SIM Type<select value={selectedSim?.sim_type ?? ""} onChange={(event) => { const found = sims.find((item) => item.sim_type === event.target.value); setSimNumber(found?.sim_number ?? (initialSim?.simType === event.target.value ? initialSim.simNumber : "")); setVerification(null); }} className="w-full rounded-xl border border-[#E2ECF6] bg-white p-3"><option value="">Select SIM type</option>{Array.from(new Set([...sims.map((sim) => sim.sim_type), ...(initialSim ? [initialSim.simType] : [])])).map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
-        <label className="space-y-1 text-xs font-semibold text-[#0F152A]">Unactivated SIM<select value={simNumber} onChange={(event) => { setSimNumber(event.target.value); setVerification(null); }} disabled={loadingSims} className="w-full rounded-xl border border-[#E2ECF6] bg-white p-3"><option value="">{loadingSims ? "Loading SIMs…" : "Select available SIM"}</option>{initialSim && !sims.some((sim) => sim.sim_number === initialSim.simNumber) && <option value={initialSim.simNumber}>{initialSim.simNumber} · {initialSim.network}</option>}{sims.map((sim) => <option key={sim.id} value={sim.sim_number}>{sim.sim_number} · {sim.network}</option>)}</select></label></div>
+        <label className="space-y-1 text-xs font-semibold text-[#0F152A]">Unactivated SIM<SimNumberSelect value={simNumber} onChange={(next) => { setSimNumber(next); setVerification(null); }} disabled={loadingSims} loading={loadingSims} sims={initialSim && !sims.some((sim) => sim.sim_number === initialSim.simNumber) ? [{ sim_number: initialSim.simNumber, network: initialSim.network }, ...sims] : sims} /></label></div>
       <label className="block space-y-1 text-xs font-semibold text-[#0F152A]">Customer phone<input value={phone} maxLength={11} inputMode="numeric" onChange={(event) => { setPhone(event.target.value.replace(/\D/g, "").slice(0, 11)); setVerification(null); }} placeholder="08012345678" className="w-full rounded-xl border border-[#E2ECF6] p-3" /></label>
       <button type="button" onClick={handleVerify} disabled={!simNumber || phone.length !== 11 || verify.isPending} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#2563EB] py-3 text-sm font-bold text-[#2563EB] disabled:opacity-50"><Search className="size-4" />{verify.isPending ? "Verifying…" : "Verify Customer"}</button>
       {verification && <div className="space-y-3 rounded-xl border border-[#E2ECF6] p-4 text-xs"><div><p className="font-bold text-[#0F152A]">{verification.fullname}</p><p className="text-[#66738C]">{verification.email} · {verification.phone}</p></div><div className="flex justify-between"><span>Customer wallet</span><strong>₦{verification.wallet_balance.toLocaleString()}</strong></div><div className="flex justify-between"><span>SIM price</span><strong>₦{verification.sim_price.toLocaleString()}</strong></div>

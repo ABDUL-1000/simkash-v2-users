@@ -6,6 +6,8 @@ import { useGetEnterpriseUndistributedByType } from "../api";
 import { EP_SIM_LABELS, EP_SIM_TYPES, emptyEpSims } from "../types/adapters";
 import type { EpSimSelection, EpSimType, StockQuantities } from "../types/simInventory";
 import type { EpCoordinatorOption } from "../types";
+import { simTagProps, useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
+import { simFilterOption, simOptions } from "@/utils/simSearch";
 
 interface SingleScDistributionFormProps {
     coordinators: EpCoordinatorOption[];
@@ -100,10 +102,13 @@ export const SingleScDistributionForm: React.FC<SingleScDistributionFormProps> =
 };
 
 function SimPickerRow({ type, available, value, onChange }: { type: EpSimType; available: number; value: string[]; onChange: (sims: string[]) => void }) {
-    const [search, setSearch] = useState("");
-    const query = useGetEnterpriseUndistributedByType(type, { search: search || undefined, page: 1, limit: 100 }, available > 0 || value.length > 0);
-    const options = (query.data?.sims ?? []).map((sim) => ({ value: sim.sim_number, label: `${sim.sim_number} · ${sim.network}` }));
-    const nextFree = options.find((option) => !value.includes(option.value))?.value;
+    const pool = useSimSearchState();
+    const base = useGetEnterpriseUndistributedByType(type, { search: undefined, page: 1, limit: pool.limit }, available > 0 || value.length > 0);
+    const found = useGetEnterpriseUndistributedByType(type, { search: pool.debouncedSearch || undefined, page: 1, limit: 100 }, available > 0 || value.length > 0);
+    const isFetching = base.isFetching || found.isFetching;
+    const options = simOptions(base.data?.sims, found.data?.sims);
+    const quantity = useSimQuantity({ options, value, onChange, available, grow: pool.grow });
+    const hasMore = (base.data?.sims?.length ?? 0) < available;
     return (<div className="p-3 rounded-xl border border-slate-200 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div>
@@ -111,11 +116,11 @@ function SimPickerRow({ type, available, value, onChange }: { type: EpSimType; a
           <div className="text-[11px] text-slate-500">{available.toLocaleString()} available</div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" aria-label="Remove one" disabled={!value.length} onClick={() => onChange(value.slice(0, -1))} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Minus className="w-3.5 h-3.5"/></button>
-          <span className="w-8 text-center font-black text-slate-900 text-sm">{value.length}</span>
-          <button type="button" aria-label="Add one" disabled={!nextFree} onClick={() => nextFree && onChange([...value, nextFree])} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Plus className="w-3.5 h-3.5"/></button>
+          <button type="button" aria-label="Remove one" disabled={!value.length} onClick={quantity.remove} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Minus className="w-3.5 h-3.5"/></button>
+          <input aria-label="Quantity" inputMode="numeric" value={value.length} onFocus={(e) => e.target.select()} onChange={(e) => quantity.setCount(Number(e.target.value.replace(/\D/g, "")))} className="w-12 font-black text-slate-900 text-sm bg-transparent text-center outline-none focus:ring-2 focus:ring-blue-100 rounded-lg" />
+          <button type="button" aria-label="Add one" disabled={!quantity.canAdd} onClick={quantity.add} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Plus className="w-3.5 h-3.5"/></button>
         </div>
       </div>
-      {(available > 0 || value.length > 0) && <Select mode="multiple" className="w-full" placeholder={`Pick ${EP_SIM_LABELS[type]} numbers`} value={value} onChange={onChange} filterOption={false} onSearch={setSearch} onBlur={() => setSearch("")} loading={query.isFetching} options={options} maxTagCount="responsive" notFoundContent={query.isFetching ? "Loading SIMs…" : "No matching SIMs"}/>}
+      {(available > 0 || value.length > 0) && <Select mode="multiple" className="w-full" placeholder={`Pick ${EP_SIM_LABELS[type]} numbers`} value={value} onChange={onChange} filterOption={simFilterOption} {...pool.selectProps(hasMore)} loading={isFetching} options={options} {...simTagProps} notFoundContent={isFetching ? "Loading SIMs…" : "No matching SIMs"}/>}
     </div>);
 }
