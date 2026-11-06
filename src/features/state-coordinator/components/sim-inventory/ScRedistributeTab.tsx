@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Select } from "antd";
 import { ArrowRight, Package, Repeat, Smartphone, Users } from "lucide-react";
-import { useScPartners } from "../../api/queries";
 import { useGetScRedistributableSims } from "../../api/inventory";
 import { ConfirmRedistributionModal } from "../../modals/ConfirmRedistributionModal";
 import type { RedistType, RedistributableSim, RedistributionResult } from "../../types/operations";
 import { REDIST_TYPES, REDIST_TYPE_LABELS, emptyRedistSelection } from "../../utils/simTypes";
+import { redistributableHolders, type ScPartnerRef } from "../../utils/redistributable";
 import { ScRedistributableTable } from "./ScRedistributableTable";
+import { ScPartnerSelect } from "./ScPartnerSelect";
 import { simTagProps, useSimQuantity, useSimSearchState } from "@/hooks/useSimPicker";
 import { simFilterOption, simOptions } from "@/utils/simSearch";
 
@@ -17,46 +18,46 @@ interface ScRedistributeTabProps {
   onRedistributed: (result: RedistributionResult) => void;
 }
 
-/** Move unactivated SIMs from one AP to another — GET /redistributable + POST /redistribute. */
+/**
+ * Move unactivated SIMs from one AP to another — same flow as RM's redistribute page:
+ * From and To both come from GET /agency-partners (with SIM counts); choosing From loads that AP's
+ * redistributable SIMs (GET /redistributable?partner_id=) to pick from; POST /redistribute.
+ */
 export function ScRedistributeTab({ initialFromId, onRedistributed }: ScRedistributeTabProps) {
   const [fromId, setFromId] = useState<number | undefined>(initialFromId);
-  const [toId, setToId] = useState<number | undefined>();
-  const [toSearch, setToSearch] = useState("");
+  const [fromPicked, setFromPicked] = useState<ScPartnerRef | null>(null);
+  const [to, setTo] = useState<ScPartnerRef | null>(null);
   const [selected, setSelected] = useState(emptyRedistSelection);
   const [note, setNote] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Page 1 / limit 1 is enough for the overall summary and the list of APs holding unactivated SIMs.
+  // Overall summary and the APs holding unactivated SIMs (side panel + table filter).
   const overall = useGetScRedistributableSims({ page: 1, limit: 1 });
   const summary = overall.data?.summary;
-  const holders = overall.data?.partners ?? [];
-  const fromPartner = holders.find((partner) => partner.partner_id === fromId);
-  const targets = useScPartners({ page: 1, limit: 20, search: toSearch || undefined });
-  const targetList = (targets.data?.partners ?? []).filter((partner) => partner.id !== fromId);
-  const toPartner = targets.data?.partners.find((partner) => partner.id === toId);
-  const [toCache, setToCache] = useState<{ id: number; name: string; phone: string } | null>(null);
-  const to = toPartner ? { id: toPartner.id, name: toPartner.name, phone: toPartner.phone } : toCache?.id === toId ? toCache : null;
-  const from = fromPartner ? { id: fromPartner.partner_id, name: fromPartner.name, phone: fromPartner.phone } : null;
+  const holders = redistributableHolders(overall.data?.partners);
+  const fromHolder = holders.find((partner) => partner.partner_id === fromId);
+  const from: ScPartnerRef | null = fromId === undefined ? null
+    : fromPicked?.id === fromId ? fromPicked
+      : fromHolder ? { id: fromHolder.partner_id, name: fromHolder.name, phone: fromHolder.phone, stock: fromHolder.unactivated_count } : null;
+
+  // The source AP's own redistributable stock per type.
+  const fromStock = useGetScRedistributableSims({ partnerId: fromId, page: 1, limit: 1 }, Boolean(fromId));
+  const breakdown = fromStock.data?.summary ?? fromHolder?.breakdown;
+  const fromTotal = REDIST_TYPES.reduce((sum, type) => sum + (breakdown?.[type] ?? 0), 0);
 
   const total = REDIST_TYPES.reduce((sum, type) => sum + selected[type].length, 0);
   const pickedSims = REDIST_TYPES.flatMap((type) => selected[type]);
 
-  const chooseFrom = (id?: number) => {
-    setFromId(id);
+  const chooseFrom = (partner?: ScPartnerRef) => {
+    setFromId(partner?.id);
+    setFromPicked(partner ?? null);
     setSelected(emptyRedistSelection());
-    if (id && id === toId) setToId(undefined);
-  };
-  const chooseTo = (id?: number) => {
-    setToId(id);
-    const match = targets.data?.partners.find((partner) => partner.id === id);
-    setToCache(match ? { id: match.id, name: match.name, phone: match.phone } : null);
-    setToSearch("");
+    if (partner && partner.id === to?.id) setTo(null);
   };
   // Picking from the table switches the source AP when needed.
   const pickFromTable = (sim: RedistributableSim) => {
     if (sim.current_partner.id !== fromId) {
-      setFromId(sim.current_partner.id);
-      if (toId === sim.current_partner.id) setToId(undefined);
+      chooseFrom({ id: sim.current_partner.id, name: sim.current_partner.name, phone: sim.current_partner.phone });
       setSelected({ ...emptyRedistSelection(), [sim.type]: [sim.sim_number] });
       return;
     }
@@ -69,7 +70,7 @@ export function ScRedistributeTab({ initialFromId, onRedistributed }: ScRedistri
       {summary && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs space-y-1">
           <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-[#7C3AED]"><Repeat className="size-4" /></div>
-          <h3 className="text-2xl font-black text-[#7C3AED]">{summary.total.toLocaleString()}</h3>
+          <h3 className="text-2xl font-black text-[#7C3AED]">{summary.total?.toLocaleString() ?? "—"}</h3>
           <p className="text-[11px] font-bold text-[#0F152A]">Redistributable</p>
           <p className="text-[10px] text-[#8C909B]">Unactivated with APs</p>
         </div>
@@ -97,57 +98,32 @@ export function ScRedistributeTab({ initialFromId, onRedistributed }: ScRedistri
           </div>
 
           <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">FROM AGENCY PARTNER</label>
-              <Select
-                size="large"
-                showSearch
-                allowClear
-                optionFilterProp="label"
-                className="w-full"
-                placeholder="AP holding unactivated SIMs"
-                value={fromId}
-                onChange={(value?: number) => chooseFrom(value)}
-                loading={overall.isLoading}
-                options={holders.map((partner) => ({ value: partner.partner_id, label: `${partner.name} · ${partner.unactivated_count} unactivated` }))}
-                notFoundContent={overall.isLoading ? "Loading…" : "No AP has unactivated SIMs"}
-              />
+              <ScPartnerSelect value={from} onChange={chooseFrom} exclude={to?.id} placeholder="Search AP to take SIMs from" />
             </div>
             <ArrowRight className="mx-auto mb-3 hidden size-4 text-[#8C909B] sm:block" />
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">TO AGENCY PARTNER</label>
-              <Select
-                size="large"
-                showSearch
-                allowClear
-                filterOption={false}
-                className="w-full"
-                placeholder="Search AP by name or phone"
-                value={toId}
-                onSearch={setToSearch}
-                onChange={(value?: number) => chooseTo(value)}
-                loading={targets.isFetching}
-                options={[
-                  ...targetList.map((partner) => ({ value: partner.id, label: `${partner.name} · ${partner.phone} · ${partner.stock_label}` })),
-                  ...(to && !targetList.some((partner) => partner.id === to.id) ? [{ value: to.id, label: `${to.name} · ${to.phone}` }] : []),
-                ]}
-                notFoundContent={targets.isFetching ? "Loading partners…" : "No agency partners found"}
-              />
+              <ScPartnerSelect value={to} onChange={(partner) => setTo(partner ?? null)} exclude={fromId} placeholder="Search AP by name or phone" />
             </div>
           </div>
 
-          {fromPartner && <div className="rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-[11px] text-[#66738C]">
-            <strong className="text-[#0F152A]">{fromPartner.name}</strong> holds {fromPartner.unactivated_count} unactivated SIMs ·{" "}
-            {REDIST_TYPES.filter((type) => fromPartner.breakdown[type]).map((type) => `${REDIST_TYPE_LABELS[type]} ${fromPartner.breakdown[type]}`).join(" · ")}
+          {from && <div className="rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-[11px] text-[#66738C]">
+            {fromStock.isLoading ? "Loading this AP's unactivated SIMs…" : <>
+              <strong className="text-[#0F152A]">{from.name}</strong> holds {fromTotal} unactivated SIMs
+              {fromTotal > 0 && <> · {REDIST_TYPES.filter((type) => breakdown?.[type]).map((type) => `${REDIST_TYPE_LABELS[type]} ${breakdown?.[type]}`).join(" · ")}</>}
+            </>}
           </div>}
 
           {/* SIMs per type, from the source AP */}
           <div className="space-y-2">
             <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#8C909B]">SIMS TO MOVE</label>
-            {!fromPartner ? <p className="rounded-2xl border border-dashed border-[#E2ECF6] p-4 text-center text-xs text-[#8C909B]">Choose the AP to take SIMs from, or pick SIMs in the table below.</p>
+            {!from ? <p className="rounded-2xl border border-dashed border-[#E2ECF6] p-4 text-center text-xs text-[#8C909B]">Choose the AP to take SIMs from, or pick SIMs in the table below.</p>
+              : !fromStock.isLoading && fromTotal === 0 && total === 0 ? <p className="rounded-2xl border border-dashed border-[#E2ECF6] p-4 text-center text-xs text-[#8C909B]">{from.name} has no unactivated SIMs to move.</p>
               : <div className="rounded-2xl border border-[#E2ECF6] bg-white divide-y divide-[#E2ECF6]">
-                {REDIST_TYPES.filter((type) => fromPartner.breakdown[type] > 0 || selected[type].length > 0).map((type) => (
-                  <RedistTypeRow key={type} type={type} partnerId={fromPartner.partner_id} available={fromPartner.breakdown[type] ?? 0} value={selected[type]} onChange={(sims) => setSelected((prev) => ({ ...prev, [type]: sims }))} />
+                {REDIST_TYPES.filter((type) => (breakdown?.[type] ?? 0) > 0 || selected[type].length > 0).map((type) => (
+                  <RedistTypeRow key={type} type={type} partnerId={from.id} available={breakdown?.[type] ?? 0} value={selected[type]} onChange={(sims) => setSelected((prev) => ({ ...prev, [type]: sims }))} />
                 ))}
               </div>}
           </div>
@@ -179,7 +155,7 @@ export function ScRedistributeTab({ initialFromId, onRedistributed }: ScRedistri
                   <p className="truncate font-extrabold text-[#0F152A]">{partner.name}</p>
                   <p className="text-[10px] text-[#8C909B]">{partner.unactivated_count} unactivated · {partner.phone}</p>
                 </div>
-                <button type="button" onClick={() => chooseFrom(partner.partner_id)} className="shrink-0 text-[11px] font-bold text-[#7C3AED] hover:underline">
+                <button type="button" onClick={() => chooseFrom({ id: partner.partner_id, name: partner.name, phone: partner.phone, stock: partner.unactivated_count })} className="shrink-0 text-[11px] font-bold text-[#7C3AED] hover:underline">
                   {partner.partner_id === fromId ? "Selected" : "Move from"}
                 </button>
               </div>
