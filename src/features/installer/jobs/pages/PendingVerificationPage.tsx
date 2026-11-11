@@ -1,82 +1,45 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { message } from "antd";
+import { Pagination } from "antd";
 import { PageHeader } from "@/components/common/PageHeader";
-import { appPaths } from "@/app/router/paths";
-import { PENDING_VERIFICATION_JOB } from "../data/jobs.data";
-import { PendingVerificationJobCard } from "../components/PendingVerificationJobCard";
-import { SendReminderModal } from "../modals/SendReminderModal";
-import { ViewSubmissionModal } from "../modals/ViewSubmissionModal";
-import { ContactClientModal } from "../modals/ContactClientModal";
+import { useInstallerVerification, useSendReminder } from "../../api";
+import { JobRow, Kpi, QueryState } from "../../ui";
+import { dateText, naira } from "../../format";
 
+const STAGES = [["all", "All"], ["awaiting_client", "Awaiting customer"], ["awaiting_admin", "Awaiting Simkash"], ["disputed", "Disputed"]] as const;
+
+/** GET /installer/verification + POST /verification/:jobId/remind (one per 12h; 429 says when). */
 export default function PendingVerificationPage() {
-  const navigate = useNavigate();
-  const [reminderModalOpen, setReminderModalOpen] = useState(false);
-  const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
-  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [stage, setStage] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const query = useInstallerVerification({ stage, page, limit: 20 });
+  const remind = useSendReminder();
+  const s = query.data?.summary;
+  const jobs = query.data?.jobs ?? [];
 
-  return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        title="Pending Verification"
-        description="Jobs awaiting client and admin sign-off before payment"
-        extra={
-          <span className="rounded-full bg-[#FEF3C7] px-3.5 py-1 text-xs font-bold text-[#D97706]">
-            1 Pending
-          </span>
-        }
-      />
-
-      {/* Amber Notice Banner */}
-      <div className="flex items-center gap-2.5 rounded-2xl border border-[#FDE68A] bg-[#FEF9C3]/80 p-4 text-xs font-semibold text-[#92400E]">
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#D97706] text-[10px] font-bold text-white">
-          i
-        </span>
-        <span>
-          Payment is held until both client and Super Admin verify completion. Clients have 48 hours to verify before Admin can override.
-        </span>
-      </div>
-
-      {/* Cards list */}
-      <div className="space-y-4">
-        <PendingVerificationJobCard
-          job={PENDING_VERIFICATION_JOB}
-          onContactClient={() => setContactModalOpen(true)}
-          onSendReminder={() => setReminderModalOpen(true)}
-          onViewDetails={() =>
-            navigate(appPaths.installerJobDetails(PENDING_VERIFICATION_JOB.reference).path)
-          }
-          onViewSubmission={() => setSubmissionModalOpen(true)}
-        />
-      </div>
-
-      {/* Modals */}
-      <SendReminderModal
-        open={reminderModalOpen}
-        onOpenChange={setReminderModalOpen}
-        jobRef={PENDING_VERIFICATION_JOB.reference}
-        clientName={PENDING_VERIFICATION_JOB.client.contactName}
-        clientLocation={PENDING_VERIFICATION_JOB.client.company}
-        amount={PENDING_VERIFICATION_JOB.fee}
-        onSendSuccess={(channel) =>
-          message.success(`Reminder sent to ${PENDING_VERIFICATION_JOB.client.contactName} via ${channel}!`)
-        }
-      />
-
-      <ViewSubmissionModal
-        open={submissionModalOpen}
-        onOpenChange={setSubmissionModalOpen}
-        jobRef={PENDING_VERIFICATION_JOB.reference}
-        jobTitle={PENDING_VERIFICATION_JOB.title}
-        clientName={PENDING_VERIFICATION_JOB.client.company}
-        fee={PENDING_VERIFICATION_JOB.fee}
-      />
-
-      <ContactClientModal
-        open={contactModalOpen}
-        onOpenChange={setContactModalOpen}
-        client={PENDING_VERIFICATION_JOB.client}
-      />
-    </div>
-  );
+  return <div className="space-y-5 pb-12">
+    <PageHeader title="Pending Verification" description="Submitted jobs waiting for the customer or Simkash to verify. Pay is released to your wallet once verified." />
+    {s && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Kpi label="Awaiting customer" value={s.awaitingClient} />
+      <Kpi label="Awaiting Simkash" value={s.awaitingAdmin} />
+      <Kpi label="Disputed" value={s.disputed} tone="text-[#EF4444]" />
+      <Kpi label="Pay held" value={naira(s.heldAmount)} tone="text-[#7C3AED]" hint={s.payNotSet ? `${s.payNotSet} job${s.payNotSet === 1 ? "" : "s"} with pay not set yet` : undefined} />
+    </div>}
+    <div className="flex gap-1.5 overflow-x-auto pb-1">{STAGES.map(([key, label]) => <button key={key} type="button" onClick={() => { setStage(key); setPage(1); }} className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold ${stage === key ? "bg-[#2563EB] text-white" : "border border-[#E2ECF6] bg-white text-[#66738C]"}`}>{label}</button>)}</div>
+    <QueryState loading={query.isLoading} error={query.error} retry={() => void query.refetch()} empty={!jobs.length} emptyTitle="Nothing awaiting verification" emptyDescription="Jobs you submit will appear here until they're verified.">
+      <div className="space-y-2">{jobs.map((job) => {
+        const v = job.verification;
+        return <JobRow key={job.id} job={job}
+          sub={<div className="space-y-0.5 pt-1 text-[10px]">
+            <p className="text-[#7C3AED]">{v?.stage === "awaiting_client" ? "Awaiting customer" : v?.stage === "awaiting_admin" ? "Awaiting Simkash" : v?.stage === "disputed" ? "Disputed — pay held until resolved" : "Verified"} · submitted {dateText(v?.submittedAt, true)}{job.waitingHours ? ` · waiting ${job.waitingHours}h` : ""}</p>
+            {v?.clientRespondBy && <p className="text-[#8C909B]">Customer has until {dateText(v.clientRespondBy, true)}; after that Simkash can verify.</p>}
+            {!v?.canRemind && v?.nextReminderAt && <p className="text-[#8C909B]">Next reminder from {dateText(v.nextReminderAt, true)}</p>}
+          </div>}
+          right={<div className="space-y-1">
+            <p className="font-extrabold text-[#0F152A]">{job.payAmount == null ? <span className="text-[10px] text-[#D9990D]">Pay not set yet</span> : naira(v?.heldAmount ?? job.payAmount)}</p>
+            {v?.canRemind && <button type="button" disabled={remind.isPending} onClick={(e) => { e.preventDefault(); remind.mutate(job.id); }} className="rounded-lg border border-[#E2ECF6] px-2.5 py-1 text-[10px] font-bold text-[#2563EB]">Send reminder</button>}
+          </div>} />;
+      })}</div>
+      {(query.data?.pagination?.totalPages ?? 1) > 1 && <Pagination current={page} pageSize={20} total={query.data?.pagination.total} onChange={setPage} showSizeChanger={false} />}
+    </QueryState>
+  </div>;
 }

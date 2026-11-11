@@ -1,285 +1,184 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Clock, MapPin, Truck, Wrench } from "lucide-react";
-import { ConfirmDeliveryModal } from "../Modals/ConfirmDeliveryModal";
-import { CancelOrderModal } from "../Modals/CancelOrderModal";
-import { useGetOrderDetail } from "../api/useGetOrderDetail";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, CheckCircle2, Circle, MapPin, Wrench } from "lucide-react";
+import { Popconfirm } from "antd";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { appPaths } from "@/app/router/paths";
+import { useCancelOrder, useConfirmDelivery, useGetOrderDetail, useRetryPayment, useVerifyPayment } from "../api";
+import { naira } from "../utils";
+import { ApproveInstallationModal, DisputeInstallationModal, RescheduleInstallationModal, ReturnItemModal, WriteReviewModal } from "../Modals/OrderActionModals";
+import type { PaymentOutcome } from "../types/api";
+
+const fmt = (iso: string | null) => iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null;
+const OUTCOME_TEXT: Partial<Record<PaymentOutcome, string>> = {
+  pending: "Waiting for payment confirmation…",
+  failed: "Payment not completed.",
+  amount_mismatch: "The amount paid didn't match this order. Please contact support.",
+  late_refunded: "Your payment arrived after the order expired; it was refunded to your wallet.",
+};
 
 export default function OrderDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { order } = useGetOrderDetail(id);
-  const orderRef = id || "ORD-2026-00847";
+  const [params, setParams] = useSearchParams();
+  const { order, isLoading, error, refetch } = useGetOrderDetail(id);
+  const cancel = useCancelOrder();
+  const confirmDelivery = useConfirmDelivery();
+  const retry = useRetryPayment();
+  const verify = useVerifyPayment();
+  const [modal, setModal] = useState<"return" | "reschedule" | "approve" | "dispute" | null>(params.get("return") === "1" ? "return" : null);
+  const [reviewProduct, setReviewProduct] = useState<{ id: number; name: string } | null>(null);
+  const [outcome, setOutcome] = useState<PaymentOutcome | null>(null);
+  const polls = useRef(0);
 
-  // Modals state
-  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
-  const [cancelOrderOpen, setCancelOrderOpen] = useState(false);
+  // Card payment return: verify while the order still awaits payment, polling ~1 min while pending.
+  const awaitingCard = Boolean(order?.actions.canPay && /card|opay/i.test(order.priceSummary?.paymentLine ?? ""));
+  useEffect(() => {
+    if (!awaitingCard || !id) return;
+    let timer: number | undefined;
+    const run = () => verify.mutate(id, {
+      onSuccess: (result) => {
+        setOutcome(result.outcome);
+        if (result.outcome === "pending" && polls.current++ < 15) timer = window.setTimeout(run, 4000);
+      },
+    });
+    run();
+    return () => window.clearTimeout(timer);
+    // Only re-run when the order starts/stops awaiting payment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaitingCard, id]);
+
+  if (isLoading) return <div className="space-y-4 animate-pulse"><div className="h-10 w-64 rounded bg-slate-100" /><div className="h-72 rounded-2xl bg-slate-100" /></div>;
+  if (!order) return <AppEmptyState title="Order not found" description={error?.message ?? "We couldn't load this order."} actionText="Back to My Orders" onAction={() => navigate(appPaths.orders)} />;
+
+  const actions = order.actions;
+  const inst = order.installation;
+  const verification = inst?.verification;
+  const closeModal = () => { setModal(null); if (params.get("return")) setParams({}, { replace: true }); };
 
   return (
     <div className="space-y-6">
       {/* Top Back & Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate("/marketplace/orders")}
-            className="rounded-xl border border-[#E2ECF6] bg-white p-2 text-[#0F152A] hover:bg-slate-50"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
+          <button type="button" onClick={() => navigate(appPaths.orders)} className="rounded-xl border border-[#E2ECF6] bg-white p-2 text-[#0F152A] hover:bg-slate-50"><ArrowLeft className="size-4" /></button>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-[#0F152A]">Order {orderRef}</h1>
-              <span className="rounded-full bg-[#EFF4F8] px-3 py-0.5 text-xs font-bold text-[#2563EB]">
-                Dispatched
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-[#0F152A]">Order {order.header?.orderRef ?? order.orderNumber}</h1>
+              <span className="rounded-full bg-[#EFF4F8] px-3 py-0.5 text-xs font-bold text-[#2563EB]">{order.statusLabel}</span>
             </div>
-            <p className="mt-0.5 text-xs text-[#8C909B]">Placed 24 Jun 2026</p>
+            <p className="mt-0.5 text-xs text-[#8C909B]">Placed {fmt(order.placedAt)}</p>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="rounded-xl border border-[#E2ECF6] bg-white px-4 py-2 text-xs font-bold text-[#0F152A] shadow-xs hover:bg-slate-50"
-        >
-          Need Help?
-        </button>
+        <button type="button" onClick={() => navigate(appPaths.support)} className="rounded-xl border border-[#E2ECF6] bg-white px-4 py-2 text-xs font-bold text-[#0F152A] shadow-xs hover:bg-slate-50">Need Help?</button>
       </div>
+
+      {outcome && OUTCOME_TEXT[outcome] && <div className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3 text-xs font-semibold ${outcome === "pending" ? "border-[#FCEEC1] bg-[#FFFBEB] text-[#D9990D]" : "border-[#F7D2D7] bg-[#FFF7F8] text-[#EF4444]"}`}>
+        <span>{OUTCOME_TEXT[outcome]}</span>
+        {outcome === "failed" && actions.canPay && <button type="button" disabled={retry.isPending} onClick={() => retry.mutate(order.id)} className="rounded-lg bg-[#2563EB] px-3 py-1.5 font-bold text-white">Try again</button>}
+      </div>}
 
       {/* Top Metric Summary Banner */}
       <div className="grid grid-cols-2 gap-4 rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 text-xs sm:grid-cols-5">
-        <div>
-          <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">ORDER REF</span>
-          <span className="font-extrabold text-[#0F152A]">{orderRef}</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">STATUS</span>
-          <span className="font-bold text-[#2563EB]">Dispatched</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">TOTAL</span>
-          <span className="font-extrabold text-[#0F152A]">₦349,999</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">ITEMS</span>
-          <span className="font-bold text-[#0F152A]">4 items</span>
-        </div>
-        <div>
-          <span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">EST. DELIVERY</span>
-          <span className="font-bold text-[#10B981]">28–30 Jun 2026</span>
-        </div>
+        <div><span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">ORDER REF</span><span className="font-extrabold text-[#0F152A]">{order.orderNumber}</span></div>
+        <div><span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">STATUS</span><span className="font-bold text-[#2563EB]">{order.statusLabel}</span></div>
+        <div><span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">TOTAL</span><span className="font-extrabold text-[#0F152A]">{naira(order.priceSummary?.total ?? order.totalAmount)}</span></div>
+        <div><span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">ITEMS</span><span className="font-bold text-[#0F152A]">{order.itemsCount} item{order.itemsCount === 1 ? "" : "s"}</span></div>
+        <div><span className="text-[10px] text-[#8C909B] font-bold uppercase tracking-wider block">{order.deliveredAt ? "DELIVERED" : "EST. DELIVERY"}</span><span className="font-bold text-[#10B981]">{order.deliveredAt ? fmt(order.deliveredAt) : order.estimatedDelivery?.label ?? "—"}</span></div>
       </div>
 
-      {/* Main 3-Column Grid */}
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left Column — Items & Address (4 cols) */}
+        {/* Left — Items, price summary & address */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Items Ordered Card */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-[#0F152A]">Items Ordered</h3>
-
             <div className="divide-y divide-[#E2ECF6] text-xs">
-              <div className="py-3 first:pt-0 space-y-1">
-                <div className="flex justify-between font-bold text-[#0F152A]">
-                  <span>Hikvision DS-2CD214 × 1</span>
-                  <span>₦184,999</span>
-                </div>
-                <div className="flex flex-wrap gap-1 pt-1">
-                  <span className="rounded bg-[#EBFFF8] px-1.5 py-0.5 text-[9px] font-bold text-[#10B981]">
-                    CCTV SIM: MTN · ₦5,000/mo
-                  </span>
-                  <span className="rounded bg-[#EFF4F8] px-1.5 py-0.5 text-[9px] font-bold text-[#2563EB]">
-                    Installation: Tue 25 Jun
-                  </span>
-                </div>
-              </div>
-
-              <div className="py-3 flex justify-between font-bold text-[#0F152A]">
-                <span>GPS Tracker Pro × 2</span>
-                <span>₦90,000</span>
-              </div>
-
-              <div className="py-3 flex justify-between font-bold text-[#0F152A]">
-                <span>GL-iNet Router × 1</span>
-                <span>₦35,000</span>
-              </div>
-
-              <div className="py-3 flex justify-between font-bold text-[#0F152A]">
-                <span>Installation fee × 1</span>
-                <span>₦40,000</span>
-              </div>
+              {order.itemsOrdered.map((item) => <div key={item.id} className="py-3 first:pt-0 space-y-1">
+                <div className="flex justify-between gap-3 font-bold text-[#0F152A]"><span>{item.name} × {item.quantity}</span><span>{naira(item.lineTotal)}</span></div>
+                {item.installationLabel && <span className="rounded bg-[#EFF4F8] px-1.5 py-0.5 text-[9px] font-bold text-[#2563EB]">{item.installationLabel}</span>}
+                {actions.canReview && <button type="button" onClick={() => setReviewProduct({ id: item.productId, name: item.name })} className="block text-[11px] font-bold text-[#2563EB] hover:underline">Write a review</button>}
+              </div>)}
             </div>
-
             <div className="divide-y divide-[#E2ECF6] border-t border-[#E2ECF6] pt-3 text-xs">
-              <div className="flex justify-between py-1 text-[#8C909B]">
-                <span>Subtotal</span>
-                <span className="font-bold text-[#0F152A]">₦349,999</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#8C909B]">
-                <span>Delivery</span>
-                <span className="font-bold text-[#10B981]">Free</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#8C909B]">
-                <span>Promo</span>
-                <span className="font-bold text-[#10B981]">-₦10,000</span>
-              </div>
-              <div className="flex justify-between py-2 pt-2 font-extrabold text-sm text-[#10B981]">
-                <span>Total</span>
-                <span>₦349,999</span>
-              </div>
+              {order.priceSummary.lines.map((line) => <div key={line.label} className="flex justify-between py-1 text-[#8C909B]"><span>{line.label}</span><span className={`font-bold ${line.amount < 0 || line.display ? "text-[#10B981]" : "text-[#0F152A]"}`}>{line.display ?? (line.amount < 0 ? `-${naira(-line.amount)}` : naira(line.amount))}</span></div>)}
+              <div className="flex justify-between py-2 pt-2 font-extrabold text-sm text-[#10B981]"><span>Total</span><span>{naira(order.priceSummary.total)}</span></div>
+              <p className="pt-2 text-[11px] text-[#8C909B]">{order.priceSummary.paymentLine}</p>
+              {order.refundNote && <p className="pt-1 text-[11px] font-semibold text-[#10B981]">{order.refundNote}</p>}
             </div>
           </div>
-
-          {/* Delivery Address Card */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-2">
-            <h4 className="font-extrabold text-xs text-[#0F152A] flex items-center gap-1.5">
-              <MapPin className="size-4 text-[#2563EB]" /> Yusuf Adam Baba
-            </h4>
-            <p className="text-xs text-[#66738C]">23 Allen Avenue, Ikeja, Lagos</p>
-            <p className="text-xs text-[#66738C]">Lagos State · 08065942373</p>
+            <h4 className="font-extrabold text-xs text-[#0F152A] flex items-center gap-1.5"><MapPin className="size-4 text-[#2563EB]" /> {order.deliveryAddress.fullName}</h4>
+            <p className="text-xs text-[#66738C]">{[order.deliveryAddress.addressLine, order.deliveryAddress.city].filter(Boolean).join(", ")}</p>
+            <p className="text-xs text-[#66738C]">{order.deliveryAddress.state} State · {order.deliveryAddress.phone}</p>
           </div>
         </div>
 
-        {/* Middle Column — Order Status Timeline & Installation (4 cols) */}
+        {/* Middle — timeline & installation */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Order Status Timeline Card */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-[#0F152A]">Order Status</h3>
-
             <div className="space-y-4 text-xs">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="size-4 text-[#10B981] shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="font-bold text-[#0F152A]">Order Placed</h5>
-                  <p className="text-[11px] text-[#8C909B]">24 Jun 2026 · 03:47 PM</p>
-                  <p className="text-[10px] text-[#10B981] font-semibold">Payment confirmed · ₦349,999</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="size-4 text-[#10B981] shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="font-bold text-[#0F152A]">Order Confirmed</h5>
-                  <p className="text-[11px] text-[#8C909B]">24 Jun 2026 · 04:15 PM</p>
-                  <p className="text-[10px] text-[#8C909B]">Stock verified, preparing shipment</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Truck className="size-4 text-[#2563EB] shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="font-bold text-[#2563EB]">Dispatched</h5>
-                  <p className="text-[11px] text-[#8C909B]">25 Jun 2026 · 09:30 AM</p>
-                  <p className="text-[10px] font-mono text-[#2563EB]">Tracking: AGL-2026-00847-LAG</p>
-                  <p className="text-[10px] text-[#8C909B]">Shipped via Simkash Logistics</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 opacity-60">
-                <Clock className="size-4 text-[#8C909B] shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="font-bold text-[#8C909B]">Delivery Pending</h5>
-                  <p className="text-[11px] text-[#8C909B]">Est. 28–30 Jun 2026</p>
-                </div>
-              </div>
+              {order.timeline.map((entry) => <div key={entry.key + (entry.at ?? "")} className={`flex items-start gap-3 ${entry.done ? "" : "opacity-60"}`}>
+                {entry.done ? <CheckCircle2 className="size-4 text-[#10B981] shrink-0 mt-0.5" /> : <Circle className="size-4 text-[#8C909B] shrink-0 mt-0.5" />}
+                <div><h5 className={`font-bold ${entry.done ? "text-[#0F152A]" : "text-[#8C909B]"}`}>{entry.title}</h5>
+                  {entry.at && <p className="text-[11px] text-[#8C909B]">{fmt(entry.at)}</p>}
+                  {entry.note && <p className="text-[10px] text-[#8C909B]">{entry.note}</p>}</div>
+              </div>)}
             </div>
           </div>
 
-          {/* Installation Appointment Card */}
-          <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-3">
+          {inst && <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-[#0F152A] flex items-center gap-1.5">
-                <Wrench className="size-4 text-[#2563EB]" /> Installation
-              </h3>
-              <span className="rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[10px] font-bold text-[#D9990D]">
-                Scheduled
-              </span>
+              <h3 className="text-xs font-bold text-[#0F152A] flex items-center gap-1.5"><Wrench className="size-4 text-[#2563EB]" /> Installation</h3>
+              <span className="rounded-full bg-[#FFFBEB] px-2.5 py-0.5 text-[10px] font-bold text-[#D9990D] capitalize">{inst.label || inst.status}</span>
             </div>
-
             <div className="divide-y divide-[#E2ECF6] text-xs">
-              <div className="flex justify-between py-1.5 first:pt-0">
-                <span className="text-[#8C909B]">Date</span>
-                <span className="font-bold text-[#0F152A]">Tue 25 Jun 2026</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-[#8C909B]">Time</span>
-                <span className="font-bold text-[#0F152A]">Morning (9AM–12PM)</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-[#8C909B]">Installer</span>
-                <span className="font-bold text-[#0F152A]">TBD (being assigned)</span>
-              </div>
-              <div className="flex justify-between py-1.5 last:pb-0">
-                <span className="text-[#8C909B]">Location</span>
-                <span className="font-bold text-[#0F152A]">23 Allen Avenue, Ikeja</span>
-              </div>
+              {([["Date", inst.dateLabel], ["Time", inst.timeLabel], ["Installer", inst.installer ? `${inst.installer.name} · ${inst.installer.phone}` : inst.installerLabel], ["Location", inst.location]] as const).filter(([, v]) => v).map(([label, value]) =>
+                <div key={label} className="flex justify-between gap-3 py-1.5 first:pt-0 last:pb-0"><span className="text-[#8C909B]">{label}</span><span className="text-right font-bold text-[#0F152A]">{value}</span></div>)}
             </div>
-
-            <div className="rounded-xl border border-[#FCEEC1] bg-[#FFFBEB] p-2.5 text-[11px] text-[#D9990D] font-semibold">
-              Installer will call you 1 hour before arrival to confirm.
-            </div>
-
-            <button type="button" className="text-xs font-bold text-[#2563EB] hover:underline">
-              Reschedule Installation
-            </button>
-          </div>
+            {inst.note && <div className="rounded-xl border border-[#FCEEC1] bg-[#FFFBEB] p-2.5 text-[11px] text-[#D9990D] font-semibold">{inst.note}</div>}
+            {verification?.stage === "awaiting_you" && <div className="space-y-2 rounded-xl border border-[#2563EB]/30 bg-[#EFF4F8] p-3 text-[11px]">
+              <p className="font-bold text-[#0F152A]">The installer has finished. Please confirm the job.</p>
+              {verification.respondBy && <p className="text-[#66738C]">Respond by {fmt(verification.respondBy)}, or Simkash may confirm it for you.</p>}
+              <div className="flex gap-2">
+                {actions.canApproveInstallation && <button type="button" onClick={() => setModal("approve")} className="rounded-lg bg-[#10B981] px-3 py-1.5 font-bold text-white">Confirm & rate</button>}
+                {actions.canDisputeInstallation && <button type="button" onClick={() => setModal("dispute")} className="rounded-lg border border-[#EF4444] px-3 py-1.5 font-bold text-[#EF4444]">Report a problem</button>}
+              </div>
+            </div>}
+            {verification?.stage === "disputed" && <p className="text-[11px] font-semibold text-[#D9990D]">Problem reported. Simkash's team will follow up.</p>}
+            {verification?.rating && <p className="text-[11px] text-[#66738C]">You rated this installation {verification.rating.rating}/5.</p>}
+            {actions.canRescheduleInstallation && <button type="button" onClick={() => setModal("reschedule")} className="text-xs font-bold text-[#2563EB] hover:underline">Reschedule Installation</button>}
+          </div>}
         </div>
 
-        {/* Right Column — Actions & Seller Card (4 cols) */}
+        {/* Right — actions & seller */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Actions Panel */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-3">
-            <button
-              type="button"
-              className="w-full rounded-xl bg-[#2563EB] py-3 text-xs font-bold text-white shadow-md hover:bg-blue-700"
-            >
-              Track Package
-            </button>
-            <button
-              type="button"
-              className="w-full rounded-xl border border-[#E2ECF6] py-2.5 text-xs font-bold text-[#0F152A] hover:bg-slate-50"
-            >
-              Contact Support
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDeliveryOpen(true)}
-              className="w-full rounded-xl border border-[#10B981] text-[#10B981] py-2.5 text-xs font-bold hover:bg-emerald-50"
-            >
-              Confirm Delivery
-            </button>
-            <button
-              type="button"
-              onClick={() => setCancelOrderOpen(true)}
-              disabled={!order || !["pending", "paid"].includes(order.status)}
-              className="w-full rounded-xl border border-[#EF4444] text-[#EF4444] py-2.5 text-xs font-bold hover:bg-red-50"
-            >
-              Cancel Order
-            </button>
+            {order.tracking && <div className="rounded-xl bg-[#F8FAFC] p-3 text-xs"><p className="font-bold text-[#0F152A]">Track Package</p><p className="font-mono text-[#2563EB]">{order.tracking.trackingNumber}</p><p className="text-[#8C909B]">{order.tracking.carrier}{order.tracking.shippedAt ? ` · shipped ${fmt(order.tracking.shippedAt)}` : ""}</p></div>}
+            {actions.canPay && <button type="button" disabled={retry.isPending} onClick={() => retry.mutate(order.id)} className="w-full rounded-xl bg-[#2563EB] py-3 text-xs font-bold text-white shadow-md hover:bg-blue-700 disabled:opacity-50">Pay now</button>}
+            {actions.canConfirmDelivery && <Popconfirm title="Confirm you received this order?" okText="Yes, received" onConfirm={() => confirmDelivery.mutateAsync({ orderId: order.id }).catch(() => undefined)}>
+              <button type="button" disabled={confirmDelivery.isPending} className="w-full rounded-xl border border-[#10B981] text-[#10B981] py-2.5 text-xs font-bold hover:bg-emerald-50">Confirm Delivery</button>
+            </Popconfirm>}
+            {actions.canReturn && <button type="button" onClick={() => setModal("return")} className="w-full rounded-xl border border-[#E2ECF6] py-2.5 text-xs font-bold text-[#0F152A] hover:bg-slate-50">Return Item</button>}
+            <button type="button" onClick={() => navigate(appPaths.support)} className="w-full rounded-xl border border-[#E2ECF6] py-2.5 text-xs font-bold text-[#0F152A] hover:bg-slate-50">Contact Support</button>
+            {actions.canCancel && <Popconfirm title="Cancel this order?" description="Wallet payments are refunded automatically." okText="Cancel order" okButtonProps={{ danger: true }} onConfirm={() => cancel.mutateAsync({ orderId: order.id }).catch(() => undefined)}>
+              <button type="button" disabled={cancel.isPending} className="w-full rounded-xl border border-[#EF4444] text-[#EF4444] py-2.5 text-xs font-bold hover:bg-red-50">Cancel Order</button>
+            </Popconfirm>}
+            {order.returnWindowEndsAt && actions.canReturn && <p className="text-center text-[10px] text-[#8C909B]">Returns accepted until {fmt(order.returnWindowEndsAt)}</p>}
           </div>
-
-          {/* Seller Card */}
           <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-2">
-            <h4 className="font-extrabold text-sm text-[#0F152A]">Simkash Direct ✓</h4>
-            <p className="text-xs text-[#10B981] font-semibold">Verified seller</p>
-            <button type="button" className="text-xs font-bold text-[#2563EB] hover:underline pt-1 block">
-              Contact Seller
-            </button>
+            <h4 className="font-extrabold text-sm text-[#0F152A]">{order.seller?.name ?? "Simkash"} {order.seller?.verified && "✓"}</h4>
+            {order.seller?.verified && <p className="text-xs text-[#10B981] font-semibold">Verified seller</p>}
+            <button type="button" onClick={() => navigate(appPaths.support)} className="text-xs font-bold text-[#2563EB] hover:underline pt-1 block">Contact Seller</button>
           </div>
         </div>
       </div>
 
-      {/* Modals */}
-      <ConfirmDeliveryModal
-        open={confirmDeliveryOpen}
-        onOpenChange={setConfirmDeliveryOpen}
-        orderRef={orderRef}
-      />
-      <CancelOrderModal
-        open={cancelOrderOpen}
-        onOpenChange={setCancelOrderOpen}
-        order={order ?? null}
-      />
+      <ReturnItemModal orderId={order.id} open={modal === "return"} onClose={() => { closeModal(); void refetch(); }} />
+      <RescheduleInstallationModal orderId={order.id} open={modal === "reschedule"} onClose={closeModal} />
+      <ApproveInstallationModal orderId={order.id} open={modal === "approve"} onClose={closeModal} />
+      <DisputeInstallationModal orderId={order.id} open={modal === "dispute"} onClose={closeModal} />
+      <WriteReviewModal product={reviewProduct} onClose={() => setReviewProduct(null)} />
     </div>
   );
 }

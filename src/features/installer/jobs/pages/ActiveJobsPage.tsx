@@ -1,290 +1,59 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, Briefcase } from "lucide-react";
-import { message } from "antd";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Pagination } from "antd";
+import { MapPin, Phone, Search } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
-import { AppEmptyState } from "@/components/common/AppEmptyState";
-import { appPaths } from "@/app/router/paths";
-import type { JobDetailItem } from "../types";
-import { ACTIVE_JOBS_LIST } from "../data/jobs.data";
-import { ActiveJobCard } from "../components/ActiveJobCard";
-import { ActiveJobsSidebar } from "../components/ActiveJobsSidebar";
-import { StartJobModal } from "../modals/StartJobModal";
-import { UpdateProgressModal } from "../modals/UpdateProgressModal";
-import { SubmitJobVerificationModal } from "../modals/SubmitJobVerificationModal";
-import { ContactClientModal } from "../modals/ContactClientModal";
-import { ReportIssueModal } from "../modals/ReportIssueModal";
-import { MapDirectionsModal } from "../modals/MapDirectionsModal";
-import { GuidelinesModal } from "../modals/GuidelinesModal";
-import { JobStartedSuccessModal } from "../modals/JobStartedSuccessModal";
-import { VerificationSubmittedSuccessModal } from "../modals/VerificationSubmittedSuccessModal";
-import { NewJobAssignedModal } from "../modals/NewJobAssignedModal";
-import { StartEasyBuyJobModal } from "../modals/StartEasyBuyJobModal";
-import { CustomerEasyBuyPlanModal } from "../modals/CustomerEasyBuyPlanModal";
+import { useDebouncedValue } from "@/features/corporate-agent/inventory/api/useDebouncedValue";
+import { useInstallerJobs, type JobsTab } from "../../api";
+import { QueryState, StatusBadge } from "../../ui";
+import { clientName, jobPath, naira } from "../../format";
 
+const TABS: { key: JobsTab; label: string }[] = [
+  { key: "all", label: "All" }, { key: "assigned", label: "Assigned" }, { key: "in_progress", label: "In Progress" },
+  { key: "on_hold", label: "On Hold" }, { key: "pending_verification", label: "Awaiting verification" }, { key: "completed", label: "Completed" },
+];
+
+/** GET /installer/jobs — tabs with counts, search and sort. Open a job to act on it. */
 export default function ActiveJobsPage() {
-  const navigate = useNavigate();
-  const [filter, setFilter] = useState<string>("All Active");
-  const [search, setSearch] = useState<string>("");
-  const [selectedJob, setSelectedJob] = useState<JobDetailItem | null>(null);
+  const [tab, setTab] = useState<JobsTab>("all");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("deadline");
+  const [page, setPage] = useState(1);
+  const debounced = useDebouncedValue(search.trim());
+  const query = useInstallerJobs({ tab, search: debounced || undefined, sort: tab === "completed" && sort === "deadline" ? "recent" : sort, page, limit: 20 });
+  const jobs = query.data?.jobs ?? [];
+  const counts = query.data?.tabCounts;
 
-  // Modals state
-  const [startModalOpen, setStartModalOpen] = useState(false);
-  const [startEasyBuyModalOpen, setStartEasyBuyModalOpen] = useState(false);
-  const [easyBuyPlanModalOpen, setEasyBuyPlanModalOpen] = useState(false);
-  const [progressModalOpen, setProgressModalOpen] = useState(false);
-  const [submitModalOpen, setSubmitModalOpen] = useState(false);
-  const [contactModalOpen, setContactModalOpen] = useState(false);
-  const [issueModalOpen, setIssueModalOpen] = useState(false);
-  const [mapModalOpen, setMapModalOpen] = useState(false);
-  const [guidelinesModalOpen, setGuidelinesModalOpen] = useState(false);
-  const [startedSuccessModalOpen, setStartedSuccessModalOpen] = useState(false);
-  const [submitSuccessModalOpen, setSubmitSuccessModalOpen] = useState(false);
-  const [newJobModalOpen, setNewJobModalOpen] = useState(false);
-
-  const filterTabs = [
-    { label: "All Active", count: 3 },
-    { label: "Assigned", count: 1 },
-    { label: "In Progress", count: 2 },
-    { label: "On Hold", count: 0 },
-  ];
-
-  const filteredJobs = useMemo(() => {
-    return ACTIVE_JOBS_LIST.filter((job) => {
-      if (filter === "Assigned" && job.status !== "Assigned") return false;
-      if (filter === "In Progress" && job.status !== "In Progress") return false;
-      if (filter === "On Hold" && job.status !== "On Hold") return false;
-      if (search.trim()) {
-        const query = search.toLowerCase();
-        return (
-          job.reference.toLowerCase().includes(query) ||
-          job.title.toLowerCase().includes(query) ||
-          job.client.company.toLowerCase().includes(query) ||
-          job.client.address.toLowerCase().includes(query)
-        );
-      }
-      return true;
-    });
-  }, [filter, search]);
-
-  return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        title="Active Jobs"
-        description="All jobs currently assigned to you"
-        actions={[
-          {
-            key: "new-assignment",
-            label: "Review New Assignment",
-            variant: "outline",
-            icon: <Briefcase className="size-3.5 text-[#7C3AED]" />,
-            onClick: () => {
-              setSelectedJob(ACTIVE_JOBS_LIST[0]);
-              setNewJobModalOpen(true);
-            },
-          },
-        ]}
-        extra={
-          <span className="text-xs font-black text-[#2563EB] sm:text-sm">
-            {filteredJobs.length} Active Jobs · ₦185,000 potential
-          </span>
-        }
-      />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {filterTabs.map((tab) => (
-            <button
-              key={tab.label}
-              type="button"
-              onClick={() => setFilter(tab.label)}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                filter === tab.label
-                  ? "bg-[#0F152A] text-white"
-                  : "border border-[#E2ECF6] bg-white text-[#66738C] hover:text-[#0F152A]"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                  filter === tab.label ? "bg-white/20 text-white" : "bg-[#EFF4F8] text-[#66738C]"
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-[#8C909B]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search reference, client, location..."
-              className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-1.5 pl-9 pr-3 text-xs text-[#0F152A] outline-none transition focus:border-[#2563EB]"
-            />
-          </div>
-
-          <div className="hidden items-center gap-1 rounded-2xl border border-[#E2ECF6] bg-white px-3 py-1.5 text-xs font-semibold text-[#0F152A] sm:flex">
-            <span>Sort: Earliest Due</span>
-            <ChevronDown className="size-3.5 text-[#8C909B]" />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          {filteredJobs.length === 0 ? (
-            <div className="rounded-3xl border border-[#E2ECF6] bg-white p-6 shadow-xs">
-              <AppEmptyState
-                title="No Active Jobs"
-                description="You have no active installation jobs matching your current filter criteria."
-              />
-            </div>
-          ) : (
-            filteredJobs.map((job) => (
-              <ActiveJobCard
-                key={job.id}
-                job={job}
-                onViewDetails={() => {
-                  if (job.isEasyBuy) {
-                    navigate(appPaths.installerJobsEasyBuyDetails(job.reference).path);
-                  } else {
-                    navigate(appPaths.installerJobDetails(job.reference).path);
-                  }
-                }}
-                onViewPlan={() => {
-                  setSelectedJob(job);
-                  setEasyBuyPlanModalOpen(true);
-                }}
-                onNavigate={() => {
-                  setSelectedJob(job);
-                  setMapModalOpen(true);
-                }}
-                onContactClient={() => {
-                  setSelectedJob(job);
-                  setContactModalOpen(true);
-                }}
-                onStartJob={() => {
-                  setSelectedJob(job);
-                  if (job.isEasyBuy) {
-                    setStartEasyBuyModalOpen(true);
-                  } else {
-                    setStartModalOpen(true);
-                  }
-                }}
-                onUpdateProgress={() => {
-                  setSelectedJob(job);
-                  setProgressModalOpen(true);
-                }}
-                onMarkComplete={() => {
-                  setSelectedJob(job);
-                  setSubmitModalOpen(true);
-                }}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="space-y-4 lg:col-span-1">
-          <ActiveJobsSidebar
-            jobs={ACTIVE_JOBS_LIST}
-            onContactAdmin={() => message.info("Opening Super Admin chat")}
-            onReportProblem={() => {
-              setSelectedJob(ACTIVE_JOBS_LIST[0]);
-              setIssueModalOpen(true);
-            }}
-            onViewGuidelines={() => setGuidelinesModalOpen(true)}
-            onOpenMap={() => {
-              setSelectedJob(ACTIVE_JOBS_LIST[0]);
-              setMapModalOpen(true);
-            }}
-          />
-        </div>
-      </div>
-
-      <StartJobModal
-        open={startModalOpen}
-        onOpenChange={setStartModalOpen}
-        job={selectedJob}
-        onStartSuccess={() => setStartedSuccessModalOpen(true)}
-      />
-
-      <UpdateProgressModal
-        open={progressModalOpen}
-        onOpenChange={setProgressModalOpen}
-        job={selectedJob}
-        onUpdateSuccess={(p) => message.success(`Progress updated to ${p}%!`)}
-      />
-
-      <SubmitJobVerificationModal
-        open={submitModalOpen}
-        onOpenChange={setSubmitModalOpen}
-        job={selectedJob}
-        onSubmitSuccess={() => setSubmitSuccessModalOpen(true)}
-      />
-
-      <ContactClientModal open={contactModalOpen} onOpenChange={setContactModalOpen} client={selectedJob?.client} />
-
-      <ReportIssueModal
-        open={issueModalOpen}
-        onOpenChange={setIssueModalOpen}
-        jobRef={selectedJob?.reference}
-        onSubmitSuccess={() => message.success("Issue submitted to Super Admin dispatch.")}
-      />
-
-      <MapDirectionsModal
-        open={mapModalOpen}
-        onOpenChange={setMapModalOpen}
-        address={selectedJob?.client.address}
-        clientName={selectedJob?.client.company}
-        landmark={selectedJob?.client.nearestLandmark}
-        distanceKm={selectedJob?.distanceKm}
-      />
-
-      <GuidelinesModal open={guidelinesModalOpen} onOpenChange={setGuidelinesModalOpen} />
-
-      <JobStartedSuccessModal
-        open={startedSuccessModalOpen}
-        onOpenChange={setStartedSuccessModalOpen}
-        jobRef={selectedJob?.reference}
-        jobTitle={selectedJob?.title}
-        onGoToJob={() => {
-          if (selectedJob) navigate(appPaths.installerJobDetails(selectedJob.reference).path);
-        }}
-      />
-
-      <VerificationSubmittedSuccessModal
-        open={submitSuccessModalOpen}
-        onOpenChange={setSubmitSuccessModalOpen}
-        jobRef={selectedJob?.reference}
-        fee={selectedJob?.fee}
-        onGoToPending={() => navigate(appPaths.installerJobsPending)}
-      />
-
-      <NewJobAssignedModal
-        open={newJobModalOpen}
-        onOpenChange={setNewJobModalOpen}
-        job={selectedJob}
-        onAcceptJob={() => message.success("Job accepted! Coordinates logged.")}
-        onContactAdmin={() => message.info("Opening admin contact dispatch")}
-      />
-
-      <StartEasyBuyJobModal
-        open={startEasyBuyModalOpen}
-        onOpenChange={setStartEasyBuyModalOpen}
-        job={selectedJob}
-        onConfirmStart={() => setStartedSuccessModalOpen(true)}
-      />
-
-      <CustomerEasyBuyPlanModal
-        open={easyBuyPlanModalOpen}
-        onOpenChange={setEasyBuyPlanModalOpen}
-        plan={selectedJob?.easyBuyPlan}
-      />
+  return <div className="space-y-5 pb-12">
+    <PageHeader title="My Jobs" description="Every installation assigned to you" />
+    <div className="flex gap-1.5 overflow-x-auto pb-1">{TABS.map((item) => <button key={item.key} type="button" onClick={() => { setTab(item.key); setPage(1); }}
+      className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold ${tab === item.key ? "bg-[#2563EB] text-white" : "border border-[#E2ECF6] bg-white text-[#66738C]"}`}>{item.label}{counts ? ` (${counts[item.key] ?? 0})` : ""}</button>)}</div>
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8C909B]" />
+        <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search job number, client, address, order…" className="w-full rounded-xl border border-[#E2ECF6] bg-white py-2.5 pl-9 pr-3 text-xs outline-none focus:border-[#2563EB]" /></div>
+      <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-xl border border-[#E2ECF6] bg-white px-3 py-2.5 text-xs font-semibold"><option value="deadline">Deadline</option><option value="schedule">Schedule</option><option value="recent">Most recent</option></select>
     </div>
-  );
+    <QueryState loading={query.isLoading} error={query.error} retry={() => void query.refetch()} empty={!jobs.length} emptyTitle="No jobs found" emptyDescription="Jobs assigned to you will appear here.">
+      <div className={`grid gap-3 md:grid-cols-2 ${query.isFetching ? "opacity-70" : ""}`}>{jobs.map((job) => <Link key={job.id} to={jobPath(job.id)} className="space-y-2 rounded-2xl border border-[#E2ECF6] bg-white p-4 text-xs shadow-xs transition hover:border-[#2563EB]">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0"><p className="font-mono text-[10px] font-bold text-[#2563EB]">{job.jobNumber}{job.orderNumber ? ` · ${job.orderNumber}` : ""} · {job.source === "marketplace" ? "Marketplace" : "Direct"}</p>
+            <p className="truncate text-sm font-extrabold text-[#0F152A]">{job.title ?? job.jobType?.name ?? "Installation"}</p></div>
+          <StatusBadge job={job} />
+        </div>
+        <p className="text-[#66738C]">{clientName(job.client)}{job.client?.contactName && job.client.company ? ` · ${job.client.contactName}` : ""}</p>
+        <p className="flex items-center gap-1 text-[#66738C]"><MapPin className="size-3" /><span className="truncate">{[job.address, job.area].filter(Boolean).join(", ") || "—"}</span></p>
+        {job.onHold && job.holdReason && <p className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] text-[#0F152A]">On hold: {job.holdReason}</p>}
+        <div className="flex items-center justify-between border-t border-[#E2ECF6] pt-2">
+          <span className="text-[#8C909B]">{job.dateLabel ?? "—"}{job.slotLabel ? ` · ${job.slotLabel}` : ""}{job.deadline ? ` · due ${job.deadline}` : ""}</span>
+          <span className="font-extrabold text-[#0F152A]">{job.payAmount == null ? <span className="text-[10px] text-[#D9990D]">Pay not set yet</span> : naira(job.payAmount)}</span>
+        </div>
+        <div className="flex gap-3 text-[11px] font-bold">
+          {job.client?.phone && <a href={`tel:${job.client.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[#2563EB]"><Phone className="size-3" />Call</a>}
+          {job.address && <a href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[#2563EB]"><MapPin className="size-3" />Directions</a>}
+          {typeof job.photoCount === "number" && <span className="ml-auto text-[#8C909B]">{job.photoCount} photo{job.photoCount === 1 ? "" : "s"}</span>}
+        </div>
+      </Link>)}</div>
+      {(query.data?.pagination?.totalPages ?? 1) > 1 && <Pagination current={page} pageSize={20} total={query.data?.pagination.total} onChange={setPage} showSizeChanger={false} />}
+    </QueryState>
+  </div>;
 }

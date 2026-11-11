@@ -6,6 +6,7 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderDetailsPage from "./pages/OrderDetailsPage";
 import OrdersHistoryPage from "./pages/OrdersHistoryPage";
+import WishlistPage from "./pages/WishlistPage";
 
 export const MarketplaceRoutes: TRouteData[] = [
   {
@@ -24,6 +25,12 @@ export const MarketplaceRoutes: TRouteData[] = [
     path: "/marketplace/checkout",
     element: <CheckoutPage />,
     title: "Checkout",
+    isSearchable: true,
+  },
+  {
+    path: "/marketplace/wishlist",
+    element: <WishlistPage />,
+    title: "My Wishlist",
     isSearchable: true,
   },
   {

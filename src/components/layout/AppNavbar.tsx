@@ -1,4 +1,5 @@
-import { Bell, Loader2, LogOut, Search, Settings } from "lucide-react";
+import { Loader2, LogOut, Search, Settings } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
 import { useLocation, useNavigate } from "react-router-dom";
 import { appPaths } from "@/app/router/paths";
 import { appRouteConfig } from "@/app/router/routes";
@@ -64,15 +65,7 @@ export function AppNavbar() {
           <Search className="size-5 text-[#0F152A]" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifications"
-          className="relative text-[#0F152A] hover:bg-slate-100"
-        >
-          <Bell className="size-5 text-[#0F152A]" />
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-[#EF4444]" />
-        </Button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger

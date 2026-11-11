@@ -6,7 +6,7 @@ export function MarketplaceStatsCards({ stats, compact = false, variant = "dashb
     { label: "Total Orders", value: stats?.totalOrders ?? 0, Icon: ShoppingBag, color: "text-[#2563EB]", bg: "bg-blue-50" },
     { label: "Pending Orders", value: stats?.pendingOrders ?? 0, Icon: Clock3, color: "text-[#F59E0B]", bg: "bg-amber-50" },
     { label: "Completed Orders", value: stats?.completedOrders ?? 0, Icon: CheckCircle2, color: "text-[#10B981]", bg: "bg-emerald-50" },
-    { label: "Total Spend", value: `₦${Number(stats?.totalSpend ?? 0).toLocaleString("en-NG")}`, Icon: Wallet, color: "text-[#0F152A]", bg: "bg-slate-100" },
+    { label: "Total Spend", value: stats?.totalSpend === undefined ? "—" : `₦${Number(stats.totalSpend).toLocaleString("en-NG")}`, Icon: Wallet, color: "text-[#0F152A]", bg: "bg-slate-100" },
   ];
   const compactLabels = variant === "orders" ? ["Total Spend", "Completed Orders", "Pending Orders"] : ["Total Orders", "Pending Orders", "Total Spend"];
   const visibleCards = compact ? cards.filter((card) => compactLabels.includes(card.label)) : cards;
