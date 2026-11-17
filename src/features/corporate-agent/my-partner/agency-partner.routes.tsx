@@ -1,4 +1,5 @@
 import type { TRouteData } from "@/app/router/route-types";
+import SimSwapPage from "@/features/agency-partner/sim-swap/SimSwapPage";
 import { appPaths } from "@/app/router/paths";
 import AgencyPartnerPage from "./pages/AgencyPartnerPage";
 import AgencyPartnerDetailsPage from "./pages/AgencyPartnerDetailsPage";
@@ -15,6 +16,7 @@ export const AgencyPartnerRoutes: TRouteData[] = [
   { path: appPaths.apSimStock, element: <ApSimStockPage />, title: "My SIM Stock", isSearchable: true },
   { path: "/sim-stock/ap", element: <ApSimStockPage />, title: "My SIM Stock", isSearchable: false },
   { path: appPaths.apCustomers, element: <ApCustomersPage />, title: "My Customers", isSearchable: true },
+  { path: appPaths.apSimSwap, element: <SimSwapPage />, title: "SIM Swap", isSearchable: true },
   { path: appPaths.apWallet, element: <ApWalletPage />, title: "Commission Wallet", isSearchable: true },
   { path: appPaths.apCustomerDetails().format, element: <CustomerDetailsPage />, title: "Customer Details", isSearchable: false },
   { path: appPaths.agencyPartnerDetails().format, element: <AgencyPartnerDetailsPage />, title: "Agency Partner Details", isSearchable: false },

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { PndDialog } from "@/features/pnd/PndControls";
+import { pndBase } from "@/features/pnd/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, ArrowRight, CardSim, CheckCircle2, Search, Trophy, UserPlus, Users } from "lucide-react";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
@@ -17,7 +19,7 @@ const PAGE_SIZE = 8;
 const STATUS_OPTIONS = [["all", "All statuses"], ["active", "Active"], ["low_stock", "Low stock"], ["suspended", "Suspended"], ["new", "New"]];
 const BONUS_OPTIONS = [["all", "All bonuses"], ["achieved", "Achieved"], ["on_track", "On track"], ["at_risk", "At risk"], ["missed", "Missed"]];
 
-type ModalState = { type: "onboard" | "bulk-remind" } | { type: "remind"; target: ScPartnerTarget } | { type: "suspend"; target: ScPartnerTarget; suspended: boolean };
+type ModalState = { type: "onboard" | "bulk-remind" } | { type: "remind"; target: ScPartnerTarget } | { type: "suspend"; target: ScPartnerTarget; suspended: boolean } | { type: "pnd"; mode: "place" | "lift"; target: ScPartnerTarget };
 
 export function ScAgencyPartnersPage() {
   const navigate = useNavigate();
@@ -109,6 +111,7 @@ export function ScAgencyPartnersPage() {
                       onDistribute={() => distribute(partner.id)}
                       onRemind={() => setModal({ type: "remind", target: partner })}
                       onSuspend={() => setModal({ type: "suspend", target: partner, suspended: partner.status === "suspended" })}
+                      onPnd={(mode) => setModal({ type: "pnd", mode, target: { id: partner.agent_id ?? partner.id, name: partner.name } })}
                     />
                   ))}
                 </div>}
@@ -141,6 +144,7 @@ export function ScAgencyPartnersPage() {
       </div>
 
       {modal?.type === "onboard" && <OnboardAgencyPartnerModal onClose={close} />}
+      {modal?.type === "pnd" && <PndDialog mode={modal.mode} name={modal.target.name} url={pndBase.partner(modal.target.id)} onClose={close} />}
       {modal?.type === "remind" && <SendAgentReminderModal target={modal.target} onClose={close} />}
       {modal?.type === "bulk-remind" && <BulkAtRiskReminderModal onClose={close} />}
       {modal?.type === "suspend" && <SuspendAgentModal target={modal.target} suspended={modal.suspended} onClose={close} />}

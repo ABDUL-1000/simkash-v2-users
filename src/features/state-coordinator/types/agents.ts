@@ -1,3 +1,5 @@
+import type { PndState } from "@/features/pnd/api";
+
 export interface ScAgencyPartnersOverviewData {
   cards: {
     total_aps: { count: number; label: string; subtitle: string };
@@ -46,6 +48,8 @@ export interface ScAgencyPartnersOverviewData {
     customers_count: number;
     acts_per_month: number;
     bonus_milestone: string;
+    agent_id?: number;
+    pnd?: PndState;
   }>;
   pagination: {
     total_items: number;
@@ -66,10 +70,13 @@ export interface ScAgentDetailData {
   };
   hero: {
     id: number;
+    agent_id?: number;
     name: string;
     initials: string;
     phone: string;
     status: string;
+    pnd?: PndState;
+    can_place_pnd?: boolean;
   };
   profile_details: {
     fullname: string;

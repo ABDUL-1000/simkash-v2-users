@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PndBadge, PndDialog, PndLockedNote } from "@/features/pnd/PndControls";
+import { pndBase, usePndStatus } from "@/features/pnd/api";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "antd";
 import { ArrowLeft } from "lucide-react";
@@ -20,7 +22,8 @@ export function RegionalManagerCoordinatorPage() {
   const valid = Boolean(value && /^\d+$/.test(value) && Number.isSafeInteger(number) && number > 0);
   const query = useGetRmCoordinatorDetail(valid ? number : undefined);
   const navigate = useNavigate();
-  const [modal, setModal] = useState<RmProfileAction | null>(null);
+  const [modal, setModal] = useState<RmProfileAction | "placePnd" | "liftPnd" | null>(null);
+  const pnd = usePndStatus(valid ? pndBase.coordinator(number) : undefined).data;
   const close = () => setModal(null);
   const data = query.data;
   if (!valid) return <AppEmptyState title="Invalid coordinator" description="Select a coordinator from your network." actionText="My state coordinators" onAction={() => navigate(appPaths.rmStateCoordinators)} />;
@@ -32,13 +35,15 @@ export function RegionalManagerCoordinatorPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center"><span className="flex size-14 shrink-0 items-center justify-center rounded-full text-xl font-bold" style={{ background: colors.blues.surfaceLight, color: colors.primary }}>{data.hero.initials}</span><div className="min-w-0 flex-1"><PageHeader title={data.hero.name} description={`${data.hero.phone} · ${data.hero.location}`} actions={[
         { key: "distribute", label: "Distribute SIMs", style: { background: colors.success, borderColor: colors.success }, onClick: () => setModal("distribute") },
         { key: "suspend", label: data.hero.status.toLowerCase() === "suspended" ? "Reactivate SC" : "Suspend SC", variant: "destructive", onClick: () => setModal("suspend") },
+        ...(pnd?.can_lift ? [{ key: "liftPnd", label: "Lift PND", variant: "outline" as const, onClick: () => setModal("liftPnd") }] : pnd && !pnd.is_pnd && data.hero.status.toLowerCase() !== "suspended" ? [{ key: "placePnd", label: "Place on PND", variant: "outline" as const, onClick: () => setModal("placePnd") }] : []),
         { key: "contact", render: () => <Button href={`tel:${data.hero.phone.replace(/[^+\d]/g, "")}`}>Contact SC</Button> },
-      ]} /><div className="mt-2 flex gap-2"><RmStatus value={data.hero.status} /><RmStatus value="State Coordinator" /></div></div></div>
+      ]} /><div className="mt-2 flex gap-2"><RmStatus value={data.hero.status} /><RmStatus value="State Coordinator" /><PndBadge pnd={pnd} /></div><PndLockedNote pnd={pnd} /></div></div>
       <RmProfileLayout id={number} data={data} onAction={action => action === "redistribute" ? navigate(appPaths.rmRedistributeSims) : setModal(action)} />
     </>}</RmQueryState>
     {modal === "distribute" && data && <RmDesignedDistribute target={target} onClose={close} />}
     {modal === "remind" && data && <RmDesignedReminder target={target} onClose={close} />}
     {modal === "suspend" && data && <RmDesignedSuspend target={target} suspended={data.hero.status.toLowerCase() === "suspended"} onClose={close} />}
+    {(modal === "placePnd" || modal === "liftPnd") && data && <PndDialog mode={modal === "placePnd" ? "place" : "lift"} name={target.name} url={pndBase.coordinator(number)} onClose={close} />}
     {modal === "onboard" && data && <RmOnboardApForm target={target} onClose={close} />}
   </main>;
 }

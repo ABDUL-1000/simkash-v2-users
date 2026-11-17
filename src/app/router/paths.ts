@@ -110,6 +110,11 @@ export const appPaths = {
   zeroLimitSim: "/zero-limit-sim",
   payLater: "/paylater",
   marketplace: "/marketplace",
+  easyBuy: "/easybuy",
+  easyBuyDetails: (id?: string) => ({
+    format: "/easybuy/:id",
+    path: `/easybuy/${id ? encodeURIComponent(id) : ""}`,
+  }),
   transactions: "/transactions",
   referrals: "/referrals",
   settings: "/settings",
@@ -173,6 +178,7 @@ export const appPaths = {
   apSimStock: "/sim-stock",
   apCustomers: "/agency-partner/customers",
   apWallet: "/agency-partner/wallet",
+  apSimSwap: "/agency-partner/sim-swap",
   apCustomerDetails: (id?: string) => ({
     format: "/agency-partner/customers/:id",
     path: `/agency-partner/customers/${id ? encodeURIComponent(id) : "cust-1"}`,

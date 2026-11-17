@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Heart, Minus, Plus, ShoppingBag, ShoppingCart, ThumbsUp } from "lucide-react";
+import { ArrowLeft, CalendarClock, CheckCircle2, Heart, Minus, Plus, ShoppingBag, ShoppingCart, ThumbsUp } from "lucide-react";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
 import { appPaths } from "@/app/router/paths";
 import { useAddToCart, useGetProductDetail, useGetProductReviews, useToggleReviewHelpful, useToggleWishlist } from "../api";
 import { FeaturedProductsSection } from "../components/FeaturedProductsSection";
 import { Stars } from "../components/ProductCard";
 import { naira } from "../utils";
+import { EasyBuyApplyModal } from "@/features/easybuy/Modals/EasyBuyApplyModal";
 
 export default function ProductDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ export default function ProductDetailsPage() {
   const helpful = useToggleReviewHelpful();
   const addToCart = useAddToCart();
   const wishlist = useToggleWishlist();
+  const [easyBuyPlanId, setEasyBuyPlanId] = useState<number | null>(null);
 
   if (query.isLoading) return <div className="mx-auto max-w-6xl animate-pulse space-y-5 p-4 sm:p-6"><div className="h-8 w-48 rounded bg-slate-100" /><div className="grid gap-6 md:grid-cols-2"><div className="h-80 rounded-2xl bg-slate-100" /><div className="h-80 rounded-2xl bg-slate-100" /></div></div>;
   if (!product) return <div className="p-6"><AppEmptyState title="Product not found" description={query.error?.message ?? "This product may no longer be available."} actionText="Back to Marketplace" onAction={() => navigate(appPaths.marketplace)} /></div>;
@@ -33,6 +35,8 @@ export default function ProductDetailsPage() {
     { onSuccess: () => { if (thenCheckout) navigate("/marketplace/checkout"); } },
   );
   const mainImage = image ?? product.primaryImage ?? product.images?.[0];
+  const easyBuy = product.paymentOptions?.easyBuy;
+  const easyBuyPlans = easyBuy?.plans ?? [];
   const summary = product.reviewSummary;
   const list = reviews.data?.reviews ?? [];
 
@@ -64,7 +68,7 @@ export default function ProductDetailsPage() {
           <p className="font-bold text-[#0F152A]">How would you like to pay?</p>
           {product.paymentOptions?.wallet?.available && <p>Simkash Wallet · balance {naira(product.paymentOptions.wallet.balance)}{product.paymentOptions.wallet.sufficient === false ? " (insufficient)" : ""}</p>}
           <p>Card · {product.paymentOptions?.card?.label ?? "Visa, Mastercard, Verve"}</p>
-          {product.paymentOptions?.easyBuy?.eligible && <p>EasyBuy available{product.paymentOptions.easyBuy.note ? ` · ${product.paymentOptions.easyBuy.note}` : ""}</p>}
+          {easyBuy?.eligible && <p>EasyBuy · pay in installments (see below)</p>}
           <p className="text-[10px]">You choose how to pay at checkout.</p>
         </div>
 
@@ -80,6 +84,23 @@ export default function ProductDetailsPage() {
           <button type="button" disabled={!product.inStock || addToCart.isPending} onClick={() => add(false)} className="flex items-center justify-center gap-2 rounded-xl border border-[#2563EB] py-3 text-sm font-bold text-[#2563EB] disabled:opacity-50"><ShoppingCart className="size-4" /> Add to Cart</button>
           <button type="button" disabled={!product.inStock || addToCart.isPending} onClick={() => add(true)} className="flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] py-3 text-sm font-bold text-white disabled:bg-slate-300"><ShoppingBag className="size-4" /> Buy Now</button>
         </div>
+
+        {easyBuy?.eligible && easyBuyPlans.length > 0 && <div className="mt-4 rounded-2xl border border-[#C7DAFC] bg-[#EFF4F8] p-3.5 sm:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs font-bold text-[#2563EB]"><CalendarClock className="size-4" /> Pay in installments with EasyBuy</p>
+            {easyBuy.approvalRequired !== false && <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[9px] font-bold text-[#66738C]">Approval needed</span>}
+          </div>
+          {easyBuy.note && <p className="mt-1 text-[11px] text-[#66738C]">{easyBuy.note}</p>}
+          <div className="mt-3 -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
+            {easyBuyPlans.map((plan) => <button key={plan.id} type="button" disabled={!product.inStock} onClick={() => setEasyBuyPlanId(plan.id)} className="min-w-[180px] flex-1 snap-start rounded-xl border border-[#E2ECF6] bg-white p-3 text-left text-xs transition hover:border-[#2563EB] disabled:opacity-50">
+              <span className="flex items-center justify-between gap-2"><b className="text-[#0F152A]">{plan.name}</b><span className="text-[9px] font-bold text-[#2563EB]">{plan.frequencyLabel}</span></span>
+              <span className="mt-1 block text-[11px] text-[#66738C]">{naira(plan.downPaymentAmount * quantity)} today</span>
+              <span className="block text-[11px] font-bold text-[#0F152A]">then {plan.installmentCount} × {naira(plan.installmentAmount * quantity)}</span>
+              {plan.extraCost > 0 && <span className="mt-0.5 block text-[10px] text-[#8C909B]">+{naira(plan.extraCost * quantity)} vs. paying now</span>}
+            </button>)}
+          </div>
+          <button type="button" disabled={!product.inStock} onClick={() => setEasyBuyPlanId(easyBuyPlans[0].id)} className="mt-3 w-full rounded-xl bg-[#0F152A] py-3 text-sm font-bold text-white transition hover:bg-[#1E293B] disabled:bg-slate-300">Apply for EasyBuy</button>
+        </div>}
       </div>
     </div>
 
@@ -107,6 +128,8 @@ export default function ProductDetailsPage() {
         </div>)}</div>}
       {reviews.data?.pagination?.hasNextPage && <button type="button" onClick={() => setReviewPage((p) => p + 1)} className="text-xs font-bold text-[#2563EB]">More reviews</button>}
     </div>
+
+    {easyBuyPlanId !== null && <EasyBuyApplyModal product={product} open onClose={() => setEasyBuyPlanId(null)} initialQuantity={quantity} initialPlanId={easyBuyPlanId} />}
 
     {product.relatedProducts?.length > 0 && <FeaturedProductsSection title="You May Also Like" products={product.relatedProducts} isLoading={false} />}
   </div>;

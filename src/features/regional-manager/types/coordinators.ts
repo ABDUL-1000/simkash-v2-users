@@ -1,3 +1,5 @@
+import type { PndState } from "@/features/pnd/api";
+
 export interface RmMyScOverviewData {
   summary_cards: {
     state_coordinators: { count: number };
@@ -22,6 +24,8 @@ export interface RmMyScOverviewData {
       text: string;
       percentage: number;
     };
+    pnd?: PndState;
+    actions?: { can_view_profile?: boolean; can_distribute?: boolean; can_remind?: boolean; can_suspend?: boolean; can_place_pnd?: boolean; can_lift_pnd?: boolean };
   }>;
 }
 

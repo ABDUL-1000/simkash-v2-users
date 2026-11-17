@@ -19,6 +19,8 @@ import {
   Landmark,
   Wrench,
   Coins,
+  Repeat,
+  CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
@@ -362,11 +364,16 @@ export const userNavigation: NavigationSection[] = [
       //   badge: "AP",
       // },
       {
+        id: "ap-sim-swap",
+        label: "SIM Swap",
+        href: appPaths.apSimSwap,
+        icon: Repeat,
+      },
+      {
         id: "ap-wallet",
         label: "Commission Wallet",
         href: appPaths.apWallet,
         icon: Wallet,
-        badge: "AP",
       },
     ],
   },
@@ -419,6 +426,12 @@ export const userNavigation: NavigationSection[] = [
         label: "Marketplace",
         href: appPaths.marketplace,
         icon: Store,
+      },
+      {
+        id: "easybuy",
+        label: "EasyBuy",
+        href: appPaths.easyBuy,
+        icon: CalendarClock,
       },
       {
         id: "transactions",

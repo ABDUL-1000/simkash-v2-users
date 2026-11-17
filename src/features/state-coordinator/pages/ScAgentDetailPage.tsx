@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PndBadge, PndDialog, PndLockedNote } from "@/features/pnd/PndControls";
+import { pndBase } from "@/features/pnd/api";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Bell, Package, PauseCircle, Pencil, PlayCircle, Repeat, Send } from "lucide-react";
 import { AppEmptyState } from "@/components/common/AppEmptyState";
@@ -22,7 +24,7 @@ export function ScAgentDetailPage() {
   return <ScAgentDetailContent key={agentId} agentId={agentId} />;
 }
 
-type DetailModal = "edit" | "remind" | "suspend" | "customers" | "stock-history" | "undistributed";
+type DetailModal = "edit" | "remind" | "suspend" | "customers" | "stock-history" | "undistributed" | "place-pnd" | "lift-pnd";
 
 function ScAgentDetailContent({ agentId }: { agentId?: string }) {
   const id = agentId && /^\d+$/.test(agentId) && Number(agentId) > 0 ? Number(agentId) : undefined;
@@ -57,6 +59,7 @@ function ScAgentDetailContent({ agentId }: { agentId?: string }) {
             <h1 className="text-2xl font-black tracking-tight text-[#0F152A]">{hero.name}</h1>
             <p className="text-xs text-[#66738C]">{hero.phone}{data.profile_details.state ? ` · ${data.profile_details.state}` : ""}</p>
             <div className="mt-1 flex flex-wrap gap-1.5">
+              <PndBadge pnd={hero.pnd} />
               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${suspended ? "bg-[#FFF7F8] text-[#EF4444]" : "bg-[#EBFFF8] text-[#10B981]"}`}>
                 <span className={`size-1.5 rounded-full ${suspended ? "bg-[#EF4444]" : "bg-[#10B981]"}`} />{hero.status}
               </span>
@@ -64,11 +67,14 @@ function ScAgentDetailContent({ agentId }: { agentId?: string }) {
                 <span className="size-1.5 rounded-full bg-[#1E2E4F]" />{data.summary_bar.role}
               </span>
             </div>
+            <PndLockedNote pnd={hero.pnd} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={distribute} className="rounded-xl bg-[#10B981] px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-600">Distribute SIMs</button>
           <button type="button" onClick={() => setModal("suspend")} className={`rounded-xl border px-4 py-2.5 text-xs font-bold ${suspended ? "border-[#10B981] text-[#10B981] hover:bg-[#EBFFF8]" : "border-[#EF4444] text-[#EF4444] hover:bg-[#FFF7F8]"}`}>{suspended ? "Re-activate AP" : "Suspend AP"}</button>
+          {hero.pnd?.can_lift ? <button type="button" onClick={() => setModal("lift-pnd")} className="rounded-xl border border-[#10B981] px-4 py-2.5 text-xs font-bold text-[#10B981] hover:bg-[#EBFFF8]">Lift PND</button>
+            : hero.can_place_pnd ? <button type="button" onClick={() => setModal("place-pnd")} className="rounded-xl border border-[#D97706] px-4 py-2.5 text-xs font-bold text-[#D97706] hover:bg-amber-50">Place on PND</button> : null}
           <a href={`tel:${hero.phone}`} className="rounded-xl border border-[#E2ECF6] bg-white px-4 py-2.5 text-xs font-bold text-[#0F152A] hover:bg-[#F8FAFC]">Contact AP</a>
         </div>
       </div>
@@ -110,6 +116,7 @@ function ScAgentDetailContent({ agentId }: { agentId?: string }) {
       {modal === "edit" && <EditScAgentModal id={hero.id} profile={data.profile_details} onClose={close} />}
       {modal === "remind" && <SendAgentReminderModal target={hero} onClose={close} />}
       {modal === "suspend" && <SuspendAgentModal target={hero} suspended={suspended} onClose={close} />}
+      {(modal === "place-pnd" || modal === "lift-pnd") && <PndDialog mode={modal === "place-pnd" ? "place" : "lift"} name={hero.name} url={pndBase.partner(hero.agent_id ?? hero.id)} onClose={close} />}
       <AppModal open={modal === "customers"} onOpenChange={(open) => !open && close()} title={`${firstName}'s Customers`} size="lg">
         {modal === "customers" && <ScAgentCustomersTable agentId={id} />}
       </AppModal>

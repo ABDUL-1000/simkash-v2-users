@@ -7,6 +7,7 @@ import { payLaterRoutes } from "@/features/paylater/paylater.routes";
 
 import { ReferralRoutes } from "@/features/referrals/referrals.routes";
 import { MarketplaceRoutes } from "@/features/marketplace/marketplace.routes";
+import { easyBuyRoutes } from "@/features/easybuy/easybuy.routes";
 import { WalletPayoutsRoutes } from "@/features/wallet-payouts/wallet-payouts.routes";
 import { SettingsRoutes } from "@/features/settings/settings.routes";
 import { SupportRoutes } from "@/features/support/support.routes";
@@ -35,6 +36,7 @@ export const appRouteConfig: TRouteData[] = [
   ...AgencyPartnerRoutes,
   ...ReferralRoutes,
   ...MarketplaceRoutes,
+  ...easyBuyRoutes,
   ...WalletPayoutsRoutes,
   ...SettingsRoutes,
   ...SupportRoutes,

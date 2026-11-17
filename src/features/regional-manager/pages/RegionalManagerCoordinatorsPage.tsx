@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PndDialog } from "@/features/pnd/PndControls";
+import { pndBase } from "@/features/pnd/api";
 import { Input, Select, Tabs } from "antd";
 import { UserPlus } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -47,6 +49,7 @@ export function RegionalManagerCoordinatorsPage() {
     {modal === "distribute" && selected && <RmDesignedDistribute target={selected} onClose={close} />}
     {modal === "bulkDistribute" && <RmInventoryDistributeModal onClose={close} />}
     {modal === "suspend" && selected && <RmDesignedSuspend target={selected} suspended={selected.status.toLowerCase() === "suspended"} onClose={close} />}
+    {(modal === "placePnd" || modal === "liftPnd") && selected && <PndDialog mode={modal === "placePnd" ? "place" : "lift"} name={selected.name} url={pndBase.coordinator(selected.id)} onClose={close} />}
     {modal === "contact" && selected && <RmScContactModal target={selected} onClose={close} />}
     {modal === "onboardAp" && selected && <RmScOnboardApModal target={selected} onClose={close} />}
     {modal === "export" && <RmScExportModal onClose={close} />}

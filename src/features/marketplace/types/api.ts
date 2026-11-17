@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/features/auth/types/api";
+import type { ProductEasyBuyOption } from "@/features/easybuy/types/api";
 
 // ---------- Shared ----------
 export interface MarketplacePagination { page: number; limit: number; total: number; totalPages: number; hasNextPage: boolean; hasPrevPage: boolean; }
@@ -37,7 +38,7 @@ export interface ProductDetail extends ProductCard {
   paymentOptions: {
     wallet: { available: boolean; balance: number | null; sufficient: boolean | null; fullPrice: number };
     card: { available: boolean; label: string; fullPrice: number };
-    easyBuy: { eligible: boolean; segments: string[]; note: string | null };
+    easyBuy: ProductEasyBuyOption;
   };
   delivery: { options: DeliveryOption[]; promises: { key: string; label: string }[]; returnDays: number };
   reviewSummary: { averageRating: number; totalReviews: number; distribution: Record<"1" | "2" | "3" | "4" | "5", number> };

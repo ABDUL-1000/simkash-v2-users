@@ -1,4 +1,5 @@
 import { Dropdown } from "antd";
+import { PndBadge } from "@/features/pnd/PndControls";
 import { Bell, CardSim, Ellipsis, Eye, Send, Trophy, Users } from "lucide-react";
 import type { ScAgentItem } from "../../types/operations";
 
@@ -18,9 +19,10 @@ interface ScPartnerCardProps {
   onDistribute: () => void;
   onRemind: () => void;
   onSuspend: () => void;
+  onPnd: (mode: "place" | "lift") => void;
 }
 
-export function ScPartnerCard({ partner, onView, onDistribute, onRemind, onSuspend }: ScPartnerCardProps) {
+export function ScPartnerCard({ partner, onView, onDistribute, onRemind, onSuspend, onPnd }: ScPartnerCardProps) {
   const suspended = partner.status === "suspended";
   const out = partner.stock === 0;
   const style = STATUS_STYLE[partner.status] ?? STATUS_STYLE.active;
@@ -37,7 +39,7 @@ export function ScPartnerCard({ partner, onView, onDistribute, onRemind, onSuspe
             {partner.initials}
           </div>
           <div className="min-w-0">
-            <h4 className="truncate text-sm font-extrabold text-[#0F152A]">{partner.name}</h4>
+            <h4 className="flex items-center gap-1.5 truncate text-sm font-extrabold text-[#0F152A]"><span className="truncate">{partner.name}</span><PndBadge pnd={partner.pnd} /></h4>
             <p className="text-[11px] text-[#66738C]">{partner.phone}</p>
             {partner.location && <p className="text-[10px] text-[#8C909B]">{partner.location}</p>}
           </div>
@@ -84,6 +86,7 @@ export function ScPartnerCard({ partner, onView, onDistribute, onRemind, onSuspe
           menu={{
             items: [
               { key: "view", label: "View profile", onClick: onView },
+              ...(partner.pnd?.can_lift ? [{ key: "lift-pnd", label: "Lift PND", onClick: () => onPnd("lift") }] : !partner.pnd?.is_pnd && !suspended ? [{ key: "place-pnd", label: "Place on PND", onClick: () => onPnd("place") }] : []),
               { key: "suspend", label: suspended ? "Re-activate AP" : "Suspend AP", danger: !suspended, onClick: onSuspend },
             ],
           }}

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Pagination } from "antd";
 import { Search } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { appPaths } from "@/app/router/paths";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useClearRecentlyViewed, useGetCart, useGetCategories, useGetFeaturedProducts, useGetProducts, useGetRecentlyViewed, useOrderStats } from "../api";
 import { MarketplaceStatsCards } from "../components/MarketplaceStatsCards";
@@ -25,7 +26,8 @@ export default function MarketplaceStorePage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy] = useState<ProductSort>("best_match");
-  const [filters, setFilters] = useState<QuickFilter[]>([]);
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<QuickFilter[]>(() => searchParams.get("easyBuy") === "1" ? ["easyBuy"] : []);
   const { page, pageSize, paginationConfig, setPage } = useTablePagination({ initialPageSize: 20 });
   const stats = useOrderStats();
   const categories = useGetCategories();
@@ -54,6 +56,7 @@ export default function MarketplaceStorePage() {
       { key: "cart", label: cartCount ? `Cart (${cartCount})` : "Cart", onClick: () => navigate("/marketplace/cart") },
       { key: "wishlist", label: "Wishlist", variant: "outline", onClick: () => navigate("/marketplace/wishlist") },
       { key: "orders", label: "My Orders", variant: "outline", onClick: () => navigate("/marketplace/orders") },
+      { key: "easybuy", label: "My EasyBuy", variant: "outline", onClick: () => navigate(appPaths.easyBuy) },
     ]} />
     <MarketplaceStatsCards stats={stats.stats} />
     <FeaturedProductsSection products={featured.products} isLoading={featured.isLoading} />
