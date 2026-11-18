@@ -20,6 +20,7 @@ import { CardGridSkeleton } from "@/components/loaders/CardGridSkeleton";
 import { appPaths } from "@/app/router/paths";
 import { useScActivations, useScDashboard, useScPartners } from "../api/queries";
 import { scDistributePath, scOnboardPath, scPayoutPath, scRedistributePath } from "../utils/scLinks";
+import { LeaderboardCard } from "@/features/hierarchy-sims/components/LeaderboardCard";
 
 // Badge colours for the API's bonus_status / stock_status values.
 const BONUS_BADGE: Record<string, string> = {
@@ -242,6 +243,9 @@ export function StateCoordinatorDashboardPage() {
           </div>
         </div>
       </BonusTrackerCard>
+
+      {/* Nationwide top 3 SCs + my rank (GET /state-coordinator/leaderboard) */}
+      <LeaderboardCard />
 
       {/* 5. QUICK ACTION BUTTONS STRIP — Activate and Request Stock removed for State Coordinators */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

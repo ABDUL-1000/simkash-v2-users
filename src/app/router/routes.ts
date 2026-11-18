@@ -11,6 +11,7 @@ import { easyBuyRoutes } from "@/features/easybuy/easybuy.routes";
 import { WalletPayoutsRoutes } from "@/features/wallet-payouts/wallet-payouts.routes";
 import { SettingsRoutes } from "@/features/settings/settings.routes";
 import { SupportRoutes } from "@/features/support/support.routes";
+import { hierarchySimsRoutes } from "@/features/hierarchy-sims/hierarchy-sims.routes";
 
 import { transactionsRoutes } from "@/features/transactions/transactions.routes";
 import { AgencyPartnerRoutes } from "@/features/corporate-agent/my-partner/agency-partner.routes";
@@ -40,4 +41,5 @@ export const appRouteConfig: TRouteData[] = [
   ...WalletPayoutsRoutes,
   ...SettingsRoutes,
   ...SupportRoutes,
+  ...hierarchySimsRoutes,
 ];

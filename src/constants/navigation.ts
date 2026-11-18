@@ -22,6 +22,8 @@ import {
   Repeat,
   CalendarClock,
   type LucideIcon,
+  Inbox,
+  Undo2,
 } from "lucide-react";
 import { appPaths } from "@/app/router/paths";
 import type { CanonicalRole } from "@/utils/auth/roleRouting";
@@ -219,6 +221,18 @@ export const userNavigation: NavigationSection[] = [
           },
         ],
       },
+      {
+        id: "rm-sim-requests",
+        label: "SIM Requests",
+        href: appPaths.simRequests,
+        icon: Inbox,
+      },
+      {
+        id: "rm-recall-sims",
+        label: "Recall SIMs",
+        href: appPaths.recallSims,
+        icon: Undo2,
+      },
 
       // Disabled: no dedicated RM bonus-tracker endpoint; the old link opened SC data.
       // {
@@ -296,6 +310,18 @@ export const userNavigation: NavigationSection[] = [
         href: appPaths.scSimInventory,
         icon: Package,
       },
+      {
+        id: "sc-sim-requests",
+        label: "SIM Requests",
+        href: appPaths.simRequests,
+        icon: Inbox,
+      },
+      {
+        id: "sc-recall-sims",
+        label: "Recall SIMs",
+        href: appPaths.recallSims,
+        icon: Undo2,
+      },
       // {
       //   id: "network-activity",
       //   label: "Network Activity",
@@ -354,6 +380,12 @@ export const userNavigation: NavigationSection[] = [
             href: appPaths.apCustomers,
           },
         ],
+      },
+      {
+        id: "ap-sim-requests",
+        label: "SIM Requests",
+        href: appPaths.simRequests,
+        icon: Inbox,
       },
       // Hidden: this AP item pointed into the SC portal; restore when an AP bonus route is available.
       // {

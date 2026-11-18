@@ -118,6 +118,8 @@ export const appPaths = {
   transactions: "/transactions",
   referrals: "/referrals",
   settings: "/settings",
+  simRequests: "/sim-requests",
+  recallSims: "/recall-sims",
   support: "/support",
   supportTickets: "/support/tickets",
   supportFaqs: "/support/faqs",

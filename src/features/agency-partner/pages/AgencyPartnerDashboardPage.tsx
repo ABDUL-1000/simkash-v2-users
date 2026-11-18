@@ -32,7 +32,6 @@ import { PayoutAccountModal } from "../modals/PayoutAccountModal";
 import { AllActivationsModal } from "../modals/AllActivationsModal";
 import { ApMoreActionsModal } from "../modals/ApMoreActionsModal";
 import { LowSimStockModal } from "../modals/LowSimStockModal";
-import { ApRequestSimStockModal } from "../modals/ApRequestSimStockModal";
 import { TransferSimStockModal, type TransferSimFormData } from "../modals/TransferSimStockModal";
 import { ConfirmTransferSimModal } from "../modals/ConfirmTransferSimModal";
 import { TransferPendingApprovalModal } from "../modals/TransferPendingApprovalModal";
@@ -43,6 +42,8 @@ import { CreateSupportTicketModal } from "../modals/CreateSupportTicketModal";
 import { ExportDataModal } from "../modals/ExportDataModal";
 import { ReferPartnerModal } from "../modals/ReferPartnerModal";
 import { appPaths } from "@/app/router/paths";
+import { LeaderboardCard } from "@/features/hierarchy-sims/components/LeaderboardCard";
+import { NewSimRequestModal } from "@/features/hierarchy-sims/Modals/NewSimRequestModal";
 
 const naira = (value?: number) => `₦${Number(value ?? 0).toLocaleString()}`;
 const NETWORK_COLORS: Record<string, string> = {
@@ -210,6 +211,9 @@ export function AgencyPartnerDashboardPage() {
 
       {/* 2. Weekly bonus tracker (GET /partner/bonus/overview + /history) */}
       <BonusTrackerCard role="partner" />
+
+      {/* Nationwide top 3 partners + my rank (GET /partner/leaderboard) */}
+      <LeaderboardCard />
 
       {/* 3. 5 QUICK ACTION PILL CARDS STRIP (Matching Image 1) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-3.5">
@@ -552,27 +556,8 @@ export function AgencyPartnerDashboardPage() {
         }}
       />
 
-      {/* 9. Request SIM Stock Modal for AP (Image 5) */}
-      <ApRequestSimStockModal
-        open={requestStockModalOpen}
-        onOpenChange={setRequestStockModalOpen}
-        scName="Aminat Okafor"
-        scPhone="08065942373"
-        scState="Lagos"
-        onSubmitSuccess={(total, urgency) => {
-          triggerSuccessModal(
-            "Stock Request Submitted!",
-            `Your request for ${total} SIMs has been sent to Aminat Okafor (${urgency} priority).`,
-            "Stock Request 📦",
-            "check",
-            [
-              { label: "Total Requested", value: `${total} SIMs` },
-              { label: "Assigned SC", value: "Aminat Okafor" },
-              { label: "Urgency", value: urgency },
-            ]
-          );
-        }}
-      />
+      {/* 9. Request SIMs from my State Coordinator (POST /partner/sim-request) */}
+      <NewSimRequestModal open={requestStockModalOpen} onClose={() => setRequestStockModalOpen(false)} />
 
       {/* 10. Transfer SIM Stock Step 1 (New Upload Image 1) */}
       <TransferSimStockModal

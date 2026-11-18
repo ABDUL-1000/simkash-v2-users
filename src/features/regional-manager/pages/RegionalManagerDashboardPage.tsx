@@ -15,6 +15,7 @@ import { rmDesignTokens } from "../components/dashboard/rmDesignTokens";
 import { RmDesignedRequest } from "../Modals/dashboard/RmDesignedRequest";
 import { RmDesignedDistribute } from "../Modals/dashboard/RmDesignedDistribute";
 import { RmDesignedOnboard, RmDesignedReminder } from "../Modals/dashboard/RmDesignedPeople";
+import { LeaderboardCard } from "@/features/hierarchy-sims/components/LeaderboardCard";
 // The older generic dashboard forms remain in Modals/dashboard; these designed flows use the same documented RM APIs.
 export function RegionalManagerDashboardPage() {
   const query = useGetRmDashboardOverview();
@@ -33,6 +34,8 @@ export function RegionalManagerDashboardPage() {
         <RmCoordinatorsTable summary={query.data?.my_state_coordinators} onView={target => navigate(appPaths.rmCoordinatorDetail(target.id).path)} onDistribute={distribute} onOnboard={() => setModal("onboard")} onViewAll={() => navigate(appPaths.rmStateCoordinators)} />
         {/* Weekly bonus tracker (GET /regional-manager/bonus/overview + /history) */}
         <BonusTrackerCard role="regional-manager" />
+        {/* Nationwide top 3 RMs + my rank (GET /regional-manager/leaderboard) */}
+        <LeaderboardCard />
         <RmRecentActivityFeed />
       </div>
       {query.data && !query.error && <RmDashboardWidgets data={query.data} onRequest={() => setModal("request")} onDistribute={() => distribute()} onPayout={() => navigate(appPaths.rmWallet)} onOnboard={() => setModal("onboard")} onRemind={() => setModal("remind")}

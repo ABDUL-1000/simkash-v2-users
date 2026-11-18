@@ -3,8 +3,9 @@ import { Button, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DataTable } from "@/components/common/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { useGetScInventoryHistory, useGetScRmStockRequests } from "../../api/inventory";
-import type { InventoryHistoryItem, RmStockRequestItem, ScSimInventoryOverviewData } from "../../types/inventory";
+import { useGetScInventoryHistory } from "../../api/inventory";
+import { MySimRequestsList } from "@/features/hierarchy-sims/components/MySimRequestsList";
+import type { InventoryHistoryItem, ScSimInventoryOverviewData } from "../../types/inventory";
 import type { ScPartnerTarget } from "../../types/operations";
 import { ScQueryState } from "../ScSection";
 import { ScStatusTag } from "../ScStatusTag";
@@ -40,18 +41,7 @@ export function ScInventoryHistoryTable() {
   </ScQueryState>;
 }
 
+/** Requests to your RM. The old `/sim-inventory/requests` list changed shape, so this uses the SIM requests API. */
 export function ScRmRequestsTable() {
-  const query = useGetScRmStockRequests();
-  const pagination = useTablePagination({ total: query.data?.length });
-  const columns: ColumnsType<RmStockRequestItem> = [
-    { title: "SIM type", dataIndex: "sim_type" }, { title: "Quantity", dataIndex: "quantity" },
-    { title: "Status", dataIndex: "status", render: (value: string) => <ScStatusTag status={value} /> },
-    { title: "Urgency", dataIndex: "urgency", render: (value: string) => <ScStatusTag status={value} /> },
-    { title: "Notes", dataIndex: "notes" }, { title: "Regional manager", dataIndex: "rm_name" },
-    { title: "Requested", dataIndex: "requested_at", render: (value: string) => new Date(value).toLocaleString() },
-  ];
-  return <ScQueryState loading={false} error={query.error} retry={() => void query.refetch()}>
-    <DataTable columns={columns} dataSource={query.data ?? []} loading={query.isFetching} rowKey="id" pagination={pagination.paginationConfig}
-      emptyTitle="No stock requests" emptyDescription="Requests submitted to your RM will appear here." />
-  </ScQueryState>;
+  return <MySimRequestsList />;
 }
