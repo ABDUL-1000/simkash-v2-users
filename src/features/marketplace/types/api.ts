@@ -161,10 +161,8 @@ export interface OrderReturnsInfo {
   returns: ReturnRequest[];
 }
 
-// ---------- Wishlist / notifications ----------
+// ---------- Wishlist ----------
 export interface WishlistData { items: (ProductCard & { addedAt: string })[]; pagination: MarketplacePagination; }
-export interface AppNotification { id: number; type: string; title: string; message: string; read: boolean; createdAt: string; }
-export interface NotificationsData { notifications: AppNotification[]; unreadCount: number; pagination: MarketplacePagination; }
 
 /** Order counts shown in the stats cards (from GET /orders tabCounts). */
 export interface UserOrderStats { totalOrders: number; pendingOrders: number; completedOrders: number; totalSpend?: number; }

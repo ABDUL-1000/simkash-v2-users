@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { CheckCircle2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface PayBiWeeklyInstalmentModalProps {
   open: boolean;
@@ -154,7 +155,7 @@ export const PayBiWeeklyInstalmentModal: React.FC<PayBiWeeklyInstalmentModalProp
                 <InputOTPSlot index={3} />
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         {/* Actions */}

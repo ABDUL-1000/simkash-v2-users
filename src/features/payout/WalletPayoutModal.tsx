@@ -7,6 +7,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useGetUserProfile } from "@/features/settings/api/useGetUserProfile";
 import { useMainWalletBalance } from "@/features/wallet/api/useMainWalletBalance";
 import { PAYOUT_FEE, payoutState, useDeleteBankAccount, usePayoutStatus, useRequestWalletPayout, type WalletPayoutResult } from "./api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 const naira = (value: number) => `₦${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const mask = (accountNumber: string) => `****${accountNumber.slice(-4)}`;
@@ -129,7 +130,7 @@ function PayoutForm({ onDone, onCancel, onAddAccount }: { onDone: (result: Walle
           <InputOTP maxLength={4} value={pin} onChange={setPin} inputMode="numeric">
             <InputOTPGroup className="gap-2.5">{[0, 1, 2, 3].map((index) => <InputOTPSlot key={index} index={index} className="size-11 rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] text-base font-bold" />)}</InputOTPGroup>
           </InputOTP>
-        </div>
+        </div><div className="mt-2 text-center"><ForgotPinLink /></div>
       </div>
 
       <div className="flex gap-2 border-t border-[#E2ECF6] pt-3">

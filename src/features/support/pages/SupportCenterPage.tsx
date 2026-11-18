@@ -1,514 +1,168 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ChevronDown,
-  ChevronUp,
-  CreditCard,
-  Plus,
-  ShieldCheck,
-  ShoppingBag,
-  
-} from "lucide-react";
-import { CreateTicketModal } from "../Modals/CreateTicketModal";
-import { LiveChatModal } from "../Modals/LiveChatModal";
-import { SearchResultsModal } from "../Modals/SearchResultsModal";
+import { CreditCard, HelpCircle, Infinity as InfinityIcon, Mail, MessageCircle, Phone, Plus, Search, ShieldCheck, ShoppingBag, Smartphone, type LucideIcon } from "lucide-react";
+import { AppEmptyState } from "@/components/common/AppEmptyState";
+import { appPaths } from "@/app/router/paths";
+import { useSupportFaqs, useSupportHome, useSupportTickets } from "../api";
+import { useSupportSocket } from "../socket/context";
+import { FaqList, FaqTabs } from "../components/FaqList";
+import { TicketRow } from "../components/TicketRow";
+import type { ContactChannel, TicketStatusFilter } from "../types";
+import { STATUS_TABS } from "../utils";
+
+const CATEGORY_ICON: Record<string, { icon: LucideIcon; tone: string }> = {
+  billing: { icon: CreditCard, tone: "text-[#2563EB]" },
+  sim: { icon: Smartphone, tone: "text-[#10B981]" },
+  zerolimit_sim: { icon: InfinityIcon, tone: "text-[#0EA5E9]" },
+  orders: { icon: ShoppingBag, tone: "text-[#9333EA]" },
+  account: { icon: ShieldCheck, tone: "text-[#F59E0B]" },
+  general: { icon: HelpCircle, tone: "text-[#66738C]" },
+};
+const CHANNEL_ICON: Record<string, LucideIcon> = { chat: MessageCircle, call: Phone, email: Mail, whatsapp: MessageCircle };
+const QUICK_LINK_PATH: Record<string, string> = {
+  retry_failed_transaction: appPaths.transactions,
+  track_order: appPaths.orders,
+  renew_sim: appPaths.deviceSim,
+  download_statement: appPaths.transactions,
+};
+const card = "rounded-2xl border border-[#E2ECF6] bg-white p-4 shadow-xs sm:p-6";
 
 export default function SupportCenterPage() {
   const navigate = useNavigate();
+  const socket = useSupportSocket();
+  const home = useSupportHome();
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<TicketStatusFilter>("all");
+  const [faqTab, setFaqTab] = useState("all");
+  const tickets = useSupportTickets({ status: tab, page: 1, limit: 5 });
+  const faqs = useSupportFaqs(faqTab, "");
+  const data = home.data;
+  const counts = data?.ticketCounts;
+  const liveChat = data?.contactChannels.find((c) => c.key === "live_chat" || c.action?.type === "chat");
+  const online = socket.online ?? liveChat?.online ?? false;
 
-  // Search & Filter States
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTicketTab, setActiveTicketTab] = useState("All");
-  const [activeFaqTab, setActiveFaqTab] = useState("All");
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
-
-  // Modals state
-  const [createTicketOpen, setCreateTicketOpen] = useState(false);
-  const [liveChatOpen, setLiveChatOpen] = useState(false);
-  const [searchResultsOpen, setSearchResultsOpen] = useState(false);
-
-  const tickets = [
-    {
-      id: "TKT-2026-00851",
-      title: "SIM not activating after request",
-      category: "SIM Issues",
-      updated: "Updated 2 hours ago",
-      status: "In Progress",
-    },
-    {
-      id: "TKT-2026-00847",
-      title: "Wallet top up not reflecting",
-      category: "Billing",
-      updated: "Updated Yesterday",
-      status: "Open",
-    },
-    {
-      id: "TKT-2026-00831",
-      title: "DSTV subscription failed but wallet was debited",
-      category: "Billing",
-      updated: "Updated 3 days ago",
-      status: "Resolved",
-    },
-    {
-      id: "TKT-2026-00812",
-      title: "Cannot log into my account",
-      category: "Account",
-      updated: "Updated 1 week ago",
-      status: "Closed",
-    },
-    {
-      id: "TKT-2026-00798",
-      title: "Order ORD-2026-00654 not delivered after 7 days",
-      category: "Orders",
-      updated: "Updated 2 weeks ago",
-      status: "Closed",
-    },
-  ];
-
-  const filteredTickets = tickets.filter((t) => {
-    if (activeTicketTab !== "All" && t.status !== activeTicketTab) return false;
-    return true;
-  });
-
-  const faqs = [
-    {
-      id: 0,
-      question: "How do I top up my wallet?",
-      answer:
-        "You can top up your wallet by tapping 'Top Up' on your dashboard or in My Wallet. We accept debit cards, bank transfers (Providus Direct Deposit), and USSD.",
-      category: "Wallet",
-      slug: "how-do-i-top-up-my-wallet",
-    },
-    {
-      id: 1,
-      question: "My SIM is expiring — what do I do?",
-      answer:
-        "Go to SIM Hub or Renewal Monitoring, select your SIM number (MTN, Airtel, or Glo), choose your renewal plan, and pay using your wallet or PayLater.",
-      category: "SIM",
-      slug: "my-sim-is-expiring-what-do-i-do",
-    },
-    {
-      id: 2,
-      question: "Why is my SIM not activating after I requested one?",
-      answer:
-        "When you request a SIM on Simkash, an agent in your area is notified to fulfill your request. They usually contact you within 24 hours.",
-      category: "SIM",
-      slug: "why-is-my-sim-not-activating-after-i-requested-one",
-    },
-    {
-      id: 3,
-      question: "Why was my bill payment successful but service not received?",
-      answer:
-        "Occasionally provider network delays occur. If your electricity token or cable subscription is delayed beyond 15 minutes, click 'Retry' or create a ticket.",
-      category: "Bills",
-      slug: "why-was-my-bill-payment-successful-but-service-not-received",
-    },
-    {
-      id: 4,
-      question: "How do I earn from referrals?",
-      answer:
-        "Share your unique referral link (YUSUF50K) with a business. When they sign up and get approved as a Simkash partner, you earn ₦50,000.",
-      category: "Account",
-      slug: "how-do-i-earn-from-referrals",
-    },
-    {
-      id: 5,
-      question: "What is ZeroLimit SIM and how does it work?",
-      answer:
-        "ZeroLimit SIM allows unthrottled high-speed data for POS and CCTV devices without monthly data caps.",
-      category: "ZeroLimit SIM",
-      slug: "what-is-zerolimit-sim",
-    },
-    {
-      id: 6,
-      question: "How do I track my order from the marketplace?",
-      answer:
-        "Go to Marketplace > My Orders to view live dispatch status, delivery dates, and assigned installer contact details.",
-      category: "Marketplace",
-      slug: "how-do-i-track-my-order",
-    },
-  ];
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearchResultsOpen(true);
+    navigate(`${appPaths.supportFaqs}${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ""}`);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* 1. Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0F152A]">Support Center</h1>
-          <p className="mt-0.5 text-xs text-[#8C909B]">How can we help you today?</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCreateTicketOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-700"
-        >
-          <Plus className="size-4" /> New Ticket
+  const channelHref = (c: ContactChannel) => {
+    const value = c.value ?? "";
+    if (c.action.type === "call") return `tel:${value.replace(/[^\d+]/g, "")}`;
+    if (c.action.type === "email") return `mailto:${value}`;
+    if (c.action.type === "whatsapp") return `https://wa.me/${value.replace(/\D/g, "")}`;
+    return undefined;
+  };
+
+  if (home.error && !data) return <AppEmptyState title="Couldn't load Support" description={home.error.message} actionText="Retry" onAction={() => void home.refetch()} />;
+
+  return <div className="space-y-6">
+    {/* Header */}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h1 className="text-xl font-bold text-[#0F152A] sm:text-2xl">Support Center</h1>
+        <p className="mt-0.5 text-xs text-[#8C909B]">How can we help you today?</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:flex">
+        <button type="button" onClick={socket.openChat} className="flex items-center justify-center gap-2 rounded-xl border border-[#10B981] bg-white px-4 py-2.5 text-xs font-bold text-[#10B981] hover:bg-emerald-50">
+          <span className={`size-2 rounded-full ${online ? "bg-[#10B981]" : "bg-slate-300"}`} /> Live Chat
         </button>
+        <button type="button" onClick={() => socket.openCreateTicket()} className="flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-700"><Plus className="size-4" /> New Ticket</button>
       </div>
-
-      {/* 2. Full Width Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="relative w-full">
-        <input
-          type="text"
-          placeholder="Search for help, FAQs, or describe your issue..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 pl-5 pr-28 text-xs font-semibold text-[#0F152A] outline-none shadow-xs focus:border-[#2563EB]"
-        />
-        <button
-          type="submit"
-          className="absolute right-2 top-2 rounded-xl bg-[#2563EB] px-5 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
-        >
-          Search
-        </button>
-      </form>
-
-      {/* 3. 4 Quick Topic Category Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            title: "Billing & Payments",
-            desc: "Wallet, top up, withdrawals, PayLater issues...",
-            icon: <CreditCard className="size-5 text-[#2563EB]" />,
-          },
-          {
-            title: "SIM Issues",
-            desc: "Activation, renewal, swap, connectivity problems...",
-   icon: <CreditCard className="size-5 text-[#2563EB]" />,          },
-          {
-            title: "Orders & Delivery",
-            desc: "Marketplace orders, tracking, returns and refunds...",
-            icon: <ShoppingBag className="size-5 text-[#9333EA]" />,
-          },
-          {
-            title: "Account & Security",
-            desc: "Login, PIN, KYC, profile and security concerns...",
-            icon: <ShieldCheck className="size-5 text-[#F59E0B]" />,
-          },
-        ].map((cat) => (
-          <div
-            key={cat.title}
-            onClick={() => setCreateTicketOpen(true)}
-            className="cursor-pointer rounded-2xl border border-[#E2ECF6] bg-white p-5 shadow-xs transition hover:border-[#2563EB] space-y-2"
-          >
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[#F8FAFC]">
-              {cat.icon}
-            </div>
-            <h4 className="font-extrabold text-[#0F152A] text-sm">{cat.title}</h4>
-            <p className="text-xs text-[#8C909B]">{cat.desc}</p>
-            <span className="text-xs font-bold text-[#2563EB] inline-flex items-center gap-1 pt-1">
-              →
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* 4. Top 2-Column Section (My Support Tickets + Sidebar) */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left Column — My Support Tickets (8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="text-base font-bold text-[#0F152A]">My Support Tickets</h3>
-              <button
-                type="button"
-                onClick={() => setCreateTicketOpen(true)}
-                className="text-xs font-bold text-[#2563EB] hover:underline"
-              >
-                New Ticket
-              </button>
-            </div>
-
-            {/* Ticket Filter Tabs */}
-            <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] max-w-full overflow-x-auto whitespace-nowrap">
-              {["All", "Open", "In Progress", "Resolved", "Closed"].map((tab) => {
-                const isSelected = activeTicketTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTicketTab(tab)}
-                    className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
-                      isSelected
-                        ? "bg-white text-[#0F152A] shadow-xs"
-                        : "text-[#8C909B] hover:text-[#0F152A]"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tickets List */}
-            <div className="divide-y divide-[#E2ECF6] text-xs">
-              {filteredTickets.map((t) => (
-                <div
-                  key={t.id}
-                  onClick={() => navigate(`/support/tickets/${t.id}`)}
-                  className="cursor-pointer flex items-center justify-between py-3.5 hover:bg-[#F8FAFC] px-2 rounded-xl"
-                >
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-[#8C909B]">{t.id}</span>
-                    <h4 className="font-extrabold text-[#0F152A] text-sm">{t.title}</h4>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded bg-[#EFF4F8] px-1.5 py-0.5 text-[9px] font-bold text-[#2563EB]">
-                        {t.category}
-                      </span>
-                      <span className="text-[10px] text-[#8C909B]">{t.updated}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                        t.status === "In Progress"
-                          ? "bg-[#EFF4F8] text-[#2563EB]"
-                          : t.status === "Open"
-                          ? "bg-[#FFFBEB] text-[#F59E0B]"
-                          : t.status === "Resolved"
-                          ? "bg-[#EBFFF8] text-[#10B981]"
-                          : "bg-[#F8FAFC] text-[#8C909B]"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                    <span className="text-[#8C909B]">›</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              className="text-xs font-bold text-[#2563EB] hover:underline block pt-2"
-            >
-              View all tickets
-            </button>
-          </div>
-        </div>
-
-        {/* Right Column Sidebar (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Card 1: Reach Us Directly */}
-          <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4 text-xs">
-            <h4 className="font-extrabold text-[#0F152A]">Reach Us Directly</h4>
-
-            <div className="space-y-3">
-              {/* Live Chat */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <h5 className="font-bold text-[#0F152A]">Live Chat</h5>
-                  <span className="text-[10px] font-bold text-[#10B981]">● Online</span>
-                </div>
-                <p className="text-[10px] text-[#8C909B]">Usually responds in 2 minutes</p>
-                <button
-                  type="button"
-                  onClick={() => setLiveChatOpen(true)}
-                  className="w-full rounded-xl bg-[#10B981] py-2.5 font-bold text-white shadow-xs hover:bg-emerald-600 mt-1"
-                >
-                  Start Chat
-                </button>
-              </div>
-
-              {/* WhatsApp */}
-              <div className="space-y-1 pt-2 border-t border-[#E2ECF6]">
-                <h5 className="font-bold text-[#0F152A]">WhatsApp</h5>
-                <p className="text-[10px] text-[#8C909B]">+234 800 000 0000</p>
-                <a
-                  href="https://wa.me/2348000000000"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full rounded-xl border border-[#E2ECF6] py-2 font-bold text-[#0F152A] hover:bg-slate-50 block text-center mt-1"
-                >
-                  Message Us
-                </a>
-              </div>
-
-              {/* Call Us */}
-              <div className="space-y-1 pt-2 border-t border-[#E2ECF6]">
-                <h5 className="font-bold text-[#0F152A]">Call Us</h5>
-                <p className="text-[10px] text-[#8C909B]">
-                  0800-SIMKASH (Free) · Mon–Sat · 8AM–8PM
-                </p>
-                <a
-                  href="tel:08007465274"
-                  className="w-full rounded-xl border border-[#E2ECF6] py-2 font-bold text-[#0F152A] hover:bg-slate-50 block text-center mt-1"
-                >
-                  Call Now
-                </a>
-              </div>
-
-              {/* Email */}
-              <div className="space-y-1 pt-2 border-t border-[#E2ECF6]">
-                <h5 className="font-bold text-[#0F152A]">Email</h5>
-                <p className="text-[10px] text-[#8C909B]">
-                  support@simkash.com · Usually responds in 24 hours
-                </p>
-                <a
-                  href="mailto:support@simkash.com"
-                  className="w-full rounded-xl border border-[#E2ECF6] py-2 font-bold text-[#0F152A] hover:bg-slate-50 block text-center mt-1"
-                >
-                  Send Email
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Avg Response Times */}
-          <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-3 text-xs">
-            <h4 className="font-extrabold text-[#0F152A]">Avg Response Times</h4>
-
-            <div className="divide-y divide-[#E2ECF6] text-[11px]">
-              <div className="flex justify-between py-2 first:pt-0">
-                <span className="text-[#8C909B]">Live Chat</span>
-                <span className="font-bold text-[#10B981]">2 minutes</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-[#8C909B]">WhatsApp</span>
-                <span className="font-bold text-[#10B981]">30 minutes</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-[#8C909B]">Phone</span>
-                <span className="font-bold text-[#10B981]">Instant</span>
-              </div>
-              <div className="flex justify-between py-2 last:pb-0">
-                <span className="text-[#8C909B]">Email</span>
-                <span className="font-bold text-[#F59E0B]">24 hours</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Fix It Yourself */}
-          <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-3 text-xs">
-            <h4 className="font-extrabold text-[#0F152A]">Fix It Yourself</h4>
-
-            <div className="space-y-2 font-bold text-[#2563EB]">
-              <button
-                type="button"
-                onClick={() => navigate("/bill-payments")}
-                className="block hover:underline"
-              >
-                Retry failed transaction →
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/marketplace/orders")}
-                className="block hover:underline"
-              >
-                Track my order →
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/device-sim")}
-                className="block hover:underline"
-              >
-                Renew my SIM →
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/transactions")}
-                className="block hover:underline"
-              >
-                Download statement →
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. Main Bottom Section — Frequently Asked Questions */}
-      <div className="rounded-2xl border border-[#E2ECF6] bg-white p-6 shadow-xs space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="text-base font-bold text-[#0F152A]">Frequently Asked Questions</h3>
-          <button
-            type="button"
-            onClick={() => navigate("/support/faq/why-is-my-sim-not-activating")}
-            className="text-xs font-bold text-[#2563EB] hover:underline"
-          >
-            View all →
-          </button>
-        </div>
-
-        {/* FAQ Tabs */}
-        <div className="flex items-center gap-1.5 rounded-xl bg-[#F8FAFC] p-1 border border-[#E2ECF6] max-w-full overflow-x-auto whitespace-nowrap">
-          {["All", "Wallet", "SIM", "ZeroLimit SIM", "Bills", "Marketplace", "Account"].map((tab) => {
-            const isSelected = activeFaqTab === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveFaqTab(tab)}
-                className={`rounded-lg px-3 py-1 text-xs font-bold transition whitespace-nowrap ${
-                  isSelected
-                    ? "bg-white text-[#0F152A] shadow-xs"
-                    : "text-[#8C909B] hover:text-[#0F152A]"
-                }`}
-              >
-                {tab}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Accordion FAQ List */}
-        <div className="divide-y divide-[#E2ECF6] text-xs">
-          {faqs
-            .filter((f) => activeFaqTab === "All" || f.category === activeFaqTab)
-            .map((faq) => {
-              const isExpanded = expandedFaq === faq.id;
-              return (
-                <div key={faq.id} className="py-3.5">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedFaq(isExpanded ? null : faq.id)}
-                    className="flex w-full items-center justify-between font-extrabold text-[#0F152A] text-sm text-left"
-                  >
-                    <span>{faq.question}</span>
-                    {isExpanded ? (
-                      <ChevronUp className="size-4 text-[#2563EB]" />
-                    ) : (
-                      <ChevronDown className="size-4 text-[#8C909B]" />
-                    )}
-                  </button>
-
-                  {isExpanded && (
-                    <div className="pt-2 text-xs text-[#66738C] space-y-2">
-                      <p>{faq.answer}</p>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/support/faq/${faq.slug}`)}
-                        className="font-bold text-[#2563EB] hover:underline block"
-                      >
-                        Read full article →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-        </div>
-      </div>
-
-      {/* Modals */}
-      <CreateTicketModal
-        open={createTicketOpen}
-        onOpenChange={setCreateTicketOpen}
-      />
-      <LiveChatModal
-        open={liveChatOpen}
-        onOpenChange={setLiveChatOpen}
-      />
-      <SearchResultsModal
-        open={searchResultsOpen}
-        onOpenChange={setSearchResultsOpen}
-        query={searchQuery || "sim not activating"}
-      />
     </div>
-  );
+
+    {/* Search */}
+    <form onSubmit={submitSearch} className="relative w-full">
+      <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#8C909B]" />
+      <input type="search" placeholder="Search for help, FAQs, or describe your issue..." value={search} onChange={(e) => setSearch(e.target.value)}
+        className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3 pl-10 pr-24 text-xs font-semibold text-[#0F152A] shadow-xs outline-none focus:border-[#2563EB]" />
+      <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl bg-[#2563EB] px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-700">Search</button>
+    </form>
+
+    {/* Category cards */}
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      {home.isLoading ? Array.from({ length: 6 }, (_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />)
+        : (data?.categories ?? []).map((cat) => {
+          const meta = CATEGORY_ICON[cat.key] ?? CATEGORY_ICON.general;
+          return <button key={cat.key} type="button" onClick={() => socket.openCreateTicket(cat.key)}
+            className="flex flex-col gap-2 rounded-2xl border border-[#E2ECF6] bg-white p-4 text-left shadow-xs transition hover:border-[#2563EB]">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[#F8FAFC]"><meta.icon className={`size-5 ${meta.tone}`} /></span>
+            <span className="text-sm font-extrabold text-[#0F152A]">{cat.label}</span>
+            {cat.description && <span className="line-clamp-2 text-[11px] text-[#8C909B]">{cat.description}</span>}
+            <span className="mt-auto text-xs font-bold text-[#2563EB]">Get help →</span>
+          </button>;
+        })}
+    </div>
+
+    <div className="grid gap-6 lg:grid-cols-12">
+      {/* My tickets */}
+      <div className="min-w-0 lg:col-span-8">
+        <div className={`${card} space-y-4`}>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-bold text-[#0F152A]">My Support Tickets</h3>
+            <button type="button" onClick={() => navigate(appPaths.supportTickets)} className="text-xs font-bold text-[#2563EB] hover:underline">View all</button>
+          </div>
+          <div className="flex max-w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap rounded-xl border border-[#E2ECF6] bg-[#F8FAFC] p-1">
+            {STATUS_TABS.map((t) => <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              className={`shrink-0 rounded-lg px-3 py-1 text-xs font-bold transition ${tab === t.key ? "bg-white text-[#0F152A] shadow-xs" : "text-[#8C909B] hover:text-[#0F152A]"}`}>
+              {t.label}{counts ? ` (${counts[t.key] ?? 0})` : ""}
+            </button>)}
+          </div>
+          {tickets.isLoading ? <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100" />)}</div>
+            : (tickets.data?.tickets.length ?? 0) === 0 ? <AppEmptyState title={tab === "all" ? "No tickets yet" : "No tickets here"} description="When you contact support, your tickets and chats appear here." actionText="Create a ticket" onAction={() => socket.openCreateTicket()} />
+              : <div className={`divide-y divide-[#E2ECF6] ${tickets.isFetching ? "opacity-70" : ""}`}>{tickets.data!.tickets.map((t) => <TicketRow key={t.id} ticket={t} />)}</div>}
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div className="min-w-0 space-y-6 lg:col-span-4">
+        <div className={`${card} space-y-3 text-xs`}>
+          <h4 className="font-extrabold text-[#0F152A]">Reach Us Directly</h4>
+          {home.isLoading ? <div className="h-40 animate-pulse rounded-xl bg-slate-100" /> : <div className="divide-y divide-[#E2ECF6]">
+            {(data?.contactChannels ?? []).map((c) => {
+              const isChat = c.action.type === "chat";
+              const Icon = CHANNEL_ICON[c.action.type] ?? HelpCircle;
+              const href = channelHref(c);
+              const button = isChat
+                ? <button type="button" onClick={socket.openChat} className={`mt-2 w-full rounded-xl py-2.5 font-bold text-white shadow-xs ${online ? "bg-[#10B981] hover:bg-emerald-600" : "bg-[#2563EB] hover:bg-blue-700"}`}>{online ? c.action.label || "Start Chat" : "Leave a Message"}</button>
+                : <a href={href} target={c.action.type === "whatsapp" ? "_blank" : undefined} rel="noreferrer" className="mt-2 block w-full rounded-xl border border-[#E2ECF6] py-2 text-center font-bold text-[#0F152A] hover:bg-slate-50">{c.action.label}</a>;
+              return <div key={c.key} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h5 className="flex items-center gap-1.5 font-bold text-[#0F152A]"><Icon className="size-3.5 text-[#2563EB]" /> {c.label}</h5>
+                  {isChat && <span className={`text-[10px] font-bold ${online ? "text-[#10B981]" : "text-[#8C909B]"}`}>● {online ? "Online" : "Offline"}</span>}
+                </div>
+                {c.value && <p className="mt-0.5 break-words text-[11px] font-semibold text-[#0F152A]">{c.value}</p>}
+                {c.description && <p className="text-[10px] text-[#8C909B]">{c.description}</p>}
+                {button}
+              </div>;
+            })}
+          </div>}
+        </div>
+
+        {(data?.responseTimes?.length ?? 0) > 0 && <div className={`${card} space-y-3 text-xs`}>
+          <h4 className="font-extrabold text-[#0F152A]">Avg Response Times</h4>
+          <div className="divide-y divide-[#E2ECF6] text-[11px]">
+            {data!.responseTimes.map((r) => <div key={r.channel} className="flex justify-between gap-3 py-2 first:pt-0 last:pb-0"><span className="text-[#8C909B]">{r.label}</span><span className="font-bold text-[#10B981]">{r.value}</span></div>)}
+          </div>
+        </div>}
+
+        {(data?.quickLinks?.length ?? 0) > 0 && <div className={`${card} space-y-3 text-xs`}>
+          <h4 className="font-extrabold text-[#0F152A]">Fix It Yourself</h4>
+          <div className="space-y-2 font-bold text-[#2563EB]">
+            {data!.quickLinks.filter((l) => QUICK_LINK_PATH[l.key]).map((l) => <button key={l.key} type="button" onClick={() => navigate(QUICK_LINK_PATH[l.key])} className="block text-left hover:underline">{l.label} →</button>)}
+          </div>
+        </div>}
+      </div>
+    </div>
+
+    {/* FAQs */}
+    <div className={`${card} space-y-4`}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-base font-bold text-[#0F152A]">Frequently Asked Questions</h3>
+        <button type="button" onClick={() => navigate(appPaths.supportFaqs)} className="text-xs font-bold text-[#2563EB] hover:underline">View all →</button>
+      </div>
+      {(faqs.data?.categories?.length ?? 0) > 0 && <FaqTabs tabs={faqs.data!.categories} value={faqTab} onChange={setFaqTab} />}
+      <FaqList faqs={(faqs.data?.faqs ?? []).slice(0, 8)} loading={faqs.isLoading} />
+    </div>
+  </div>;
 }

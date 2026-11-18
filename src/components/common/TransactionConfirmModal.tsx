@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowLeft } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 export interface ConfirmDetailItem {
   label: string;
@@ -88,7 +89,7 @@ export function TransactionConfirmModal({
                 />
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         {/* Action Buttons */}

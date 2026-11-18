@@ -7,6 +7,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { useChangePin } from "../api/useChangePin";
+import { ForgotPinLink } from "./ForgotPinModal";
 
 interface ChangePinModalProps {
   open: boolean;
@@ -136,6 +137,7 @@ export function ChangePinModal({ open, onOpenChange }: ChangePinModalProps) {
                 {error}
               </p>
             )}
+            <ForgotPinLink />
           </div>
 
           <div className="flex items-center justify-end border-t border-[#E2ECF6] pt-4 gap-3">

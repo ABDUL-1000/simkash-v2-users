@@ -5,6 +5,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useActivateDeviceSim } from "../api";
 import type { ActivateSimResponseData } from "../types/api";
 import type { ActivationFormData } from "./QuickActivateSimModal";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface ConfirmActivationModalProps {
   open: boolean;
@@ -104,7 +105,7 @@ export function ConfirmActivationModal({
               <InputOTP maxLength={4} value={pin} onChange={setPin} disabled={activate.isPending} inputMode="numeric" pattern="^[0-9]*$">
                 <InputOTPGroup className="gap-2">{[0, 1, 2, 3].map(index => <InputOTPSlot key={index} index={index} className="size-11 rounded-xl border border-[#E2ECF6]" />)}</InputOTPGroup>
               </InputOTP>
-            </div>
+            </div><div className="mt-2 text-center"><ForgotPinLink /></div>
             {activate.error && <p className="text-[11px] font-semibold text-[#EF4444]">{activate.error.message}</p>}
           </div>
         ) : (

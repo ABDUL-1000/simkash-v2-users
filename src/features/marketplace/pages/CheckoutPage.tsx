@@ -12,6 +12,7 @@ import { AddressBookModal } from "../Modals/AddressBookModal";
 import { InstallationSlotPicker, type SlotChoice } from "../components/InstallationSlotPicker";
 import { naira } from "../utils";
 import type { CheckoutResult } from "../types/api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -166,7 +167,7 @@ export default function CheckoutPage() {
             <InputOTP maxLength={4} value={pin} onChange={setPin} containerClassName="gap-3">
               <InputOTPGroup className="gap-3">{[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} className="size-12 text-lg font-bold" />)}</InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
           <div className="flex items-center justify-between border-t border-[#E2ECF6] pt-4">
             <button type="button" disabled={checkout.isPending} onClick={() => { setPinModalOpen(false); setPin(""); }} className="rounded-xl border border-[#E2ECF6] px-5 py-2 text-xs font-bold text-[#0F152A]">Cancel</button>
             <button type="button" onClick={() => placeOrder(pin)} disabled={pin.length < 4 || checkout.isPending} className="rounded-xl bg-[#10B981] px-6 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-600 disabled:opacity-50">

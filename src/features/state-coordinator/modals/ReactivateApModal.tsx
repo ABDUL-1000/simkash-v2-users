@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertCircle, Check } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface ReactivateApModalProps {
   open: boolean;
@@ -130,7 +131,7 @@ export function ReactivateApModal({
                 <InputOTPSlot index={3} className="size-11 text-base font-bold rounded-xl border border-[#E2ECF6]" />
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         {/* Footer Actions (Matching Image 5) */}

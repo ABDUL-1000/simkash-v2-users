@@ -6,6 +6,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { useRepayPayLater } from "../api/usePayLater";
 import type { PayLaterRepayResult } from "../types/api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface PartialRepaymentModalProps {
   open: boolean;
@@ -144,7 +145,7 @@ export function PartialRepaymentModal({ open, onOpenChange, outstandingTotal, du
                   {[0, 1, 2, 3].map(index => <InputOTPSlot key={index} index={index} className={pinSlot} />)}
                 </InputOTPGroup>
               </InputOTP>
-            </div>
+            </div><div className="mt-2 text-center"><ForgotPinLink /></div>
           </div>
 
           {/* Footer Actions */}

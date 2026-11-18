@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { Landmark, AlertTriangle, Users, CheckCircle2, Copy } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface RequestEbPayoutModalProps {
   open: boolean;
@@ -157,7 +158,7 @@ export const RequestEbPayoutModal: React.FC<RequestEbPayoutModalProps> = ({
                 <InputOTPSlot index={3} />
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         {/* Actions */}

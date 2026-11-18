@@ -3,7 +3,7 @@ import { authedHttpClient } from "@/utils/http/auth";
 import { useAuthStore } from "@/store/authStore";
 import { openNotification } from "@/utils/notifications";
 import type {
-  Address, AddressPayload, CartView, CheckoutPayload, CheckoutResult, InstallationSlot, InstallationSlots, MpResponse, NotificationsData,
+  Address, AddressPayload, CartView, CheckoutPayload, CheckoutResult, InstallationSlot, InstallationSlots, MpResponse,
   OrderConfirmation, OrderDetail, OrderReturnsInfo, OrdersListData, OrdersQuery, PaymentOutcome, ProductCategory, ProductCard,
   ProductDetail, ProductsListData, ProductsQuery, RecentlyViewedItem, ReturnReason, ReturnRequest, ReviewsData, UserOrderStats, WishlistData,
 } from "../types/api";
@@ -42,7 +42,6 @@ export const mpKeys = {
   returns: ["mp", "returns"] as const,
   wishlist: (page: number) => ["mp", "wishlist", page] as const,
   addresses: ["user-addresses"] as const,
-  notifications: (params: object) => ["user-notifications", params] as const,
 };
 
 // ===================== Catalogue =====================
@@ -126,7 +125,7 @@ export const useRemoveCartItem = () => useCartMutation((id: number) => call<Cart
 export const useUpdateCart = () => useCartMutation(
   (body: { deliveryMethod?: "standard" | "express"; addressId?: number | null }) => call<CartView>("patch", `${MP}/cart`, body), "Couldn't update cart");
 export const useApplyPromo = () => useCartMutation((code: string) => call<CartView>("post", `${MP}/cart/promo`, { code }), "Promo code not applied");
-export const useRemovePromo = () => useCartMutation(() => call<CartView>("delete", `${MP}/cart/promo`), "Couldn't remove promo");
+export const useRemovePromo = () => useCartMutation<void>(() => call<CartView>("delete", `${MP}/cart/promo`), "Couldn't remove promo");
 
 // ===================== Checkout & payment =====================
 export const useGetInstallationSlots = (enabled = true) =>
@@ -230,18 +229,3 @@ export const useAddAddress = () => useAddressMutation((body: AddressPayload) => 
 export const useUpdateAddress = () => useAddressMutation(({ id, ...body }: Partial<AddressPayload> & { id: number }) => call<Address>("put", `/user/addresses/${id}`, body), "Address updated", "Couldn't update address");
 export const useSetDefaultAddress = () => useAddressMutation((id: number) => call("patch", `/user/addresses/${id}/default`), "Default address updated", "Couldn't set default");
 export const useDeleteAddress = () => useAddressMutation((id: number) => call("delete", `/user/addresses/${id}`), "Address removed", "Couldn't remove address");
-
-// ===================== Notifications (/user/notifications) =====================
-export const useGetNotifications = (params: { page?: number; limit?: number; unreadOnly?: boolean; type?: string } = {}, poll = false) =>
-  useQuery({
-    queryKey: mpKeys.notifications(params), enabled: useToken(), refetchInterval: poll ? 60_000 : false, refetchOnWindowFocus: poll,
-    queryFn: ({ signal }) => call<NotificationsData>("get", "/user/notifications", clean(params), signal),
-  });
-export const useMarkNotificationRead = () => {
-  const client = useQueryClient();
-  return useMutation({ mutationFn: (id: number) => call("patch", `/user/notifications/${id}/read`), onSuccess: () => client.invalidateQueries({ queryKey: ["user-notifications"] }) });
-};
-export const useMarkAllNotificationsRead = () => {
-  const client = useQueryClient();
-  return useMutation({ mutationFn: () => call("patch", "/user/notifications/read-all"), onSuccess: () => client.invalidateQueries({ queryKey: ["user-notifications"] }), onError: notifyError("Couldn't mark as read") });
-};

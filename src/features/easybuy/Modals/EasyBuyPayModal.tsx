@@ -6,6 +6,7 @@ import { useGetWalletBalance } from "@/features/wallet/api/useGetWalletBalance";
 import { cashierUrlFrom, easyBuyReturnUrl, usePayEasyBuyDownPayment, usePayEasyBuyInstallment } from "../api/easybuy";
 import type { EasyBuyAgreement, EasyBuyPayMethod } from "../types/api";
 import { fmtDueDate, naira } from "../utils";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 type Mode = "down_payment" | "installment";
 type Option = "suggested" | "custom" | "payoff";
@@ -135,7 +136,7 @@ export function EasyBuyPayModal({ agreement, mode, open, onClose, onPaid }: {
         <InputOTP maxLength={4} value={pin} onChange={setPin} containerClassName="gap-3">
           <InputOTPGroup className="gap-2 sm:gap-3">{[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} className="size-11 text-lg font-bold sm:size-12" />)}</InputOTPGroup>
         </InputOTP>
-      </div>
+      </div><div className="mt-2 text-center"><ForgotPinLink /></div>
       {error && <p className="rounded-xl border border-[#F7D2D7] bg-[#FFF7F8] p-2.5 text-[11px] font-semibold text-[#EF4444]">{error}</p>}
       <div className="flex items-center justify-between gap-2 border-t border-[#E2ECF6] pt-4">
         <button type="button" disabled={pending} onClick={() => { setStep("choose"); setPin(""); setError(null); }} className="rounded-xl border border-[#E2ECF6] px-5 py-2 text-xs font-bold text-[#0F152A]">Back</button>

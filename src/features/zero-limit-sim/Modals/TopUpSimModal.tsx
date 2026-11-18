@@ -3,6 +3,7 @@ import { Check, Copy, Info } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { TransactionFailureModal } from "@/components/common/TransactionFailureModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface TopUpSimModalProps {
   open: boolean;
@@ -404,7 +405,7 @@ export function TopUpSimModal({
                       />
                     </InputOTPGroup>
                   </InputOTP>
-                </div>
+                </div><div className="mt-2 text-center"><ForgotPinLink /></div>
               </div>
 
               {/* Footer Actions */}

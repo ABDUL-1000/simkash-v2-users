@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, ChevronRight, Landmark, ShieldCheck } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface ScPayoutModalProps {
   open: boolean;
@@ -159,7 +160,7 @@ export function ScPayoutModal({
                 <InputOTPSlot index={3} className="size-12 text-base font-bold rounded-xl border border-[#E2ECF6]" />
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
 
           {/* Footer Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-[#E2ECF6]">

@@ -4,6 +4,7 @@ import { AppModal } from "@/components/common/AppModal";
 import { SimNumberSelect } from "@/components/common/SimNumberSelect";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useSubmitSwap, useSwapCustomerSims, useSwapQuote, useSwapReplacementSims, type CustomerSim, type SwapPayer, type SwapQuote, type SwapReason, type SwapRequest } from "./api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 const REASONS: { key: SwapReason; label: string; hint: string }[] = [
   { key: "NETWORK_CHANGE", label: "Network change", hint: "Free · new SIM must be on a different network" },
@@ -130,7 +131,7 @@ function SwapFlow({ onClose }: { onClose: () => void }) {
         </div>
         {payer && <div className="space-y-1.5 text-center">
           <p className={label}>{payer === "CUSTOMER" ? "Customer enters their transaction PIN" : "Enter your transaction PIN"}</p>
-          <div className="flex justify-center"><InputOTP maxLength={4} value={pin} onChange={setPin} inputMode="numeric"><InputOTPGroup className="gap-2">{[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} className="size-11 bg-white" />)}</InputOTPGroup></InputOTP></div>
+          <div className="flex justify-center"><InputOTP maxLength={4} value={pin} onChange={setPin} inputMode="numeric"><InputOTPGroup className="gap-2">{[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} className="size-11 bg-white" />)}</InputOTPGroup></InputOTP></div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>}
       </div>}
       <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note for admin (optional)" className="w-full rounded-xl border border-[#E2ECF6] bg-white p-2.5 outline-none focus:border-[#2563EB]" />

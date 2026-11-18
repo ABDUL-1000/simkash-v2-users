@@ -1,7 +1,7 @@
 import {
   // Activity,
   Clock,
-  // Headphones,
+  Headphones,
   // InfinityIcon,
   LayoutDashboard,
   MapPin,
@@ -456,12 +456,12 @@ export const userNavigation: NavigationSection[] = [
         href: appPaths.settings,
         icon: Settings,
       },
-      // {
-      //   id: "support",
-      //   label: "Support",
-      //   href: appPaths.support,
-      //   icon: Headphones,
-      // },
+      {
+        id: "support",
+        label: "Support",
+        href: appPaths.support,
+        icon: Headphones,
+      },
     ],
   },
 ];

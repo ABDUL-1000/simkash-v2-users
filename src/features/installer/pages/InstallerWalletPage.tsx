@@ -11,6 +11,7 @@ import {
 } from "../api";
 import { Card, Change, Kpi, QueryState } from "../ui";
 import { dateText, naira } from "../format";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 const TYPES = [["all", "All"], ["job_payment", "Job payments"], ["payout", "Payouts"], ["fee", "Fees"]] as const;
 
@@ -138,7 +139,7 @@ function WithdrawModal({ withdrawable, min, fee, account, onAddAccount, onClose 
       {account ? <p className="text-[#66738C]">To {account.accountName} · {account.bankName} {account.accountNumberMasked}</p> : <button type="button" onClick={onAddAccount} className="font-bold text-[#2563EB]">Add a payout account first</button>}
       <input inputMode="numeric" value={amountText} onChange={(e) => setAmountText(e.target.value.replace(/\D/g, ""))} placeholder={`Amount (min ${naira(min)})`} className="w-full rounded-xl border border-[#E2ECF6] px-3 py-2.5 text-lg font-bold outline-none focus:border-[#2563EB]" />
       {amount > 0 && <p className={amount > withdrawable || amount < min ? "font-semibold text-[#EF4444]" : "text-[#66738C]"}>{amount < min ? `Minimum is ${naira(min)}` : amount > withdrawable ? "More than your withdrawable balance" : `${naira(amount + fee)} will be debited (₦${fee} fee)`}</p>}
-      <div className="flex justify-center"><InputOTP maxLength={4} value={pin} onChange={setPin} inputMode="numeric"><InputOTPGroup className="gap-2">{[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} className="size-11" />)}</InputOTPGroup></InputOTP></div>
+      <div className="flex justify-center"><InputOTP maxLength={4} value={pin} onChange={setPin} inputMode="numeric"><InputOTPGroup className="gap-2">{[0, 1, 2, 3].map((i) => <InputOTPSlot key={i} index={i} className="size-11" />)}</InputOTPGroup></InputOTP></div><div className="mt-2 text-center"><ForgotPinLink /></div>
       <button type="button" disabled={!valid || payout.isPending} onClick={() => payout.mutate({ amount, pin }, { onError: () => setPin("") })} className="w-full rounded-xl bg-[#2563EB] py-2.5 font-bold text-white disabled:opacity-50">{payout.isPending ? "Sending…" : `Withdraw ${amount ? naira(amount) : ""}`}</button>
     </div>}
   </AppModal>;

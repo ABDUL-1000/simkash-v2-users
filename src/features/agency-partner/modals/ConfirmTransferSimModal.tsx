@@ -3,6 +3,7 @@ import { Info } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import type { TransferSimFormData } from "./TransferSimStockModal";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface ConfirmTransferSimModalProps {
   open: boolean;
@@ -131,7 +132,7 @@ export function ConfirmTransferSimModal({
                 <InputOTPSlot index={3} className="size-11 text-base font-bold rounded-xl border border-[#E2ECF6]" />
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         {/* Action Buttons (Matching Image 2) */}

@@ -3,6 +3,7 @@ import { ArrowDownToLine } from "lucide-react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useWithdrawCommission, type CommissionRole, type WithdrawCommissionResult } from "../api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface WithdrawCommissionModalProps {
   open: boolean;
@@ -79,7 +80,7 @@ export function WithdrawCommissionModal({ open, onOpenChange, role, commissionBa
                 {[0, 1, 2, 3].map((index) => <InputOTPSlot key={index} index={index} className="size-11 rounded-xl border border-[#E2ECF6] text-base font-bold" />)}
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         {withdraw.error && <div className="rounded-2xl border border-[#F7D2D7] bg-[#FFF7F8] p-3 font-medium text-[#EF4444]">{withdraw.error.message}</div>}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppModal } from "@/components/common/AppModal";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useCaWithdrawProfit } from "../api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface CaPinAmountModalProps {
   /** POST /wallet/withdraw-profit (to main wallet). Bank payouts use the shared WalletPayoutModal. */
@@ -61,7 +62,7 @@ export function CaPinAmountModal({ available, walletBalance, onClose }: CaPinAmo
                 {[0, 1, 2, 3].map((index) => <InputOTPSlot key={index} index={index} className="size-11 rounded-xl border border-[#E2ECF6] text-base font-bold" />)}
               </InputOTPGroup>
             </InputOTP>
-          </div>
+          </div><div className="mt-2 text-center"><ForgotPinLink /></div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#E2ECF6]">

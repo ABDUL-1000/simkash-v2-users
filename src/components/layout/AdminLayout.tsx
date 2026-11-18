@@ -3,11 +3,14 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { AppNavbar } from "./AppNavbar";
 import { AppSidebar } from "./AppSidebar";
+import { SupportSocketProvider } from "@/features/support/socket/SupportSocketProvider";
+import { ForgotPinModal } from "@/features/settings/Modals/ForgotPinModal";
 
 export function AdminLayout() {
   useGetAuthUser();
 
   return (
+    <SupportSocketProvider>
     <SidebarProvider>
       <div className="flex h-svh w-full overflow-hidden bg-[#F7F9FC]">
         <AppSidebar />
@@ -21,6 +24,8 @@ export function AdminLayout() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+    <ForgotPinModal />
+    </SupportSocketProvider>
   );
 }
 

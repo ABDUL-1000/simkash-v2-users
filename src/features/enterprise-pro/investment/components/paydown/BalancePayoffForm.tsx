@@ -3,6 +3,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { ArrowRight, Wallet, Landmark, CreditCard } from "lucide-react";
 import { colors } from "@/constants/colors";
 import { investmentSummaryData } from "../../data/mockInvestmentData";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface BalancePayoffFormProps {
   onSubmitPayment: (data: { amount: number; source: string; pin: string }) => void;
@@ -178,7 +179,7 @@ export const BalancePayoffForm: React.FC<BalancePayoffFormProps> = ({
               />
             </InputOTPGroup>
           </InputOTP>
-        </div>
+        </div><div className="mt-2 text-center"><ForgotPinLink /></div>
       </div>
 
       <button

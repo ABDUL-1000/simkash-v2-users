@@ -119,13 +119,11 @@ export const appPaths = {
   referrals: "/referrals",
   settings: "/settings",
   support: "/support",
+  supportTickets: "/support/tickets",
+  supportFaqs: "/support/faqs",
   supportTicketDetails: (id?: string) => ({
     format: "/support/tickets/:id",
     path: `/support/tickets/${id ? encodeURIComponent(id) : ""}`,
-  }),
-  faqArticle: (slug?: string) => ({
-    format: "/support/faq/:slug",
-    path: `/support/faq/${slug ? encodeURIComponent(slug) : ""}`,
   }),
 
   // // SIM Hub & Device paths

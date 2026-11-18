@@ -6,6 +6,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useGetAuthUser } from "@/features/auth/api/useGetAuthUser";
 import { useRepayPayLater } from "../api/usePayLater";
 import type { PayLaterRepayResult, PayLaterScheduleItem } from "../types/api";
+import { ForgotPinLink } from "@/features/settings/Modals/ForgotPinModal";
 
 interface RepayFullBalanceModalProps {
   open: boolean;
@@ -152,7 +153,7 @@ export function RepayFullBalanceModal({ open, onOpenChange, outstandingAmount, d
                   {[0, 1, 2, 3].map(index => <InputOTPSlot key={index} index={index} className={pinSlot} />)}
                 </InputOTPGroup>
               </InputOTP>
-            </div>
+            </div><div className="mt-2 text-center"><ForgotPinLink /></div>
           </div>
 
           {/* Footer Actions */}
