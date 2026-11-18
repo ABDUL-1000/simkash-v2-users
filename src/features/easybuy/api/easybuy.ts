@@ -24,17 +24,60 @@ export const ebKeys = {
   detail: (id?: string | number) => ["easybuy", "detail", String(id)] as const,
 };
 
+/**
+ * Fill in anything the server leaves out, so screens never crash on a missing block.
+ * The list and some action responses send a slimmer agreement (e.g. no `actions`, `amounts` or `plan`);
+ * when `actions` is missing we derive it from the status the same way the server does.
+ */
+type RawAgreement = Partial<Omit<EasyBuyAgreement, "actions" | "amounts" | "plan" | "product">> & {
+  actions?: Partial<EasyBuyAgreement["actions"]> | null; amounts?: Partial<EasyBuyAgreement["amounts"]> | null;
+  plan?: Partial<EasyBuyAgreement["plan"]> | null; product?: Partial<EasyBuyAgreement["product"]> | null;
+};
+export function normaliseAgreement(raw: RawAgreement): EasyBuyAgreement {
+  const status = (raw.status ?? "pending_approval") as EasyBuyAgreement["status"];
+  const a = raw.amounts ?? {};
+  const num = (v: unknown) => Number(v) || 0;
+  return {
+    ...raw,
+    id: raw.id as number,
+    reference: raw.reference ?? "",
+    status,
+    statusLabel: raw.statusLabel ?? status.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase()),
+    product: { id: num(raw.product?.id), name: raw.product?.name ?? "Product", image: raw.product?.image ?? null },
+    plan: { name: raw.plan?.name ?? "", frequency: (raw.plan?.frequency ?? "monthly") as EasyBuyAgreement["plan"]["frequency"], installmentCount: num(raw.plan?.installmentCount), duration: raw.plan?.duration ?? "" },
+    amounts: {
+      total: num(a.total), downPayment: num(a.downPayment), deliveryFee: num(a.deliveryFee), dueNow: num(a.dueNow),
+      installmentAmount: num(a.installmentAmount), paid: num(a.paid), outstanding: num(a.outstanding), progressPercent: num(a.progressPercent),
+    },
+    nextDueDate: raw.nextDueDate ?? null,
+    approvalExpiresAt: raw.approvalExpiresAt ?? null,
+    rejectionReason: raw.rejectionReason ?? null,
+    order: raw.order ?? null,
+    schedule: raw.schedule ?? [],
+    payments: raw.payments ?? [],
+    repayment: raw.repayment ?? null,
+    actions: {
+      canPayDownPayment: raw.actions?.canPayDownPayment ?? status === "approved",
+      canPayInstallment: raw.actions?.canPayInstallment ?? ["active", "overdue", "defaulted"].includes(status),
+      canCancel: raw.actions?.canCancel ?? ["pending_approval", "approved"].includes(status),
+    },
+  };
+}
+
 /** The list endpoint may return `{ agreements }`, `{ items }` or a bare array; normalise to one shape. */
 type RawList = EasyBuyListData | { items: EasyBuyAgreement[]; pagination: EasyBuyListData["pagination"] } | EasyBuyAgreement[];
 const normaliseList = (raw: RawList): EasyBuyListData => {
-  if (Array.isArray(raw)) return { agreements: raw, pagination: { page: 1, limit: raw.length, total: raw.length, totalPages: 1, hasNextPage: false, hasPrevPage: false } };
+  if (Array.isArray(raw)) return { agreements: raw.map(normaliseAgreement), pagination: { page: 1, limit: raw.length, total: raw.length, totalPages: 1, hasNextPage: false, hasPrevPage: false } };
   const agreements = "agreements" in raw ? raw.agreements : raw.items;
-  return { agreements: agreements ?? [], pagination: raw.pagination };
+  const list = agreements ?? [];
+  return { agreements: list.map(normaliseAgreement), pagination: raw.pagination ?? { page: 1, limit: list.length, total: list.length, totalPages: 1, hasNextPage: false, hasPrevPage: false } };
 };
 
 /** A pay/down-payment response is either the agreement itself or `{ agreement, payment }`. */
-export const agreementFrom = (result: EasyBuyPayResult): EasyBuyAgreement | undefined =>
-  result.agreement ?? (result.id && result.status ? (result as EasyBuyAgreement) : undefined);
+export const agreementFrom = (result?: EasyBuyPayResult | null): EasyBuyAgreement | undefined => {
+  const raw = result?.agreement ?? (result?.id && result.status ? result : undefined);
+  return raw ? normaliseAgreement(raw as RawAgreement) : undefined;
+};
 export const cashierUrlFrom = (result: EasyBuyPayResult) => result.payment?.cashierUrl;
 
 export const easyBuyReturnUrl = (id: number | string) => `${window.location.origin}/easybuy/${id}?payment=card`;
@@ -49,7 +92,7 @@ export const useGetEasyBuyList = (query: EasyBuyListQuery) =>
 export const useGetEasyBuyDetail = (id?: string | number) => {
   const query = useQuery({
     queryKey: ebKeys.detail(id), enabled: useToken() && Boolean(id),
-    queryFn: ({ signal }) => call<EasyBuyAgreement>("get", `${EB}/${encodeURIComponent(String(id))}`, undefined, signal),
+    queryFn: async ({ signal }) => normaliseAgreement(await call<RawAgreement>("get", `${EB}/${encodeURIComponent(String(id))}`, undefined, signal)),
   });
   return { ...query, agreement: query.data };
 };
@@ -73,8 +116,11 @@ function useRefreshAfterPayment() {
 export const useApplyEasyBuy = () => {
   const refresh = useRefreshAfterPayment();
   return useMutation({
-    mutationFn: (payload: EasyBuyApplyPayload) => call<EasyBuyAgreement>("post", `${EB}/applications`, payload),
-    onSuccess: (agreement) => refresh(agreement?.id, agreement),
+    mutationFn: async (payload: EasyBuyApplyPayload) => {
+      const result = await call<EasyBuyPayResult | null>("post", `${EB}/applications`, payload);
+      return normaliseAgreement((result?.agreement ?? result ?? {}) as RawAgreement);
+    },
+    onSuccess: (agreement) => refresh(agreement.id, agreement.id ? agreement : undefined),
   });
 };
 
@@ -105,7 +151,7 @@ export const useVerifyEasyBuyPayment = () => {
 export const useCancelEasyBuy = () => {
   const refresh = useRefreshAfterPayment();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: number | string; reason?: string }) => call<EasyBuyAgreement>("post", `${EB}/${id}/cancel`, reason ? { reason } : {}),
-    onSuccess: (agreement, { id }) => refresh(id, agreement?.id ? agreement : undefined),
+    mutationFn: async ({ id, reason }: { id: number | string; reason?: string }) => agreementFrom(await call<EasyBuyPayResult>("post", `${EB}/${id}/cancel`, reason ? { reason } : {})),
+    onSuccess: (agreement, { id }) => refresh(id, agreement),
   });
 };

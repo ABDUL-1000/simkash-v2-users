@@ -60,12 +60,12 @@ export function EasyBuyApplyModal({ product, open, onClose, initialQuantity = 1,
         </div>
         <div className="divide-y divide-[#E2ECF6] rounded-2xl border border-[#E2ECF6] bg-[#F8FAFC] p-4 text-left text-xs">
           <div className="flex justify-between gap-3 py-1.5 first:pt-0"><span className="text-[#66738C]">Reference</span><span className="font-mono font-bold text-[#2563EB]">{submitted.reference}</span></div>
-          <div className="flex justify-between gap-3 py-1.5"><span className="text-[#66738C]">Plan</span><span className="text-right font-bold text-[#0F152A]">{submitted.plan?.name ?? plan?.name}</span></div>
+          <div className="flex justify-between gap-3 py-1.5"><span className="text-[#66738C]">Plan</span><span className="text-right font-bold text-[#0F152A]">{submitted.plan?.name || plan?.name}</span></div>
           <div className="flex justify-between gap-3 py-1.5 last:pb-0"><span className="text-[#66738C]">Total</span><span className="font-bold text-[#0F152A]">{naira(submitted.amounts?.total)}</span></div>
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row">
           <button type="button" onClick={close} className="flex-1 rounded-xl border border-[#E2ECF6] py-2.5 text-xs font-bold text-[#0F152A] hover:bg-slate-50">Keep shopping</button>
-          <button type="button" onClick={() => { close(); navigate(appPaths.easyBuyDetails(String(submitted.id)).path); }} className="flex-1 rounded-xl bg-[#2563EB] py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-700">View application</button>
+          <button type="button" onClick={() => { close(); navigate(submitted.id ? appPaths.easyBuyDetails(String(submitted.id)).path : appPaths.easyBuy); }} className="flex-1 rounded-xl bg-[#2563EB] py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-700">View application</button>
         </div>
       </div>
     </AppModal>;

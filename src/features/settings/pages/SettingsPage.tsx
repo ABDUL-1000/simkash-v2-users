@@ -15,19 +15,23 @@ import { NotificationsSettingsTab } from "../components/NotificationsSettingsTab
 import { PayLaterSettingsTab } from "../components/PayLaterSettingsTab";
 import { LinkedDevicesTab } from "../components/LinkedDevicesTab";
 import { AboutHelpTab } from "../components/AboutHelpTab";
+import { useCanManageBankAccount } from "../api/usePayoutAccountSetup";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [selectedTab, setActiveTab] = useState("profile");
+  // Normal customers don't receive payouts, so only agents get the Bank Account tab.
+  const canManageBank = useCanManageBankAccount();
 
   const tabs = [
     { id: "profile", label: "Profile", icon: <User className="size-4 shrink-0" /> },
     { id: "security", label: "Security & PIN", icon: <Lock className="size-4 shrink-0" /> },
-    { id: "bank", label: "Bank Account", icon: <Landmark className="size-4 shrink-0" /> },
+    ...(canManageBank ? [{ id: "bank", label: "Bank Account", icon: <Landmark className="size-4 shrink-0" /> }] : []),
     { id: "notifications", label: "Notifications", icon: <Bell className="size-4 shrink-0" /> },
     { id: "paylater", label: "PayLater", icon: <CreditCard className="size-4 shrink-0" /> },
     { id: "devices", label: "Linked Devices", icon: <Smartphone className="size-4 shrink-0" /> },
     { id: "about", label: "About & Help", icon: <HelpCircle className="size-4 shrink-0" /> },
   ];
+  const activeTab = tabs.some((t) => t.id === selectedTab) ? selectedTab : "profile";
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 w-full min-w-0 max-w-full overflow-hidden">

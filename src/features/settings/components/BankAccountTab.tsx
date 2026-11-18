@@ -135,19 +135,14 @@ export function BankAccountTab() {
         onClick={() => setChangeBankOpen(true)}
         className="w-full rounded-2xl border border-[#E2ECF6] bg-white py-3.5 text-xs font-bold text-[#2563EB] shadow-xs hover:bg-slate-50 flex items-center justify-center gap-2 transition"
       >
-        <Plus className="size-4" /> Add or Change Bank Account
+        <Plus className="size-4" /> {bankAccounts.length ? "Change Bank Account" : "Add Bank Account"}
       </button>
 
       {/* Change Bank Account Modal */}
       <ChangeBankAccountModal
         open={changeBankOpen}
         onOpenChange={setChangeBankOpen}
-        currentBank={
-          defaultAccount
-            ? `${defaultAccount.bank_name} · ${defaultAccount.account_number}`
-            : undefined
-        }
-        accountName={defaultAccount?.account_name}
+        currentAccount={defaultAccount}
       />
     </div>
   );
