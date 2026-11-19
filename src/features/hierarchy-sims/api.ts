@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/authStore";
 import type { ApiResponse } from "@/features/auth/types/api";
 import { useHierarchyConfig } from "./roles";
 import type {
-  ApproveSimRequestPayload, CreateSimRequestPayload, LeaderboardData, LeaderboardPeriod, Pagination, RecallHolder, RecallHoldersData,
+  ApproveSimRequestPayload, AvailableSimsData, CreateSimRequestPayload, LeaderboardData, LeaderboardPeriod, Pagination, RecallHolder, RecallHoldersData,
   RecallPayload, RecallResult, RecallableSimsData, SimRequest, SimRequestList, SimRequestQuery, SimSuppliersData, SimType,
 } from "./types";
 
@@ -33,6 +33,7 @@ export const hsKeys = {
   suppliers: (role: string) => ["hierarchy-sims", "suppliers", role] as const,
   mine: (role: string, q: SimRequestQuery) => ["hierarchy-sims", "mine", role, q] as const,
   incoming: (role: string, q: SimRequestQuery) => ["hierarchy-sims", "incoming", role, q] as const,
+  available: (role: string, q: object) => ["hierarchy-sims", "available", role, q] as const,
   holders: (role: string, type?: SimType) => ["hierarchy-sims", "recall-holders", role, type ?? "all"] as const,
   holderSims: (role: string, id: number | string, q: object) => ["hierarchy-sims", "recall-sims", role, String(id), q] as const,
 };
@@ -134,6 +135,37 @@ export function useRejectSimRequest() {
     retry: false,
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => call<SimRequest>("patch", `${config!.base}/sim-request/incoming/${id}/reject`, reason ? { reason } : {}),
     onSuccess: () => client.invalidateQueries({ queryKey: hsKeys.all }),
+  });
+}
+
+// ===================== Your stock =====================
+type RawAvailable = {
+  sims?: { id: number; sim_number?: string; serial_no?: string; type?: string; type_label?: string; network?: string | null; received_at?: string | null }[];
+  summary?: AvailableSimsData["summary"]; total?: number; page?: number; total_pages?: number;
+  pagination?: Partial<Pagination>;
+};
+
+/** Your undistributed SIMs: the same list the Distribute screens pick from. */
+export function useAvailableSims(q: { type: SimType; network?: string; search?: string; page: number; limit: number }, enabled = true) {
+  const config = useHierarchyConfig();
+  return useQuery({
+    queryKey: hsKeys.available(config?.role ?? "", q),
+    enabled: useReady() && Boolean(config?.requesterLabel) && enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+    queryFn: async ({ signal }): Promise<AvailableSimsData> => {
+      const params = { type: q.type, page: q.page, limit: q.limit, ...(q.network ? { network: q.network } : {}), ...(q.search ? { search: q.search } : {}) };
+      const raw = await call<RawAvailable>("get", `${config!.base}/sim-inventory/undistributed`, params, signal);
+      const sims = (raw?.sims ?? []).map((s) => ({
+        id: s.id, number: s.sim_number ?? s.serial_no ?? "", type: s.type ?? q.type, type_label: s.type_label ?? "", network: s.network ?? null, received_at: s.received_at ?? null,
+      })).filter((s) => s.number);
+      const total = Number(raw?.total ?? raw?.pagination?.total ?? sims.length);
+      return {
+        sims, summary: raw?.summary ?? {}, total,
+        page: Number(raw?.page ?? raw?.pagination?.page ?? q.page),
+        totalPages: Number(raw?.total_pages ?? raw?.pagination?.totalPages ?? Math.max(1, Math.ceil(total / q.limit))),
+      };
+    },
   });
 }
 

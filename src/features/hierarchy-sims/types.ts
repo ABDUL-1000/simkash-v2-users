@@ -44,3 +44,7 @@ export interface SimSupplier { user_id: number | null; agent_id: number | null; 
 export interface SimSuppliersData { supplier_role: string; count: number; suppliers: SimSupplier[]; sim_types?: SimType[] }
 export interface CreateSimRequestPayload { supplier_id?: number; sim_type: SimType; quantity: number; network?: string; urgency?: SimRequestUrgency; note?: string }
 export interface ApproveSimRequestPayload { sim_numbers?: string[]; quantity?: number; network?: string; note?: string }
+
+// ---------- Your own undistributed stock (GET {base}/sim-inventory/undistributed) ----------
+export interface AvailableSim { id: number; number: string; type: string; type_label: string; network: string | null; received_at: string | null }
+export interface AvailableSimsData { sims: AvailableSim[]; summary: Partial<Record<SimType, number>> & { total_undistributed?: number }; total: number; page: number; totalPages: number }

@@ -4,7 +4,8 @@ export const SIM_TYPES: SimType[] = ["pos", "cctv", "gps", "router", "cctv_devic
 export const SIM_TYPE_LABELS: Record<SimType, string> = {
   pos: "POS SIM", cctv: "CCTV SIM", gps: "GPS SIM", router: "Router SIM", cctv_device: "CCTV Device",
 };
-export const NETWORKS = ["MTN", "Airtel", "Glo", "9mobile"];
+// Same values the inventory screens filter by.
+export const NETWORKS = ["MTN", "AIRTEL", "GLO", "9MOBILE"];
 
 export const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
   { value: "today", label: "Today" },
